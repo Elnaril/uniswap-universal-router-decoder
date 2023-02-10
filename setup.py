@@ -15,5 +15,15 @@ setup(
     install_requires=['web3', ],
     python_requires='>=3.8, <4',
     license="MIT",
-    keywords="ethereum uniswap universal router decoder",
+    keywords="blockchain ethereum uniswap universal router decoder",
+    classifiers=[
+        "Development Status :: 2 - Pre-Alpha",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: MIT License",
+        "Natural Language :: English",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Operating System :: OS Independent",
+    ],
 )

@@ -1,0 +1,29 @@
+[project]
+name = "Uniswap Universal Router Decoder"
+version = "0.1.0"
+authors = [
+  { name="Elnaril", email="elnaril_dev@caramail.com" },
+]
+description = "Decode transaction sent to Uniswap universal router"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Operating System :: OS Independent",
+]
+license = {text = "MIT License"}
+dependencies = [
+  "web3<6.0.0",
+]
+keywords = ["blockchain", "ethereum", "uniswap", "universal router", "decoder"]
+
+[project.urls]
+"Homepage" = "https://github.com/Elnaril/uniswap-universal-router-decoder"
+"Bug Tracker" = "https://github.com/Elnaril/uniswap-universal-router-decoder/issues"
+"Fiverr" = "https://www.fiverr.com/elnaril"

@@ -8,7 +8,7 @@ The object of this library is to decode the transaction input sent to the Uniswa
 ⚠ Not all commands are decoded yet. Below a list of the commands that have already been implemented.
 
 | Command Id | Function Name | Is Implemented
-| ---------- | ------------- | --------------
+| ---------- | ------------- |:--------------:
 | 0x08 | V2_SWAP_EXACT_IN | ✅
 | 0x0a | PERMIT2_PERMIT | ✅
 
