@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+
+.idea/
+
+build/
+dist/
+virtualenv/
+uniswap-universal-router-decoder.egg-info/
+
+notes/
