@@ -6,6 +6,6 @@ __pycache__/
 build/
 dist/
 virtualenv/
-uniswap-universal-router-decoder.egg-info/
+uniswap_universal_router_decoder.egg-info/
 
 notes/

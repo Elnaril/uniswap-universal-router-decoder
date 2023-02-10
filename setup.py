@@ -4,7 +4,7 @@ with open('README.md') as readme_file:
     long_description = readme_file.read()
 
 setup(
-    name='Uniswap Universal Router Decoder',
+    name='uniswap-universal-router-decoder',
     version='0.1.0',
     description='Decode transaction sent to Uniswap universal router',
     long_description=long_description,

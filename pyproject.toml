@@ -1,5 +1,5 @@
 [project]
-name = "Uniswap Universal Router Decoder"
+name = "uniswap-universal-router-decoder"
 version = "0.1.0"
 authors = [
   { name="Elnaril", email="elnaril_dev@caramail.com" },

@@ -1,3 +1,4 @@
 -r requirements_install.txt
 mypy
 pytest
+build
