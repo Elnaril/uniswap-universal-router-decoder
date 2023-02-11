@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "uniswap-universal-router-decoder"
 version = "0.2.0"
@@ -22,6 +26,9 @@ dependencies = [
   "web3<6.0.0",
 ]
 keywords = ["blockchain", "ethereum", "uniswap", "universal router", "decoder"]
+
+[tool.setuptools]
+packages = ["uniswap_universal_router_decoder"]
 
 [project.urls]
 "Homepage" = "https://github.com/Elnaril/uniswap-universal-router-decoder"
