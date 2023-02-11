@@ -62,8 +62,13 @@ class RouterDecoder:
     def _build_abi_map(self) -> _ABIMap:
         abi_map: _ABIMap = {
             # mapping between command identifier and fct descriptor (fct abi + selector)
+            0: self._add_mapping(self._build_v3_swap_exact_in),
+            1: self._add_mapping(self._build_v3_swap_exact_out),
             8: self._add_mapping(self._build_v2_swap_exact_in),
+            9: self._add_mapping(self._build_v2_swap_exact_out),
             10: self._add_mapping(self._build_permit2_permit),
+            11: self._add_mapping(self._build_wrap_eth),
+            12: self._add_mapping(self._build_unwrap_weth),
         }
         return abi_map
 
@@ -76,8 +81,8 @@ class RouterDecoder:
     @staticmethod
     def _build_v2_swap_exact_in() -> _FunctionABI:
         builder = _FunctionABIBuilder("V2_SWAP_EXACT_IN")
-        builder.add_address("sender").add_int("amountIn").add_int("amountOutMin").add_address_array("path")
-        return builder.add_bool("payerIsSender").build()
+        builder.add_address("recipient").add_int("amountIn").add_int("amountOutMin").add_address_array("path")
+        return builder.add_bool("payerIsUser").build()
 
     @staticmethod
     def _build_permit2_permit() -> _FunctionABI:
@@ -87,6 +92,34 @@ class RouterDecoder:
         outer_struct = builder.create_struct("struct")
         outer_struct.add_struct(inner_struct).add_address("spender").add_int("sigDeadline")
         return builder.add_struct(outer_struct).add_bytes("data").build()
+
+    @staticmethod
+    def _build_unwrap_weth() -> _FunctionABI:
+        builder = _FunctionABIBuilder("UNWRAP_WETH")
+        return builder.add_address("recipient").add_int("amountMin").build()
+
+    @staticmethod
+    def _build_v3_swap_exact_in() -> _FunctionABI:
+        builder = _FunctionABIBuilder("V3_SWAP_EXACT_IN")
+        builder.add_address("recipient").add_int("amountIn").add_int("amountOutMin").add_bytes("path")
+        return builder.add_bool("payerIsSender").build()
+
+    @staticmethod
+    def _build_wrap_eth() -> _FunctionABI:
+        builder = _FunctionABIBuilder("WRAP_ETH")
+        return builder.add_address("recipient").add_int("amountMin").build()
+
+    @staticmethod
+    def _build_v2_swap_exact_out() -> _FunctionABI:
+        builder = _FunctionABIBuilder("V2_SWAP_EXACT_OUT")
+        builder.add_address("recipient").add_int("amountOut").add_int("amountInMax").add_address_array("path")
+        return builder.add_bool("payerIsUser").build()
+
+    @staticmethod
+    def _build_v3_swap_exact_out() -> _FunctionABI:
+        builder = _FunctionABIBuilder("V3_SWAP_EXACT_OUT")
+        builder.add_address("recipient").add_int("amountIn").add_int("amountOutMin").add_bytes("path")
+        return builder.add_bool("payerIsSender").build()
 
 
 @dataclass(frozen=True)
