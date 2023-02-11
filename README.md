@@ -1,9 +1,10 @@
 # Uniswap Universal Router Decoder
 
-## Description ##
+## Description
 
 The object of this library is to decode the transaction input sent to the Uniswap universal router 
-(address `0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B` on Ethereum Mainnet).
+(address [`0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B`](https://etherscan.io/address/0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B) 
+on Ethereum Mainnet).
 
 ⚠ Not all commands are decoded yet. Below a list of the commands that have already been implemented.
 
@@ -12,6 +13,16 @@ The object of this library is to decode the transaction input sent to the Uniswa
 | 0x08 | V2_SWAP_EXACT_IN | ✅
 | 0x0a | PERMIT2_PERMIT | ✅
 
+
+## Installation
+
+```bash
+# update pip to latest version if needed
+pip install -U pip
+
+# install the decoder from pypi.org
+pip install uniswap-universal-router-decoder
+```
 
 ## Usage
 

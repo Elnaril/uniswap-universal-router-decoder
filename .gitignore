@@ -9,3 +9,5 @@ virtualenv/
 uniswap_universal_router_decoder.egg-info/
 
 notes/
+
+.coverage
