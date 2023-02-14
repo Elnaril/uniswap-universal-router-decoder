@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, asdict
+from itertools import chain
 from typing import (
     Any,
     Callable,
@@ -15,6 +16,7 @@ from eth_utils import function_abi_to_4byte_selector
 from web3 import Web3
 from web3.contract import ContractFunction
 from web3.types import (
+    ChecksumAddress,
     HexBytes,
     HexStr,
     TxData,
@@ -55,6 +57,34 @@ class RouterDecoder:
         result_trx = dict(trx)
         result_trx["decoded_input"] = decoded_input
         return result_trx
+
+    @staticmethod
+    def decode_v3_path(v3_fn_name: str, path: Union[bytes, str]) -> Tuple[Union[int, ChecksumAddress], ...]:
+        """
+        Decode a V3 router path
+        :param v3_fn_name: V3_SWAP_EXACT_IN or V3_SWAP_EXACT_OUT only
+        :param path: the V3 path as returned by decode_function_input() or decode_transaction()
+        :return: a tuple of token addresses separated by the corresponding pool fees, first token being the 'in-token',
+        last token being the 'out-token'
+        """
+        valid_fn_names = ("V3_SWAP_EXACT_IN", "V3_SWAP_EXACT_OUT")
+        if v3_fn_name.upper() not in valid_fn_names:
+            raise ValueError(f"v3_fn_name must be in {valid_fn_names}")
+        path_str = path.hex().lstrip("0x") if type(path) == bytes else str(path).lstrip("0x")
+        path_list: List[Union[int, ChecksumAddress]] = [Web3.toChecksumAddress(path_str[0:40]), ]
+        parsed_remaining_path: List[List[Union[int, ChecksumAddress]]] = [
+            [
+                int(path_str[40:][i:i + 6], 16),
+                Web3.toChecksumAddress(path_str[40:][i + 6:i + 46]),
+            ]
+            for i in range(0, len(path_str[40:]), 46)
+        ]
+        path_list.extend(list(chain.from_iterable(parsed_remaining_path)))
+
+        if v3_fn_name.upper() == "V3_SWAP_EXACT_OUT":
+            path_list.reverse()
+
+        return tuple(path_list)
 
     def _get_transaction(self, trx_hash: Union[HexBytes, HexStr]) -> TxData:
         return self._w3.eth.get_transaction(trx_hash)

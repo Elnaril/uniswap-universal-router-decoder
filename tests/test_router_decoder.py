@@ -29,7 +29,7 @@ def test_build_abi_map(command_id, expected_fct_abi, expected_selector):
     assert decoder._abi_map[command_id].selector == expected_selector
 
 
-# Test Decode
+# Test Decode Trx + Input
 
 rpc_endpoint_address = os.environ["WEB3_HTTP_PROVIDER_URL_ETHEREUM_MAINNET"]
 w3_instance = Web3(Web3.HTTPProvider(rpc_endpoint_address))
@@ -68,11 +68,62 @@ def test_decode_transaction(trx_hash, w3, rpc_endpoint, expected_fct_names):
         decoder_w3 = RouterDecoder(rpc_endpoint=rpc_endpoint)
 
     decoded_trx = decoder_w3.decode_transaction(trx_hash)
-    command_input = decoded_trx["decoded_input"]["inputs"]
-    assert len(command_input) == len(expected_fct_names)
+    command_inputs = decoded_trx["decoded_input"]["inputs"]
+    assert len(command_inputs) == len(expected_fct_names)
     for i, expected_name in enumerate(expected_fct_names):
         if expected_name:
-            assert expected_name == command_input[i][0].fn_name
+            assert expected_name == command_inputs[i][0].fn_name
         else:
-            assert type(command_input[i]) == str
-            int(command_input[i], 16)  # check the str is actually a hex
+            assert type(command_inputs[i]) == str
+            int(command_inputs[i], 16)  # check the str is actually a hex
+
+
+# Test Decode V3 Path
+
+expected_parsed_path_02 = (
+    Web3.toChecksumAddress("0x4d224452801ACEd8B2F0aebE155379bb5D594381"),
+    3000,
+    Web3.toChecksumAddress("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"),
+)
+
+expected_parsed_path_04 = (
+    Web3.toChecksumAddress("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"),
+    3000,
+    Web3.toChecksumAddress("0xf3dcbc6D72a4E1892f7917b7C43b74131Df8480e"),
+)
+
+trx_hash_06 = HexStr("0x4a23b8ca6e15be1e61554d67bc5868b2fd8e91a97124b0fb31d39ce1a921bc62")
+expected_parsed_path_06 = (
+    Web3.toChecksumAddress("0xdAC17F958D2ee523a2206206994597C13D831ec7"),
+    500,
+    Web3.toChecksumAddress("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"),
+    3000,
+    Web3.toChecksumAddress("0xABe580E7ee158dA464b51ee1a83Ac0289622e6be"),
+)
+
+
+@pytest.mark.parametrize(
+    "trx_hash, fn_name, rpc_endpoint, expected_parsed_path, expected_exception",
+    (
+        (trx_hash_02, "V3_SWAP_EXACT_IN", rpc_endpoint_address, expected_parsed_path_02, None),
+        (trx_hash_04, "V3_SWAP_EXACT_OUT", rpc_endpoint_address, expected_parsed_path_04, None),
+        (trx_hash_04, "V2_SWAP_EXACT_OUT", rpc_endpoint_address, None, ValueError),
+        (trx_hash_06, "V3_SWAP_EXACT_OUT", rpc_endpoint_address, expected_parsed_path_06, None),
+    )
+)
+def test_decode_v3_path(trx_hash, fn_name, rpc_endpoint, expected_parsed_path, expected_exception):
+    decoder_w3 = RouterDecoder(rpc_endpoint=rpc_endpoint)
+    decoded_trx = decoder_w3.decode_transaction(trx_hash)
+    command_inputs = decoded_trx["decoded_input"]["inputs"]
+    for command_input in command_inputs:
+        if command_input[0].fn_name == fn_name:
+            path_bytes = command_input[1]["path"]
+            if expected_exception:
+                with pytest.raises(expected_exception):
+                    _ = decoder_w3.decode_v3_path(fn_name, path_bytes)
+            else:
+                assert decoder_w3.decode_v3_path(fn_name, path_bytes) == expected_parsed_path
+                assert decoder_w3.decode_v3_path(fn_name, path_bytes.hex()) == expected_parsed_path
+            break
+    else:
+        raise ValueError(f"No fn_name {fn_name} found in the decoded command inputs for trx {trx_hash}")
