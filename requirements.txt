@@ -1,7 +1,10 @@
 -r requirements_install.txt
+
+coverage
+flake8
 mypy
 pytest
-coverage
+tox
 
 build
 twine
