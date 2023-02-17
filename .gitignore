@@ -12,3 +12,6 @@ analysis/
 notes/
 
 .coverage
+.mypy_cache
+.pytest_cache
+.tox
