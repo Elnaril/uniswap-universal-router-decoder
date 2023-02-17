@@ -1,3 +1,8 @@
+[![Tests & Lint](https://github.com/Elnaril/uniswap-universal-router-decoder/actions/workflows/tests.yml/badge.svg)](https://github.com/Elnaril/uniswap-universal-router-decoder/actions/workflows/tests.yml)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/Elnaril/uniswap-universal-router-decoder)
+![GitHub](https://img.shields.io/github/license/Elnaril/uniswap-universal-router-decoder)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/uniswap-universal-router-decoder)
+
 # Uniswap Universal Router Decoder
 
 ## Description
