@@ -1,7 +1,7 @@
 import json
 import os
-import pytest
 
+import pytest
 from web3 import Web3
 
 from uniswap_universal_router_decoder.router_decoder import (

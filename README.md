@@ -2,6 +2,8 @@
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/Elnaril/uniswap-universal-router-decoder)
 ![GitHub](https://img.shields.io/github/license/Elnaril/uniswap-universal-router-decoder)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/uniswap-universal-router-decoder)
+[![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
+
 
 # Uniswap Universal Router Decoder
 
