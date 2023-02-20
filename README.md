@@ -8,11 +8,11 @@
 [![Type Checker: mypy](https://img.shields.io/badge/%20type%20checker-mypy-%231674b1?style=flat&labelColor=ef8336)](https://mypy-lang.org/)
 [![Linter: flake8](https://img.shields.io/badge/%20linter-flake8-%231674b1?style=flat&labelColor=ef8336)](https://flake8.pycqa.org/en/latest/)
 
-# Uniswap Universal Router Decoder
+# Uniswap Universal Router Decoder & Encoder
 
 ## Description
 
-The object of this library is to decode the transaction input sent to the Uniswap universal router (UR)
+The object of this library is to decode & encode the transaction input sent to the Uniswap universal router (UR)
 (address [`0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B`](https://etherscan.io/address/0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B) 
 on Ethereum Mainnet).
 
