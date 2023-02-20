@@ -29,7 +29,7 @@ on Ethereum Mainnet).
 | 0x01 | V3_SWAP_EXACT_OUT | ✅ | ❌
 | 0x02 - 0x06 |  | ❌ | ❌
 | 0x07 | placeholder  | N/A | N/A
-| 0x08 | V2_SWAP_EXACT_IN | ✅ | ❌
+| 0x08 | V2_SWAP_EXACT_IN | ✅ | ✅
 | 0x09 | V2_SWAP_EXACT_OUT | ✅ | ❌
 | 0x0a | PERMIT2_PERMIT | ✅ | ❌
 | 0x0b | WRAP_ETH | ✅ | ✅
@@ -112,7 +112,30 @@ from uniswap_universal_router_decoder.router_decoder import RouterDecoder
 decoder = RouterDecoder()
 encoded_data = decoder.encode_data_for_wrap_eth(amount_in_wei)  # to convert amount_in_wei eth to weth
 
-# and now in your transaction dict:
+# then in your transaction dict:
+transaction["data"] = encoded_data
+
+# you can now sign and send the transaction to the UR
+```
+
+
+### How to encode a call to the function V2_SWAP_EXACT_IN
+This function can be used to swap tokens. Correct allowances must have been set before using sending such transaction.
+```python
+from uniswap_universal_router_decoder.router_decoder import RouterDecoder
+
+decoder = RouterDecoder()
+encoded_data = decoder.encode_data_for_v2_swap_exact_in(
+        amount_in,  # in Wei
+        min_amount_out,  # in Wei
+        [
+            in_token_address,
+            out_token_address,
+        ],
+        timestamp,  # unix timestamp after which the trx will not be valid any more
+    )
+
+# then in your transaction dict:
 transaction["data"] = encoded_data
 
 # you can now sign and send the transaction to the UR
