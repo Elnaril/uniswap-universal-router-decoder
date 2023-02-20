@@ -3,10 +3,12 @@ import os
 
 import pytest
 from web3 import Web3
+from web3.types import Wei
 
 from uniswap_universal_router_decoder.router_decoder import (
     HexStr,
     RouterDecoder,
+    _RouterFunction,
 )
 
 
@@ -20,8 +22,8 @@ decoder = RouterDecoder()
 @pytest.mark.parametrize(
     "command_id, expected_fct_abi, expected_selector",
     (
-        (8, expected_fct_abi_08, bytes.fromhex("3bd2d879")),
-        (10, expected_fct_abi_10, b'\xe5\xa0\x93%'),
+        (_RouterFunction(8), expected_fct_abi_08, bytes.fromhex("3bd2d879")),
+        (_RouterFunction(10), expected_fct_abi_10, b'\xe5\xa0\x93%'),
     )
 )
 def test_build_abi_map(command_id, expected_fct_abi, expected_selector):
@@ -127,3 +129,22 @@ def test_decode_v3_path(trx_hash, fn_name, rpc_endpoint, expected_parsed_path, e
             break
     else:
         raise ValueError(f"No fn_name {fn_name} found in the decoded command inputs for trx {trx_hash}")
+
+
+# Test encoding
+
+def test_get_default_deadline():
+    assert 79 < decoder.get_default_deadline() - decoder.get_default_deadline(100) < 81
+
+
+def test_encode_wrap_eth_sub_contract():
+    encoded_input = decoder._encode_wrap_eth_sub_contract(
+        Web3.toChecksumAddress("0x0000000000000000000000000000000000000002"),
+        Wei(500000000000000000)
+    )
+    assert encoded_input == "000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000006f05b59d3b20000"  # noqa
+
+
+def test_encode_data_for_wrap_eth():
+    encoded_data = decoder.encode_data_for_wrap_eth(Wei(10**17), 1676825611)
+    assert encoded_data == HexStr("0x3593564c000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000063f2540b00000000000000000000000000000000000000000000000000000000000000010b000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000016345785d8a0000")  # noqa

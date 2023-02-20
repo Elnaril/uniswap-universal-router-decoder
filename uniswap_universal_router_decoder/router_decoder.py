@@ -4,6 +4,8 @@ from dataclasses import (
     asdict,
     dataclass,
 )
+from datetime import datetime
+from enum import Enum
 from itertools import chain
 from typing import (
     Any,
@@ -15,15 +17,25 @@ from typing import (
     Union,
 )
 
-from eth_utils import function_abi_to_4byte_selector
+from eth_abi import encode
+from eth_utils import (
+    function_abi_to_4byte_selector,
+    remove_0x_prefix,
+)
 from web3 import Web3
+from web3._utils.contracts import encode_abi  # noqa
 from web3.contract import ContractFunction
 from web3.types import (
     ChecksumAddress,
     HexBytes,
     HexStr,
     TxData,
+    Wei,
 )
+
+
+_execution_function_input_types = ["bytes", "bytes[]", "int"]
+_execution_function_selector = HexStr("0x3593564c")
 
 
 class RouterDecoder:
@@ -44,12 +56,12 @@ class RouterDecoder:
         decoded_command_input = []
         for i, b in enumerate(command[-6:]):
             # iterating over bytes produces integers
-            abi_mapping = self._abi_map.get(b)
-            if abi_mapping:
+            try:
+                abi_mapping = self._abi_map[_RouterFunction(b)]
                 data = abi_mapping.selector + command_input[i]
                 sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
                 decoded_command_input.append(sub_contract.decode_function_input(data))
-            else:
+            except (ValueError, KeyError):
                 decoded_command_input.append(command_input[i].hex())
         decoded_input["inputs"] = decoded_command_input
         return fct_name, decoded_input
@@ -89,19 +101,54 @@ class RouterDecoder:
 
         return tuple(path_list)
 
+    def _encode_wrap_eth_sub_contract(self, recipient: ChecksumAddress, amount_min: Wei) -> HexStr:
+        abi_mapping = self._abi_map[_RouterFunction.WRAP_ETH]
+        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
+        contract_function: ContractFunction = sub_contract.functions.WRAP_ETH(recipient, amount_min)
+        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, [recipient, amount_min]))
+
+    @staticmethod
+    def get_default_deadline(valid_duration: int = 180) -> int:
+        """
+        :return: timestamp corresponding to now + valid_duration seconds. valid_duration default is 180
+        """
+        return int(datetime.now().timestamp() + valid_duration)
+
+    @staticmethod
+    def _encode_execution_function(arguments: Tuple[bytes, List[bytes], int]) -> HexStr:
+        encoded_data = encode(_execution_function_input_types, arguments)  # type: ignore
+        return Web3.toHex(Web3.toBytes(hexstr=_execution_function_selector) + encoded_data)
+
+    def encode_data_for_wrap_eth(self, amount: Wei, deadline: Optional[int] = None) -> HexStr:
+        """
+        Encode the call to the function WRAP_ETH which convert ETH to WETH through the UR
+        :param amount: The amount of sent ETH in WEI.
+        :param deadline: The unix timestamp after which the transaction won't be valid any more. Default to now + 180s.
+        :return: The encoded data to add to the UR transaction dictionary parameters.
+        """
+        recipient = Web3.toChecksumAddress("0x0000000000000000000000000000000000000001")  # recipient is sender
+        arguments = (
+            Web3.toBytes(_RouterFunction.WRAP_ETH.value),
+            [
+                Web3.toBytes(hexstr=self._encode_wrap_eth_sub_contract(recipient, amount)),
+            ],
+            deadline or self.get_default_deadline()
+        )
+        return self._encode_execution_function(arguments)
+
     def _get_transaction(self, trx_hash: Union[HexBytes, HexStr]) -> TxData:
         return self._w3.eth.get_transaction(trx_hash)
 
     def _build_abi_map(self) -> _ABIMap:
         abi_map: _ABIMap = {
             # mapping between command identifier and fct descriptor (fct abi + selector)
-            0: self._add_mapping(self._build_v3_swap_exact_in),
-            1: self._add_mapping(self._build_v3_swap_exact_out),
-            8: self._add_mapping(self._build_v2_swap_exact_in),
-            9: self._add_mapping(self._build_v2_swap_exact_out),
-            10: self._add_mapping(self._build_permit2_permit),
-            11: self._add_mapping(self._build_wrap_eth),
-            12: self._add_mapping(self._build_unwrap_weth),
+            _RouterFunction.V3_SWAP_EXACT_IN: self._add_mapping(self._build_v3_swap_exact_in),
+            _RouterFunction.V3_SWAP_EXACT_OUT: self._add_mapping(self._build_v3_swap_exact_out),
+            _RouterFunction.V2_SWAP_EXACT_IN: self._add_mapping(self._build_v2_swap_exact_in),
+            _RouterFunction.V2_SWAP_EXACT_OUT: self._add_mapping(self._build_v2_swap_exact_out),
+            _RouterFunction.PERMIT2_PERMIT: self._add_mapping(self._build_permit2_permit),
+            _RouterFunction.WRAP_ETH: self._add_mapping(self._build_wrap_eth),
+            _RouterFunction.UNWRAP_WETH: self._add_mapping(self._build_unwrap_weth),
         }
         return abi_map
 
@@ -177,7 +224,17 @@ class _FunctionDesc:
     selector: bytes
 
 
-_ABIMap = Dict[int, _FunctionDesc]
+class _RouterFunction(Enum):
+    V3_SWAP_EXACT_IN = 0
+    V3_SWAP_EXACT_OUT = 1
+    V2_SWAP_EXACT_IN = 8
+    V2_SWAP_EXACT_OUT = 9
+    PERMIT2_PERMIT = 10
+    WRAP_ETH = 11
+    UNWRAP_WETH = 12
+
+
+_ABIMap = Dict[_RouterFunction, _FunctionDesc]
 
 
 class _FunctionABIBuilder:

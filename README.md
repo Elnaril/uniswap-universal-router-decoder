@@ -12,22 +12,32 @@
 
 ## Description
 
-The object of this library is to decode the transaction input sent to the Uniswap universal router 
+The object of this library is to decode the transaction input sent to the Uniswap universal router (UR)
 (address [`0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B`](https://etherscan.io/address/0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B) 
 on Ethereum Mainnet).
 
-⚠ Not all commands are decoded yet. Below a list of the ones already implemented.
+⚠ This library has not been audited, so use at your own risk !
 
-| Command Id | Function Name | Is Implemented
-| ---------- | ------------- |:--------------:
-| 0x00 | V3_SWAP_EXACT_IN | ✅
-| 0x01 | V3_SWAP_EXACT_OUT | ✅
-| 0x08 | V2_SWAP_EXACT_IN | ✅
-| 0x09 | V2_SWAP_EXACT_OUT | ✅
-| 0x0a | PERMIT2_PERMIT | ✅
-| 0x0b | WRAP_ETH | ✅
-| 0x0c | UNWRAP_WETH | ✅
+⚠ There is no guarantee of compatibility between 2 versions: consider forcing the version in your dependency requirements.
 
+⚠ This project is a work in progress so not all commands are decoded yet. Below a list of the already implemented ones:
+
+
+| Command Id | Function Name | Decode | Encode
+| ---------- | ------------- |:------:|:------:
+| 0x00 | V3_SWAP_EXACT_IN | ✅ | ❌
+| 0x01 | V3_SWAP_EXACT_OUT | ✅ | ❌
+| 0x02 - 0x06 |  | ❌ | ❌
+| 0x07 | placeholder  | N/A | N/A
+| 0x08 | V2_SWAP_EXACT_IN | ✅ | ❌
+| 0x09 | V2_SWAP_EXACT_OUT | ✅ | ❌
+| 0x0a | PERMIT2_PERMIT | ✅ | ❌
+| 0x0b | WRAP_ETH | ✅ | ✅
+| 0x0c | UNWRAP_WETH | ✅ | ❌
+| 0x0d | PERMIT2_TRANSFER_FROM_BATCH | ❌ | ❌
+| 0x0e - 0x0f | placeholders | N/A | N/A
+| 0x10 - 0x1d |  | ❌ | ❌
+| 0x1e - 0x3f | placeholders | N/A | N/A
 
 ## Installation
 
@@ -41,7 +51,7 @@ pip install uniswap-universal-router-decoder
 
 ## Usage
 
-The library exposes a class, `RouterDecoder` with 2 public methods `decode_function_input` and `decode_transaction`.
+The library exposes a class, `RouterDecoder` with several public methods that can be used to decode or encode UR data.
 
 ### How to decode a transaction input
 To decode a transaction input, use the `decode_function_input` method as follow:
@@ -92,3 +102,18 @@ fn_name = "V3_SWAP_EXACT_IN"  # Or V3_SWAP_EXACT_OUT
 decoded_path = RouterDecoder.decode_v3_path(fn_name, uniswap_v3_path)
 ```
 The result is a tuple, starting with the "in-token" and ending with the "out-token", with the pool fees between each pair.
+
+
+### How to encode a call to the function WRAP_ETH
+This function can be used to convert eth to weth using the UR.
+```python
+from uniswap_universal_router_decoder.router_decoder import RouterDecoder
+
+decoder = RouterDecoder()
+encoded_data = decoder.encode_data_for_wrap_eth(amount_in_wei)  # to convert amount_in_wei eth to weth
+
+# and now in your transaction dict:
+transaction["data"] = encoded_data
+
+# you can now sign and send the transaction to the UR
+```
