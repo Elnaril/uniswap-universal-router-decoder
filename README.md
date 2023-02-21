@@ -148,3 +148,7 @@ transaction["data"] = encoded_data
 
 # you can now sign and send the transaction to the UR
 ```
+
+---
+
+[![](https://visitcount.itsvg.in/api?id=elnaril-uurd-repo&label=Project%20Views&color=8&icon=5&pretty=false)](https://visitcount.itsvg.in)
