@@ -1,3 +1,10 @@
+"""
+Decode and encode data sent to Uniswap universal router functions.
+
+* Author: Elnaril (https://www.fiverr.com/elnaril, https://github.com/Elnaril).
+* License: MIT.
+* Doc: https://github.com/Elnaril/uniswap-universal-router-decoder
+"""
 from __future__ import annotations
 
 from dataclasses import (
@@ -35,6 +42,10 @@ from web3.types import (
 )
 
 
+__author__ = "Elnaril"
+__license__ = "MIT"
+__status__ = "Development"
+
 _execution_function_input_types = ["bytes", "bytes[]", "int"]
 _execution_function_selector = HexStr("0x3593564c")
 
@@ -51,6 +62,12 @@ class RouterDecoder:
         self._router_contract = self._w3.eth.contract(abi=_router_abi)
 
     def decode_function_input(self, input_data: Union[HexStr, HexBytes]) -> Tuple[ContractFunction, Dict[str, Any]]:
+        """
+        Decode the data sent to an UR function
+
+        :param input_data: the transaction 'input' data
+        :return: The decoded data if the function has been implemented.
+        """
         fct_name, decoded_input = self._router_contract.decode_function_input(input_data)
         command = decoded_input["commands"]
         command_input = decoded_input["inputs"]
@@ -68,6 +85,14 @@ class RouterDecoder:
         return fct_name, decoded_input
 
     def decode_transaction(self, trx_hash: Union[HexBytes, HexStr]) -> Dict[str, Any]:
+        """
+        Get transaction details and decode the data used to call a UR function.
+
+        ⚠ To use this method, the decoder must be built with a Web3 instance or a rpc endpoint address.
+
+        :param trx_hash: the hash of the transaction sent to the UR
+        :return: the transaction as a dict with the additional 'decoded_input' field
+        """
         trx = self._get_transaction(trx_hash)
         fct_name, decoded_input = self.decode_function_input(trx["input"])
         result_trx = dict(trx)
@@ -78,6 +103,7 @@ class RouterDecoder:
     def decode_v3_path(v3_fn_name: str, path: Union[bytes, str]) -> Tuple[Union[int, ChecksumAddress], ...]:
         """
         Decode a V3 router path
+
         :param v3_fn_name: V3_SWAP_EXACT_IN or V3_SWAP_EXACT_OUT only
         :param path: the V3 path as returned by decode_function_input() or decode_transaction()
         :return: a tuple of token addresses separated by the corresponding pool fees, first token being the 'in-token',
@@ -136,6 +162,7 @@ class RouterDecoder:
     def encode_data_for_wrap_eth(self, amount: Wei, deadline: Optional[int] = None) -> HexStr:
         """
         Encode the call to the function WRAP_ETH which convert ETH to WETH through the UR
+
         :param amount: The amount of sent ETH in WEI.
         :param deadline: The unix timestamp after which the transaction won't be valid any more. Default to now + 180s.
         :return: The encoded data to add to the UR transaction dictionary parameters.
@@ -159,6 +186,7 @@ class RouterDecoder:
         """
         Encode the call to the function V2_SWAP_EXACT_IN, which swaps tokens on Uniswap V2.
         Correct allowances must have been set before using sending such transaction.
+
         :param amount_in: The exact amount of the sold (token_in) token
         :param amount_out_min: The minimum accepted bought token (token_out)
         :param path: The V2 path: a list of 2 or 3 tokens where the first is token_in and the last is token_out
