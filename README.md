@@ -30,7 +30,7 @@ Also, only one command can be encoded in a single transaction input data at the 
 
 | Command Id | Function Name | Decode | Encode
 | ---------- | ------------- |:------:|:------:
-| 0x00 | V3_SWAP_EXACT_IN | ✅ | ❌
+| 0x00 | V3_SWAP_EXACT_IN | ✅ | ✅
 | 0x01 | V3_SWAP_EXACT_OUT | ✅ | ❌
 | 0x02 - 0x06 |  | ❌ | ❌
 | 0x07 | placeholder  | N/A | N/A
@@ -45,7 +45,7 @@ Also, only one command can be encoded in a single transaction input data at the 
 | 0x1e - 0x3f | placeholders | N/A | N/A
 
 ## Installation
-A best practice is to use [Python virtual environments](https://python.readthedocs.io/en/latest/library/venv.html), here is a [tutorial](https://realpython.com/python-virtual-environments-a-primer/).
+A good practice is to use [Python virtual environments](https://python.readthedocs.io/en/latest/library/venv.html), here is a [tutorial](https://realpython.com/python-virtual-environments-a-primer/).
 
 The library can be pip installed from [pypi.org](https://pypi.org/project/uniswap-universal-router-decoder/) as usual:
 
@@ -128,7 +128,7 @@ transaction["data"] = encoded_data
 
 
 ### How to encode a call to the function V2_SWAP_EXACT_IN
-This function can be used to swap tokens. Correct allowances must have been set before using sending such transaction.
+This function can be used to swap tokens on a V2 pool. Correct allowances must have been set before using sending such transaction.
 ```python
 from uniswap_universal_router_decoder.router_decoder import RouterDecoder
 
@@ -138,6 +138,29 @@ encoded_data = decoder.encode_data_for_v2_swap_exact_in(
         min_amount_out,  # in Wei
         [
             in_token_address,
+            out_token_address,
+        ],
+        timestamp,  # unix timestamp after which the trx will not be valid any more
+    )
+
+# then in your transaction dict:
+transaction["data"] = encoded_data
+
+# you can now sign and send the transaction to the UR
+```
+
+### How to encode a call to the function V3_SWAP_EXACT_IN
+This function can be used to swap tokens on a V3 pool. Correct allowances must have been set before using sending such transaction.
+```python
+from uniswap_universal_router_decoder.router_decoder import RouterDecoder
+
+decoder = RouterDecoder()
+encoded_data = decoder.encode_data_for_v3_swap_exact_in(
+        amount_in,  # in Wei
+        min_amount_out,  # in Wei
+        [
+            in_token_address,
+            pool_fee,
             out_token_address,
         ],
         timestamp,  # unix timestamp after which the trx will not be valid any more

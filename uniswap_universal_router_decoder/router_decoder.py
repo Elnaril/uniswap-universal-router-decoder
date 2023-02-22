@@ -17,6 +17,7 @@ from itertools import chain
 from typing import (
     Any,
     Callable,
+    cast,
     Dict,
     List,
     Optional,
@@ -128,6 +129,24 @@ class RouterDecoder:
 
         return tuple(path_list)
 
+    @staticmethod
+    def encode_v3_path(v3_fn_name: str, path_seq: Sequence[Union[int, ChecksumAddress]]) -> bytes:
+        if len(path_seq) < 3:
+            raise ValueError("Invalid list to encode a V3 path. Must have at least 3 parameters")
+        path_list = list(path_seq)
+        if v3_fn_name == "V3_SWAP_EXACT_OUT":
+            path_list.reverse()
+        elif v3_fn_name != "V3_SWAP_EXACT_IN":
+            raise ValueError("v3_fn_name must be in ('V3_SWAP_EXACT_IN', 'V3_SWAP_EXACT_OUT')")
+        path = "0x"
+        for i, item in enumerate(path_list):
+            if i % 2 == 0:
+                _item = Web3.toChecksumAddress(cast(ChecksumAddress, item))[2:]
+            else:
+                _item = f"{item:06X}"
+            path += _item
+        return Web3.toBytes(hexstr=HexStr(path))
+
     def _encode_wrap_eth_sub_contract(self, recipient: ChecksumAddress, amount_min: Wei) -> HexStr:
         abi_mapping = self._abi_map[_RouterFunction.WRAP_ETH]
         sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
@@ -147,6 +166,20 @@ class RouterDecoder:
         contract_function: ContractFunction = sub_contract.functions.V2_SWAP_EXACT_IN(*args)
         return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, args))
 
+    def _encode_v3_swap_exact_in_sub_contract(
+            self,
+            recipient: ChecksumAddress,
+            amount_in: Wei,
+            amount_out_min: Wei,
+            path: Sequence[Union[int, ChecksumAddress]],
+            payer_is_user: bool) -> HexStr:
+        v3_path = self.encode_v3_path(_RouterFunction.V3_SWAP_EXACT_IN.name, path)
+        args = (recipient, amount_in, amount_out_min, v3_path, payer_is_user)
+        abi_mapping = self._abi_map[_RouterFunction.V3_SWAP_EXACT_IN]
+        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
+        contract_function: ContractFunction = sub_contract.functions.V3_SWAP_EXACT_IN(*args)
+        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, args))
+
     @staticmethod
     def get_default_deadline(valid_duration: int = 180) -> int:
         """
@@ -162,6 +195,7 @@ class RouterDecoder:
     def encode_data_for_wrap_eth(self, amount: Wei, deadline: Optional[int] = None) -> HexStr:
         """
         Encode the call to the function WRAP_ETH which convert ETH to WETH through the UR
+        The weth recipient is the transaction sender.
 
         :param amount: The amount of sent ETH in WEI.
         :param deadline: The unix timestamp after which the transaction won't be valid any more. Default to now + 180s.
@@ -173,7 +207,7 @@ class RouterDecoder:
             [
                 Web3.toBytes(hexstr=self._encode_wrap_eth_sub_contract(recipient, amount)),
             ],
-            deadline or self.get_default_deadline()
+            deadline or self.get_default_deadline(),
         )
         return self._encode_execution_function(arguments)
 
@@ -185,9 +219,10 @@ class RouterDecoder:
             deadline: Optional[int] = None) -> HexStr:
         """
         Encode the call to the function V2_SWAP_EXACT_IN, which swaps tokens on Uniswap V2.
-        Correct allowances must have been set before using sending such transaction.
+        Correct allowances must have been set before sending such transaction.
+        The swap recipient is the transaction sender.
 
-        :param amount_in: The exact amount of the sold (token_in) token
+        :param amount_in: The exact amount of the sold (token_in) token in Wei
         :param amount_out_min: The minimum accepted bought token (token_out)
         :param path: The V2 path: a list of 2 or 3 tokens where the first is token_in and the last is token_out
         :param deadline: The unix timestamp after which the transaction won't be valid any more. Default to now + 180s.
@@ -200,10 +235,46 @@ class RouterDecoder:
             amount_in,
             amount_out_min,
             path,
-            payer_is_user
+            payer_is_user,
         )
         arguments = (
             Web3.toBytes(_RouterFunction.V2_SWAP_EXACT_IN.value),
+            [
+                Web3.toBytes(hexstr=encoded_sub_data),
+            ],
+            deadline or self.get_default_deadline()
+        )
+        return self._encode_execution_function(arguments)
+
+    def encode_data_for_v3_swap_exact_in(
+            self,
+            amount_in: Wei,
+            amount_out_min: Wei,
+            path: Sequence[Union[int, ChecksumAddress]],
+            deadline: Optional[int] = None) -> HexStr:
+        """
+        Encode the call to the function V3_SWAP_EXACT_IN, which swaps tokens on Uniswap V3.
+        Correct allowances must have been set before sending such transaction.
+        The swap recipient is the transaction sender.
+
+        :param amount_in: The exact amount of the sold (token_in) token in Wei
+        :param amount_out_min: The minimum accepted bought token (token_out) in Wei
+        :param path: The V3 path: a list of tokens where the first is the token_in, the last one is the token_out, and
+        with the pool fee between each token in basis points (ex: 3000 for 0.3%)
+        :param deadline: The unix timestamp after which the transaction won't be valid any more. Default to now + 180s.
+        :return: The encoded data to add to the UR transaction dictionary parameters.
+        """
+        recipient = Web3.toChecksumAddress("0x0000000000000000000000000000000000000001")  # recipient is sender
+        payer_is_user = True
+        encoded_sub_data = self._encode_v3_swap_exact_in_sub_contract(
+            recipient,
+            amount_in,
+            amount_out_min,
+            path,
+            payer_is_user,
+        )
+        arguments = (
+            Web3.toBytes(_RouterFunction.V3_SWAP_EXACT_IN.value),
             [
                 Web3.toBytes(hexstr=encoded_sub_data),
             ],
