@@ -1,5 +1,15 @@
 # Uniswap Universal Router Decoder & Encoder
 
+⚠ This branch (v0.5.&#42;) is kept for compatibility with web3 v5.31.&#42;. No functionality will be added.
+
+⚠ The latest version is on the master branch and uses web3 > v6.0.0
+
+The rationale is:
+ - web3 v5 uses eth-account < v0.6.0
+ - a bug impacting EIP712 signatures for structured data with arrays has been fixed in eth-account v0.7.0 (see [#175](https://github.com/ethereum/eth-account/pull/175))
+ - web3 v6 uses eth-account > v0.8.0
+ - web3 v6 introduces breaking changes compared to v5
+
 #### Project Information
 [![Tests & Lint](https://github.com/Elnaril/uniswap-universal-router-decoder/actions/workflows/tests.yml/badge.svg)](https://github.com/Elnaril/uniswap-universal-router-decoder/actions/workflows/tests.yml)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/uniswap-universal-router-decoder)](https://pypi.org/project/uniswap-universal-router-decoder/)
