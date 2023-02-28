@@ -1,9 +1,16 @@
 import json
 import os
 
+from eth_account import Account
+from eth_account.datastructures import SignedMessage
+from eth_account.signers.local import LocalAccount
+from eth_utils import keccak
 import pytest
 from web3 import Web3
-from web3.types import Wei
+from web3.types import (
+    HexBytes,
+    Wei,
+)
 
 from uniswap_universal_router_decoder.router_decoder import (
     _RouterFunction,
@@ -83,24 +90,24 @@ def test_decode_transaction(trx_hash, w3, rpc_endpoint, expected_fct_names):
 # Test Decode V3 Path
 
 expected_parsed_path_02 = (
-    Web3.toChecksumAddress("0x4d224452801ACEd8B2F0aebE155379bb5D594381"),
+    Web3.to_checksum_address("0x4d224452801ACEd8B2F0aebE155379bb5D594381"),
     3000,
-    Web3.toChecksumAddress("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"),
+    Web3.to_checksum_address("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"),
 )
 
 expected_parsed_path_04 = (
-    Web3.toChecksumAddress("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"),
+    Web3.to_checksum_address("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"),
     3000,
-    Web3.toChecksumAddress("0xf3dcbc6D72a4E1892f7917b7C43b74131Df8480e"),
+    Web3.to_checksum_address("0xf3dcbc6D72a4E1892f7917b7C43b74131Df8480e"),
 )
 
 trx_hash_06 = HexStr("0x4a23b8ca6e15be1e61554d67bc5868b2fd8e91a97124b0fb31d39ce1a921bc62")
 expected_parsed_path_06 = (
-    Web3.toChecksumAddress("0xdAC17F958D2ee523a2206206994597C13D831ec7"),
+    Web3.to_checksum_address("0xdAC17F958D2ee523a2206206994597C13D831ec7"),
     500,
-    Web3.toChecksumAddress("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"),
+    Web3.to_checksum_address("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"),
     3000,
-    Web3.toChecksumAddress("0xABe580E7ee158dA464b51ee1a83Ac0289622e6be"),
+    Web3.to_checksum_address("0xABe580E7ee158dA464b51ee1a83Ac0289622e6be"),
 )
 
 
@@ -137,9 +144,13 @@ def test_get_default_deadline():
     assert 79 < decoder.get_default_deadline() - decoder.get_default_deadline(100) < 81
 
 
+def test_get_default_expiration():
+    assert -1 < decoder.get_default_expiration() - decoder.get_default_expiration(30*24*3600) < 1
+
+
 def test_encode_wrap_eth_sub_contract():
     encoded_input = decoder._encode_wrap_eth_sub_contract(
-        Web3.toChecksumAddress("0x0000000000000000000000000000000000000002"),
+        Web3.to_checksum_address("0x0000000000000000000000000000000000000002"),
         Wei(500000000000000000)
     )
     assert encoded_input == "000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000006f05b59d3b20000"  # noqa
@@ -155,8 +166,8 @@ def test_encode_data_for_v2_swap_exact_in():
         Wei(10**17),
         Wei(0),
         [
-            Web3.toChecksumAddress("0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6"),
-            Web3.toChecksumAddress("0x326C977E6efc84E512bB9C30f76E30c160eD06FB"),
+            Web3.to_checksum_address("0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6"),
+            Web3.to_checksum_address("0x326C977E6efc84E512bB9C30f76E30c160eD06FB"),
         ],
         1676919287,
     )
@@ -164,10 +175,10 @@ def test_encode_data_for_v2_swap_exact_in():
 
 
 path_seq_1 = expected_parsed_path_04
-expected_v3_path_1 = Web3.toBytes(hexstr=HexStr("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2000bb8f3dcbc6D72a4E1892f7917b7C43b74131Df8480e"))  # noqa
+expected_v3_path_1 = Web3.to_bytes(hexstr=HexStr("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2000bb8f3dcbc6D72a4E1892f7917b7C43b74131Df8480e"))  # noqa
 
 path_seq_2 = expected_parsed_path_06
-expected_v3_path_2 = Web3.toBytes(hexstr=HexStr("0xABe580E7ee158dA464b51ee1a83Ac0289622e6be000bb8C02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc20001F4dAC17F958D2ee523a2206206994597C13D831ec7"))  # noqa
+expected_v3_path_2 = Web3.to_bytes(hexstr=HexStr("0xABe580E7ee158dA464b51ee1a83Ac0289622e6be000bb8C02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc20001F4dAC17F958D2ee523a2206206994597C13D831ec7"))  # noqa
 
 
 @pytest.mark.parametrize(
@@ -193,12 +204,44 @@ def test_encode_data_for_v3_swap_exact_in():
         Wei(229292136388),
         Wei(943146926),
         [
-            Web3.toChecksumAddress("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"),
+            Web3.to_checksum_address("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"),
             500,
-            Web3.toChecksumAddress("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"),
+            Web3.to_checksum_address("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"),
             500,
-            Web3.toChecksumAddress("0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599"),
+            Web3.to_checksum_address("0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599"),
         ],
         1677080627,
     )
     assert encoded_input == HexStr("0x3593564c000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000063f638330000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000003562e057c400000000000000000000000000000000000000000000000000000000383747ae00000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000042a0b86991c6218b36c1d19d4a2e9eb0ce3606eb480001f4c02aaa39b223fe8d0a0e5c4f27ead9083c756cc20001f42260fac5e5542a773aa44fbcfedf7c193bc2c599000000000000000000000000000000000000000000000000000000000000")  # noqa
+
+
+expected_permit_parameters = {
+    "details": {
+        "token": Web3.to_checksum_address("0x4Fabb145d64652a948d72533023f6E7A623C7C53"),
+        "amount": Wei(1461501637330902918203684832716283019655932542975),
+        "expiration": 1679922321,
+        "nonce": 0,
+    },
+    "spender": Web3.to_checksum_address("0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B"),
+    "sigDeadline": 1677332121,
+}
+
+
+def test_encode_data_for_permit2_permit():
+    params = [
+        *expected_permit_parameters["details"].values(),
+        expected_permit_parameters["spender"],
+        expected_permit_parameters["sigDeadline"],
+    ]
+    permit_parameters, signable_message = decoder.create_permit2_signable_message(*params)
+    assert permit_parameters == expected_permit_parameters
+    assert signable_message.version == b'\x01'
+    assert signable_message.header == b'\x86jZ\xba!\x96j\xf9]lz\xb7\x8e\xb2\xb2\xfc\x919\x15\xc2\x8b\xe3\xb9\xaa\x07\xcc\x04\xff\x90>?('  # noqa
+    assert signable_message.body == b'\x92U\x83n\x15\x87\x9ay\xcb\xcez\xc2B\xb6Z\xd2\xe4>\xd2n\x8b\xa8\xedl\xa9\x16\x8f\xcco\x88\xb3\xe0'  # noqa
+
+    account: LocalAccount = Account.from_key(keccak(text="moo"))
+    signed_message: SignedMessage = account.sign_message(signable_message)
+    assert signed_message.signature == HexBytes('0xc18b2a09e7d03f38102824a401a765fe05a40753a2188520250e7ffb825f41960dd8703c82a9683c0a7a8eafb2b930aa29b3edc018cad7afc6e29781420a8ec51b')  # noqa
+
+    encoded_input = decoder.encode_data_for_permit2_permit(permit_parameters, signed_message, 1677332121)
+    assert encoded_input == HexStr('0x3593564c000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000063fa0e9900000000000000000000000000000000000000000000000000000000000000010a000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000001600000000000000000000000004fabb145d64652a948d72533023f6e7a623c7c53000000000000000000000000ffffffffffffffffffffffffffffffffffffffff00000000000000000000000000000000000000000000000000000000642194910000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ef1c6e67703c7bd7107eed8303fbe6ec2554bf6b0000000000000000000000000000000000000000000000000000000063fa0e9900000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000041c18b2a09e7d03f38102824a401a765fe05a40753a2188520250e7ffb825f41960dd8703c82a9683c0a7a8eafb2b930aa29b3edc018cad7afc6e29781420a8ec51b00000000000000000000000000000000000000000000000000000000000000')  # noqa

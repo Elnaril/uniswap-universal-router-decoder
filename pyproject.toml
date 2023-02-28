@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "uniswap-universal-router-decoder"
-version = "0.5.0"
+version = "0.6.dev0"
 authors = [
   { name="Elnaril", email="elnaril_dev@caramail.com" },
 ]
@@ -20,11 +20,12 @@ classifiers = [
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
     "Operating System :: OS Independent",
 ]
 license = {text = "MIT License"}
 dependencies = [
-  "web3<6.0.0",
+  "web3>=6.0.0b11",
 ]
 keywords = ["blockchain", "ethereum", "uniswap", "universal router", "decoder", "encoder"]
 

@@ -1,4 +1,7 @@
 # Uniswap Universal Router Decoder & Encoder
+⚠ This version introduces breaking changes compared to v0.5, because it uses now web3 v6
+This upgrade was necessary to implement a working PERMIT2_PERMIT encoding (because of a bug in EIP712 signatures, fixed in a web3 v6 dependency).
+Also, it allows to use Python 3.11.
 
 #### Project Information
 [![Tests & Lint](https://github.com/Elnaril/uniswap-universal-router-decoder/actions/workflows/tests.yml/badge.svg)](https://github.com/Elnaril/uniswap-universal-router-decoder/actions/workflows/tests.yml)
@@ -36,7 +39,7 @@ Also, only one command can be encoded in a single transaction input data at the 
 | 0x07 | placeholder  | N/A | N/A
 | 0x08 | V2_SWAP_EXACT_IN | ✅ | ✅
 | 0x09 | V2_SWAP_EXACT_OUT | ✅ | ❌
-| 0x0a | PERMIT2_PERMIT | ✅ | ❌
+| 0x0a | PERMIT2_PERMIT | ✅ | ✅
 | 0x0b | WRAP_ETH | ✅ | ✅
 | 0x0c | UNWRAP_WETH | ✅ | ❌
 | 0x0d | PERMIT2_TRANSFER_FROM_BATCH | ❌ | ❌
@@ -171,6 +174,36 @@ transaction["data"] = encoded_data
 
 # you can now sign and send the transaction to the UR
 ```
+
+### How to encode a call to the function PERMIT2_PERMIT
+This function is used to give an allowance to the universal router thanks to the Permit2 contract (([`0x000000000022D473030F116dDEE9F6B43aC78BA3`](https://etherscan.io/address/0x000000000022D473030F116dDEE9F6B43aC78BA3)).
+It is also necessary to approve the Permit2 contract using the token approve function.
+```python
+from uniswap_universal_router_decoder.router_decoder import RouterDecoder
+
+decoder = RouterDecoder()
+data, signable_message = decoder.create_permit2_signable_message(
+    token_address,
+    amount,  # max = 2**160 - 1
+    expiration,
+    nonce,  # Permit2 nonce
+    spender,  # UR
+    deadline,
+    1,  # chain id
+)
+
+# Then you need to sign the message:
+signed_message = acc.sign_message(signable_message)  # where acc is your LocalAccount
+
+# And now you can encode the data:
+encoded_data = decoder.encode_data_for_permit2_permit(data, signed_message)
+
+# Then in your transaction dict:
+transaction["data"] = encoded_data
+
+# you can now sign and send the transaction to the UR
+```
+After that, you can swap tokens using the Uniswap universal router.
 
 ---
 
