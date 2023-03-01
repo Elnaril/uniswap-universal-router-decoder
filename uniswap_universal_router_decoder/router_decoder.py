@@ -318,7 +318,28 @@ class RouterDecoder:
             spender: ChecksumAddress,
             deadline: int,
             chain_id: int = 1) -> Tuple[Dict[str, Any], SignableMessage]:
-        # https://eips.ethereum.org/EIPS/eip-712
+        """
+        Create a eth_account.messages.SignableMessage that will be sent to the UR/Permit2 contracts
+        to set token permissions through signature validation.
+
+        See https://docs.uniswap.org/contracts/permit2/reference/allowance-transfer#single-permit
+
+        See https://eips.ethereum.org/EIPS/eip-712 for EIP712 structured data signing.
+
+        In addition to this step, the Permit2 contract has to be approved through the token contract.
+
+        :param token_address: The address of the token for which an allowance will be given to the UR
+        :param amount: The allowance amount in Wei. Max = 2 ** 160 - 1
+        :param expiration: The Unix timestamp at which a spender's token allowances become invalid
+        :param nonce: An incrementing value indexed per owner,token,and spender for each signature
+        :param spender: The spender (ie: the UR) address
+        :param deadline: The deadline, as a Unix timestamp, on the permit signature
+        :param chain_id: What it says on the box. Default to 1.
+        :return: A tuple: (PermitSingle, SignableMessage).
+            The first element is the first parameter of encode_data_for_permit2_permit().
+            The second element must be signed with eth_account.signers.local.LocalAccount.sign_message() in your code
+            and the resulting SignedMessage is the 2nd parameter of encode_data_for_permit2_permit().
+        """
         permit_details = {
             "token": token_address,
             "amount": amount,
@@ -340,6 +361,14 @@ class RouterDecoder:
             permit_single: Dict[str, Any],
             signed_permit_single: SignedMessage,
             deadline: Optional[int] = None) -> HexStr:
+        """
+        Encode the call to the function PERMIT2_PERMIT, which gives token allowances to the Permit2 contract.
+        In addition, the Permit2 must be approved using the token contracts as usual.
+        :param permit_single: The 1st element returned by create_permit2_signable_message()
+        :param signed_permit_single: The 2nd element returned by create_permit2_signable_message(), once signed.
+        :param deadline: The unix timestamp after which the transaction won't be valid any more. Default to now + 180s.
+        :return: The encoded data to add to the UR transaction dictionary parameters.
+        """
         encoded_sub_data = self._encode_permit2_permit_sub_contract(permit_single, signed_permit_single)
         arguments = (
             Web3.to_bytes(_RouterFunction.PERMIT2_PERMIT.value),
