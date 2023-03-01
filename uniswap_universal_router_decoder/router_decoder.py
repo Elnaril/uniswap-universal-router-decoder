@@ -379,6 +379,54 @@ class RouterDecoder:
         )
         return self._encode_execution_function(arguments)
 
+    def encode_data_for_v2_swap_exact_in_with_permit(
+            self,
+            permit_single: Dict[str, Any],
+            signed_permit_single: SignedMessage,
+            amount_in: Wei,
+            amount_out_min: Wei,
+            path: Sequence[ChecksumAddress],
+            deadline: Optional[int] = None) -> HexStr:
+        """
+        Chain and encode the call to the functiond PERMIT2_PERMIT and V2_SWAP_EXACT_IN,
+        which gives token allowances to the Permit2 contract and swap tokens.
+        The Permit2 must be approved using the token contracts as usual.
+
+        :param permit_single: The 1st element returned by create_permit2_signable_message()
+        :param signed_permit_single: The 2nd element returned by create_permit2_signable_message(), once signed.
+        :param amount_in: The exact amount of the sold (token_in) token in Wei
+        :param amount_out_min: The minimum accepted bought token (token_out)
+        :param path: The V2 path: a list of 2 or 3 tokens where the first is token_in and the last is token_out
+        :param deadline: The unix timestamp after which the transaction won't be valid any more. Default to now + 180s.
+        :return: The encoded data to add to the UR transaction dictionary parameters.
+        """
+        encoded_sub_data_permit = self._encode_permit2_permit_sub_contract(permit_single, signed_permit_single)
+        recipient = Web3.to_checksum_address("0x0000000000000000000000000000000000000001")  # recipient is sender
+        payer_is_user = True
+        encoded_sub_data_swap = self._encode_v2_swap_exact_in_sub_contract(
+            recipient,
+            amount_in,
+            amount_out_min,
+            path,
+            payer_is_user,
+        )
+        arguments = (
+            self._to_command(_RouterFunction.PERMIT2_PERMIT, _RouterFunction.V2_SWAP_EXACT_IN),
+            [
+                Web3.to_bytes(hexstr=encoded_sub_data_permit),
+                Web3.to_bytes(hexstr=encoded_sub_data_swap),
+            ],
+            deadline or self.get_default_deadline()
+        )
+        return self._encode_execution_function(arguments)
+
+    @staticmethod
+    def _to_command(*router_functions: _RouterFunction) -> bytes:
+        command = b""
+        for r_fct in router_functions:
+            command += Web3.to_bytes(r_fct.value)
+        return command
+
     def _get_transaction(self, trx_hash: Union[HexBytes, HexStr]) -> TxData:
         return self._w3.eth.get_transaction(trx_hash)
 

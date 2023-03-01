@@ -3,6 +3,8 @@
 This upgrade was necessary to implement a working PERMIT2_PERMIT encoding (because of a bug in EIP712 signatures, fixed in a web3 v6 dependency).
 Also, it allows to use Python 3.11.
 
+The v0.5 code is visible on its own [branch](https://github.com/Elnaril/uniswap-universal-router-decoder/tree/v0.5)
+
 #### Project Information
 [![Tests & Lint](https://github.com/Elnaril/uniswap-universal-router-decoder/actions/workflows/tests.yml/badge.svg)](https://github.com/Elnaril/uniswap-universal-router-decoder/actions/workflows/tests.yml)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/uniswap-universal-router-decoder)](https://pypi.org/project/uniswap-universal-router-decoder/)
@@ -16,6 +18,12 @@ Also, it allows to use Python 3.11.
 [![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
 [![Type Checker: mypy](https://img.shields.io/badge/%20type%20checker-mypy-%231674b1?style=flat&labelColor=ef8336)](https://mypy-lang.org/)
 [![Linter: flake8](https://img.shields.io/badge/%20linter-flake8-%231674b1?style=flat&labelColor=ef8336)](https://flake8.pycqa.org/en/latest/)
+
+## Release Notes
+### V0.6.0
+ - Breaking changes: use Web3.py v6 i/o v5
+ - Add support for the PERMIT2_PERMIT function
+ - Add support for chaining PERMIT2_PERMIT and V2_SWAP_EXACT_IN in the same transaction
 
 ## Overview and Points of Attention
 
@@ -204,6 +212,44 @@ transaction["data"] = encoded_data
 # you can now sign and send the transaction to the UR
 ```
 After that, you can swap tokens using the Uniswap universal router.
+
+### How to chain a call to PERMIT2_PERMIT and V2_SWAP_EXACT_IN in the same transaction
+Don't forget to give a token allowance to the Permit2 contract as well.
+
+```python
+from uniswap_universal_router_decoder.router_decoder import RouterDecoder
+
+decoder = RouterDecoder()
+
+# Permit signature
+data, signable_message = decoder.create_permit2_signable_message(
+    token_address,
+    amount,  # max = 2**160 - 1
+    expiration,
+    nonce,  # Permit2 nonce
+    spender,  # UR
+    deadline,
+    1,  # chain id
+)
+
+# Then you need to sign the message:
+signed_message = acc.sign_message(signable_message)  # where acc is your LocalAccount
+
+# Permit + v2 swap encoding
+path = [token_in_address, token_out_address]
+encoded_data = decoder.encode_data_for_v2_swap_exact_in_with_permit(
+    permit_single=data,
+    signed_permit_single=signed_message,
+    amount_in=amount_in,
+    amount_out_min=amount_out_min,
+    path=path,
+)
+
+# Then in your transaction dict:
+transaction["data"] = encoded_data
+
+# you can now sign and send the transaction to the UR
+```
 
 ---
 
