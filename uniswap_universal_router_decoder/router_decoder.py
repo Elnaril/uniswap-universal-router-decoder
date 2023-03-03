@@ -344,7 +344,7 @@ class RouterDecoder:
     @staticmethod
     def _build_v3_swap_exact_out() -> _FunctionABI:
         builder = _FunctionABIBuilder("V3_SWAP_EXACT_OUT")
-        builder.add_address("recipient").add_int("amountIn").add_int("amountOutMin").add_bytes("path")
+        builder.add_address("recipient").add_int("amountOut").add_int("amountInMax").add_bytes("path")
         return builder.add_bool("payerIsSender").build()
 
 
