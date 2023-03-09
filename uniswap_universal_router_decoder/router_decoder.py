@@ -166,6 +166,19 @@ class RouterDecoder:
         contract_function: ContractFunction = sub_contract.functions.V2_SWAP_EXACT_IN(*args)
         return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, args))
 
+    def _encode_v2_swap_exact_out_sub_contract(
+            self,
+            recipient: ChecksumAddress,
+            amount_out: Wei,
+            amount_in_max: Wei,
+            path: Sequence[ChecksumAddress],
+            payer_is_user: bool) -> HexStr:
+        args = (recipient, amount_out, amount_in_max, path, payer_is_user)
+        abi_mapping = self._abi_map[_RouterFunction.V2_SWAP_EXACT_OUT]
+        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
+        contract_function: ContractFunction = sub_contract.functions.V2_SWAP_EXACT_OUT(*args)
+        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, args))
+
     def _encode_v3_swap_exact_in_sub_contract(
             self,
             recipient: ChecksumAddress,
@@ -253,6 +266,41 @@ class RouterDecoder:
         )
         arguments = (
             Web3.toBytes(_RouterFunction.V2_SWAP_EXACT_IN.value),
+            [
+                Web3.toBytes(hexstr=encoded_sub_data),
+            ],
+            deadline or self.get_default_deadline()
+        )
+        return self._encode_execution_function(arguments)
+
+    def encode_data_for_v2_swap_exact_out(
+            self,
+            amount_out: Wei,
+            amount_in_max: Wei,
+            path: Sequence[ChecksumAddress],
+            deadline: Optional[int] = None) -> HexStr:
+        """
+        Encode the call to the function V2_SWAP_EXACT_OUT, which swaps tokens on Uniswap V2.
+        Correct allowances must have been set before sending such transaction.
+        The swap recipient is the transaction sender.
+
+        :param amount_out: The exact amount of the bought (token_out) token in Wei
+        :param amount_in_max: The maximum accepted sold token (token_in)
+        :param path: The V2 path: a list of 2 or 3 tokens where the first is token_in and the last is token_out
+        :param deadline: The unix timestamp after which the transaction won't be valid any more. Default to now + 180s.
+        :return: The encoded data to add to the UR transaction dictionary parameters.
+        """
+        recipient = Web3.toChecksumAddress("0x0000000000000000000000000000000000000001")  # recipient is sender
+        payer_is_user = True
+        encoded_sub_data = self._encode_v2_swap_exact_out_sub_contract(
+            recipient,
+            amount_out,
+            amount_in_max,
+            path,
+            payer_is_user,
+        )
+        arguments = (
+            Web3.toBytes(_RouterFunction.V2_SWAP_EXACT_OUT.value),
             [
                 Web3.toBytes(hexstr=encoded_sub_data),
             ],
