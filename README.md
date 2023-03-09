@@ -99,13 +99,12 @@ decoder = RouterDecoder(w3=w3)
 # Using a rpc endpoint
 from web3 import Web3
 from uniswap_universal_router_decoder.router_decoder import RouterDecoder
-rpc_link = "https://..."  # your rpc enpoint
+rpc_link = "https://..."  # your rpc endpoint
 decoder = RouterDecoder(rpc_endpoint=rpc_link)
 ```
 
 And then the decoder will get the transaction from the blockchain and decode it, along with its input data:
 ```python
-# Using a rpc endpoint
 trx_hash = "0x52e63b7 ... 11b979dd9"
 decoded_transaction = decoder.decode_transaction(trx_hash)
 ```
