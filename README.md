@@ -181,6 +181,29 @@ transaction["data"] = encoded_data
 # you can now sign and send the transaction to the UR
 ```
 
+### How to encode a call to the function V3_SWAP_EXACT_OUT
+This function can be used to swap tokens on a V3 pool. Correct allowances must have been set before using sending such transaction.
+```python
+from uniswap_universal_router_decoder.router_decoder import RouterDecoder
+
+decoder = RouterDecoder()
+encoded_data = decoder.encode_data_for_v3_swap_exact_out(
+        amount_out,  # in Wei
+        max_amount_in,  # in Wei
+        [
+            in_token_address,
+            pool_fee,
+            out_token_address,
+        ],
+        timestamp,  # unix timestamp after which the trx will not be valid any more
+    )
+
+# then in your transaction dict:
+transaction["data"] = encoded_data
+
+# you can now sign and send the transaction to the UR
+```
+
 ---
 
 [![](https://visitcount.itsvg.in/api?id=elnaril-uurd-repo&label=Project%20Views&color=8&icon=5&pretty=false)](https://visitcount.itsvg.in)
