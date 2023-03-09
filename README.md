@@ -164,7 +164,7 @@ This function can be used to swap tokens on a V2 pool. Correct allowances must h
 from uniswap_universal_router_decoder.router_decoder import RouterDecoder
 
 decoder = RouterDecoder()
-encoded_data = decoder.encode_data_for_v2_swap_exact_in(
+encoded_data = decoder.encode_data_for_v2_swap_exact_out(
         amount_out,  # in Wei
         max_amount_in,  # in Wei
         [
