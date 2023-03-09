@@ -20,6 +20,11 @@ The v0.5 code is visible on its own [branch](https://github.com/Elnaril/uniswap-
 [![Linter: flake8](https://img.shields.io/badge/%20linter-flake8-%231674b1?style=flat&labelColor=ef8336)](https://flake8.pycqa.org/en/latest/)
 
 ## Release Notes
+### V0.7.0
+ - Add support for encoding V2_SWAP_EXACT_OUT
+ - Add support for encoding V3_SWAP_EXACT_OUT
+ - Fix V3_SWAP_EXACT_OUT ABI
+ - Fix typos in README
 ### V0.6.0
  - Breaking changes: use Web3.py v6 i/o v5
  - Add support for the PERMIT2_PERMIT function
