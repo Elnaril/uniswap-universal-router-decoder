@@ -78,7 +78,7 @@ pip install uniswap-universal-router-decoder
 The library exposes a class, `RouterDecoder` with several public methods that can be used to decode or encode UR data.
 
 ### How to decode a transaction input
-To decode a transaction input, use the `decode_function_input` method as follow:
+To decode a transaction input, use the `decode_function_input` method as follows:
 
 ```python
 from uniswap_universal_router_decoder.router_decoder import RouterDecoder
@@ -86,6 +86,38 @@ from uniswap_universal_router_decoder.router_decoder import RouterDecoder
 trx_input = "0x3593564c000000000000000000 ... 90095b5c4e9f5845bba"  # the trx input to decode
 decoder = RouterDecoder()
 decoded_trx_input = decoder.decode_function_input(trx_input)
+```
+
+Example of decoded input returned by `decode_function_input`:
+```python
+(
+    <Function execute(bytes,bytes[],uint256)>,  # the UR function that executes all commands
+    {
+        'commands': b'\x0b\x00',  # the list of commands sent to the UR
+        'inputs': [  # the inputs used for each command
+            (
+                <Function WRAP_ETH(address,uint256)>,  # the function corresponding to the first command
+                {                                      # and its parameters
+                    'recipient': '0x0000000000000000000000000000000000000002',  # code indicating the recipient of this command is the router
+                    'amountMin': 4500000000000000000  # the amount in WEI to wrap
+                }
+            ),
+            (
+                <Function V3_SWAP_EXACT_IN(address,uint256,uint256,bytes,bool)>,  # the function corresponding to the second command
+                {                                                                 # and its parameters
+                    'recipient': '0x0000000000000000000000000000000000000001',  # code indicating the sender will receive the output of this command
+                    'amountIn': 4500000000000000000,  # the exact amount sent
+                    'amountOutMin': 6291988002,  # the min amount expected of the bought token for the swap to be executed 
+                    'path': b"\xc0*\xaa9\xb2#\xfe\x8d\n\x0e\\O'\xea\xd9\x08<ul\xc2"  # the V3 path (tokens + pool fees)
+                           b'\x00\x01\xf4\xa0\xb8i\x91\xc6!\x8b6\xc1\xd1\x9dJ.'  # can be decoded with the method decode_v3_path()
+                           b'\x9e\xb0\xce6\x06\xebH',
+                    'payerIsSender': False  # a bool indicating if the input tokens come from the sender or are already in the UR
+                }
+            )
+        ],
+        'deadline': 1678441619  # The deadline after which the transaction is not valid any more.
+    }
+)
 ```
 
 ### How to decode a transaction
