@@ -110,6 +110,15 @@ expected_parsed_path_06 = (
     Web3.to_checksum_address("0xABe580E7ee158dA464b51ee1a83Ac0289622e6be"),
 )
 
+trx_hash_07 = HexStr("0xe61da48803242cb323056935737e8b430025ebe20af916031c2d53a1f1b2a844")
+expected_parsed_path_07 = (
+    Web3.to_checksum_address("0x0f51bb10119727a7e5eA3538074fb341F56B09Ad"),
+    10000,
+    Web3.to_checksum_address("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"),
+    500,
+    Web3.to_checksum_address("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"),
+)
+
 
 @pytest.mark.parametrize(
     "trx_hash, fn_name, rpc_endpoint, expected_parsed_path, expected_exception",
@@ -118,6 +127,7 @@ expected_parsed_path_06 = (
         (trx_hash_04, "V3_SWAP_EXACT_OUT", rpc_endpoint_address, expected_parsed_path_04, None),
         (trx_hash_04, "V2_SWAP_EXACT_OUT", rpc_endpoint_address, None, ValueError),
         (trx_hash_06, "V3_SWAP_EXACT_OUT", rpc_endpoint_address, expected_parsed_path_06, None),
+        (trx_hash_07, "V3_SWAP_EXACT_IN", rpc_endpoint_address, expected_parsed_path_07, None),
     )
 )
 def test_decode_v3_path(trx_hash, fn_name, rpc_endpoint, expected_parsed_path, expected_exception):
