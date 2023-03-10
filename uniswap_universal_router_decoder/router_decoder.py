@@ -118,7 +118,8 @@ class RouterDecoder:
         valid_fn_names = ("V3_SWAP_EXACT_IN", "V3_SWAP_EXACT_OUT")
         if v3_fn_name.upper() not in valid_fn_names:
             raise ValueError(f"v3_fn_name must be in {valid_fn_names}")
-        path_str = path.hex().lstrip("0x") if type(path) == bytes else str(path).lstrip("0x")
+        path_str = path.hex() if type(path) == bytes else str(path)
+        path_str = path_str[2:] if path_str.startswith("0x") else path_str
         path_list: List[Union[int, ChecksumAddress]] = [Web3.to_checksum_address(path_str[0:40]), ]
         parsed_remaining_path: List[List[Union[int, ChecksumAddress]]] = [
             [
