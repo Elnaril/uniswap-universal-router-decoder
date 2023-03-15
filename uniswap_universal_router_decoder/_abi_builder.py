@@ -108,7 +108,7 @@ class _ABIBuilder:
     def _build_v2_swap_exact_in() -> _FunctionABI:
         builder = _FunctionABIBuilder("V2_SWAP_EXACT_IN")
         builder.add_address("recipient").add_int("amountIn").add_int("amountOutMin").add_address_array("path")
-        return builder.add_bool("payerIsUser").build()
+        return builder.add_bool("payerIsSender").build()
 
     @staticmethod
     def _build_permit2_permit() -> _FunctionABI:
@@ -139,7 +139,7 @@ class _ABIBuilder:
     def _build_v2_swap_exact_out() -> _FunctionABI:
         builder = _FunctionABIBuilder("V2_SWAP_EXACT_OUT")
         builder.add_address("recipient").add_int("amountOut").add_int("amountInMax").add_address_array("path")
-        return builder.add_bool("payerIsUser").build()
+        return builder.add_bool("payerIsSender").build()
 
     @staticmethod
     def _build_v3_swap_exact_out() -> _FunctionABI:
