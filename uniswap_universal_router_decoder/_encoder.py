@@ -7,6 +7,7 @@ Encoding part of the Uniswap Universal Router Codec
 """
 from __future__ import annotations
 
+from datetime import datetime
 from typing import (
     Any,
     cast,
@@ -453,12 +454,15 @@ class _ChainedFunctionBuilder:
     def build(self, deadline: Optional[int] = None) -> HexStr:
         """
         Build the encoded input for all the chained commands, ready to be sent to the UR
+        Currently default deadline is now + 180s
+        Todo: Support UR execution function without deadline
+
         :param deadline: The unix timestamp after which the transaction won't be valid any more. Default to now + 180s.
         :return: The encoded data to add to the UR transaction dictionary parameters.
         """
         execute_input = (
             self._to_command(*self.commands),
             self.arguments,
-            deadline or 180
+            deadline or int(datetime.now().timestamp() + 180)  # Todo: support UR execution function without deadline
         )
         return self._encode_execution_function(execute_input)
