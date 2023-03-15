@@ -9,6 +9,8 @@ Enums used by the Uniswap Universal Router Codec
 
 from enum import Enum
 
+from web3 import Web3
+
 
 class _RouterFunction(Enum):
     # https://docs.uniswap.org/contracts/universal-router/technical-reference#command
@@ -19,3 +21,15 @@ class _RouterFunction(Enum):
     PERMIT2_PERMIT = 10
     WRAP_ETH = 11
     UNWRAP_WETH = 12
+
+
+class FunctionRecipient(Enum):
+    SENDER = "recipient is transaction sender"
+    ROUTER = "recipient is universal router"
+    CUSTOM = "recipient is custom"
+
+
+class _RouterConstant(Enum):
+    # https://github.com/Uniswap/universal-router/blob/main/contracts/libraries/Constants.sol
+    MSG_SENDER = Web3.to_checksum_address("0x0000000000000000000000000000000000000001")
+    ADDRESS_THIS = Web3.to_checksum_address("0x0000000000000000000000000000000000000002")

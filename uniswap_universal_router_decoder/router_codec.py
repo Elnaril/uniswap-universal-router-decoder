@@ -5,7 +5,7 @@ Decode and encode data sent to Uniswap universal router functions.
 * License: MIT.
 * Doc: https://github.com/Elnaril/uniswap-universal-router-decoder
 """
-
+from datetime import datetime
 from typing import (
     Any,
     Dict,
@@ -45,6 +45,27 @@ class RouterCodec:
             self._w3 = Web3()
         self.decode = _Decoder(self._w3, self._abi_map)
         self.encode = _Encoder(self._w3, self._abi_map)
+
+    @staticmethod
+    def get_default_deadline(valid_duration: int = 180) -> int:
+        """
+        :return: timestamp corresponding to now + valid_duration seconds. valid_duration default is 180
+        """
+        return int(datetime.now().timestamp() + valid_duration)
+
+    @staticmethod
+    def get_default_expiration(valid_duration: int = 30 * 24 * 3600) -> int:
+        """
+        :return: timestamp corresponding to now + valid_duration seconds. valid_duration default is 30 days
+        """
+        return int(datetime.now().timestamp() + valid_duration)
+
+    @staticmethod
+    def get_max_expiration() -> int:
+        """
+        :return: max timestamp allowed for permit expiration
+        """
+        return 2 ** 48 - 1
 
     @staticmethod
     def create_permit2_signable_message(
