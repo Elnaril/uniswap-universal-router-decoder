@@ -10,8 +10,8 @@ from web3.types import (
     Wei,
 )
 
+from uniswap_universal_router_decoder import FunctionRecipient
 from uniswap_universal_router_decoder._enums import _RouterFunction  # noqa
-from uniswap_universal_router_decoder._enums import FunctionRecipient  # noqa
 
 
 def test_chain_wrap_eth(codec):

@@ -4,7 +4,7 @@ import pytest
 from web3 import Web3
 from web3.types import HexStr
 
-from uniswap_universal_router_decoder.router_codec import RouterCodec
+from uniswap_universal_router_decoder import RouterCodec
 
 
 # Test Decode Trx + Input

@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from uniswap_universal_router_decoder._enums import _RouterFunction
+from uniswap_universal_router_decoder._enums import _RouterFunction  # noqa
 
 
 expected_fct_abi_08 = json.loads('{"inputs":[{"name":"recipient","type":"address"},{"name":"amountIn","type":"uint256"},{"name":"amountOutMin","type":"uint256"},{"name":"path","type":"address[]"},{"name":"payerIsSender","type":"bool"}],"name":"V2_SWAP_EXACT_IN","type":"function"}')  # noqa
