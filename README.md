@@ -18,6 +18,7 @@
 ## Release Notes
 ### V0.8.0
  - Breaking changes because of refactoring
+ - Command chaining extension: all supported UR function can now be chained in a single transaction
 ### V0.7.1
  -  Fix issue [#1](https://github.com/Elnaril/uniswap-universal-router-decoder/issues/1) - v3 path decoding fails for some paths 
 ### V0.7.0
@@ -34,14 +35,13 @@
 
 The object of this library is to decode & encode the transaction input sent to the Uniswap universal router (UR)
 (address [`0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B`](https://etherscan.io/address/0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B) 
-on Ethereum Mainnet).
+on Ethereum Mainnet). It is based on, and is intended to be used with [web3.py](https://github.com/ethereum/web3.py)
 
 ⚠ This library has not been audited, so use at your own risk !
 
 ⚠ At this stage, there is no guarantee of compatibility between 2 versions: consider forcing the version in your dependency requirements.
 
 ⚠ This project is a work in progress so not all commands are decoded yet. Below the list of the already implemented ones.
-Also, only one command can be encoded in a single transaction input data at the moment.
 
 | Command Id | Function Name | Decode | Encode
 | ---------- | ------------- |:------:|:------:
@@ -77,17 +77,17 @@ pip install uniswap-universal-router-decoder
 The library exposes a class, `RouterCodec` with several public methods that can be used to decode or encode UR data.
 
 ### How to decode a transaction input
-To decode a transaction input, use the `decode.function_input` method as follows:
+To decode a transaction input, use the `decode.function_input()` method as follows:
 
 ```python
-from uniswap_universal_router_decoder.router_codec import RouterCodec
+from uniswap_universal_router_decoder import RouterCodec
 
 trx_input = "0x3593564c000000000000000000 ... 90095b5c4e9f5845bba"  # the trx input to decode
 codec = RouterCodec()
 decoded_trx_input = codec.decode.function_input(trx_input)
 ```
 
-Example of decoded input returned by `decode.function_input`:
+Example of decoded input returned by `decode.function_input()`:
 ```python
 (
     <Function execute(bytes,bytes[],uint256)>,  # the UR function that executes all commands
@@ -121,12 +121,12 @@ Example of decoded input returned by `decode.function_input`:
 
 ### How to decode a transaction
 It's also possible to decode the whole transaction, given its hash 
-and providing the codec has been built with either a valid Web3 instance or the link to a rpc endpoint:
+and providing the codec has been built with either a valid `Web3` instance or the link to a rpc endpoint:
 
 ```python
 # Using a web3 instance
 from web3 import Web3
-from uniswap_universal_router_decoder.router_decoder import RouterDecoder
+from uniswap_universal_router_decoder import RouterCodec
 w3 = Web3(...)  # your web3 instance
 codec = RouterCodec(w3=w3)
 ```
@@ -134,7 +134,7 @@ codec = RouterCodec(w3=w3)
 ```python
 # Using a rpc endpoint
 from web3 import Web3
-from uniswap_universal_router_decoder.router_decoder import RouterDecoder
+from uniswap_universal_router_decoder import RouterCodec
 rpc_link = "https://..."  # your rpc endpoint
 codec = RouterCodec(rpc_endpoint=rpc_link)
 ```
@@ -149,7 +149,7 @@ decoded_transaction = codec.decode.transaction(trx_hash)
 The `RouterCodec` class exposes also the method `decode.v3_path` which can be used to decode a given Uniswap V3 path.
 
 ```python
-from uniswap_universal_router_decoder.router_codec import RouterCodec
+from uniswap_universal_router_decoder import RouterCodec
 
 uniswap_v3_path = b"\xc0*\xaa9\xb2#\xfe\x8d\n\x0e ... \xd7\x89"  # bytes or str hex
 fn_name = "V3_SWAP_EXACT_IN"  # Or V3_SWAP_EXACT_OUT
@@ -159,13 +159,29 @@ decoded_path = codec.decode.v3_path(fn_name, uniswap_v3_path)
 The result is a tuple, starting with the "in-token" and ending with the "out-token", with the pool fees between each pair.
 
 
+### How to encode
+The UR allows the chaining of several functions in the same transaction.
+This codec supports it (at least for supported functions) and expose public methods that can be chained.
+
+The chaining starts with the `encode.chain()` method and ends with the `build()` one which return the full encoded data to be included in the transaction.
+Below some examples of encoded input for one function and one example for 2 functions.
+
+Default values for deadlines and expirations can be computed with the static methods `get_default_deadline()` and `get_default_expiration()` respectively.
+```python
+from uniswap_universal_router_decoder import RouterCodec
+
+default_deadline = RouterCodec.get_default_deadline()
+default_expiration = RouterCodec.get_default_expiration()
+
+```
+
 ### How to encode a call to the function WRAP_ETH
 This function can be used to convert eth to weth using the UR.
 ```python
-from uniswap_universal_router_decoder.router_codec import RouterCodec
+from uniswap_universal_router_decoder import FunctionRecipient, RouterCodec
 
 codec = RouterCodec()
-encoded_data = codec.encode.wrap_eth(amount_in_wei)  # to convert amount_in_wei eth to weth
+encoded_data = codec.encode.chain().wrap_eth(FunctionRecipient.SENDER, amount_in_wei).build(1676825611)  # to convert amount_in_wei eth to weth, and send them to the transaction sender.
 
 # then in your transaction dict:
 transaction["data"] = encoded_data
@@ -177,18 +193,18 @@ transaction["data"] = encoded_data
 ### How to encode a call to the function V2_SWAP_EXACT_IN
 This function can be used to swap tokens on a V2 pool. Correct allowances must have been set before using sending such transaction.
 ```python
-from uniswap_universal_router_decoder.router_codec import RouterCodec
+from uniswap_universal_router_decoder import FunctionRecipient, RouterCodec
 
 codec = RouterCodec()
-encoded_data = codec.encode.v2_swap_exact_in(
+encoded_data = codec.encode.chain().v2_swap_exact_in(
+        FunctionRecipient.SENDER,  # the output tokens are sent to the transaction sender
         amount_in,  # in Wei
         min_amount_out,  # in Wei
         [
-            in_token_address,
-            out_token_address,
+            in_token_address,  # checksum address of the token sent to the UR 
+            out_token_address,  # checksum address of the received token
         ],
-        timestamp,  # unix timestamp after which the trx will not be valid any more
-    )
+    ).build(timestamp)  # unix timestamp after which the trx will not be valid any more
 
 # then in your transaction dict:
 transaction["data"] = encoded_data
@@ -199,18 +215,19 @@ transaction["data"] = encoded_data
 ### How to encode a call to the function V2_SWAP_EXACT_OUT
 This function can be used to swap tokens on a V2 pool. Correct allowances must have been set before using sending such transaction.
 ```python
-from uniswap_universal_router_decoder.router_codec import RouterCodec
+from uniswap_universal_router_decoder import FunctionRecipient, RouterCodec
 
 codec = RouterCodec()
-encoded_data = codec.encode.v2_swap_exact_out(
+encoded_data = codec.encode.chain().v2_swap_exact_out(
+        FunctionRecipient.SENDER,
         amount_out,  # in Wei
         max_amount_in,  # in Wei
         [
             in_token_address,
             out_token_address,
         ],
-        timestamp,  # unix timestamp after which the trx will not be valid any more
-    )
+    ).build(timestamp)  # unix timestamp after which the trx will not be valid any more
+
 # then in your transaction dict:
 transaction["data"] = encoded_data
 # you can now sign and send the transaction to the UR
@@ -219,10 +236,11 @@ transaction["data"] = encoded_data
 ### How to encode a call to the function V3_SWAP_EXACT_IN
 This function can be used to swap tokens on a V3 pool. Correct allowances must have been set before using sending such transaction.
 ```python
-from uniswap_universal_router_decoder.router_codec import RouterCodec
+from uniswap_universal_router_decoder import FunctionRecipient, RouterCodec
 
 codec = RouterCodec()
-encoded_data = codec.encode.v3_swap_exact_in(
+encoded_data = codec.encode.chain().v3_swap_exact_in(
+        FunctionRecipient.SENDER,
         amount_in,  # in Wei
         min_amount_out,  # in Wei
         [
@@ -230,8 +248,7 @@ encoded_data = codec.encode.v3_swap_exact_in(
             pool_fee,
             out_token_address,
         ],
-        timestamp,  # unix timestamp after which the trx will not be valid any more
-    )
+    ).build(timestamp)  # unix timestamp after which the trx will not be valid any more
 
 # then in your transaction dict:
 transaction["data"] = encoded_data
@@ -242,10 +259,11 @@ transaction["data"] = encoded_data
 ### How to encode a call to the function V3_SWAP_EXACT_OUT
 This function can be used to swap tokens on a V3 pool. Correct allowances must have been set before using sending such transaction.
 ```python
-from uniswap_universal_router_decoder.router_codec import RouterCodec
+from uniswap_universal_router_decoder import FunctionRecipient, RouterCodec
 
 codec = RouterCodec()
-encoded_data = codec.encode.v3_swap_exact_out(
+encoded_data = codec.encode.chain().v3_swap_exact_out(
+        FunctionRecipient.SENDER,
         amount_out,  # in Wei
         max_amount_in,  # in Wei
         [
@@ -253,8 +271,8 @@ encoded_data = codec.encode.v3_swap_exact_out(
             pool_fee,
             out_token_address,
         ],
-        timestamp,  # unix timestamp after which the trx will not be valid any more
-    )
+    ).build(timestamp)  # unix timestamp after which the trx will not be valid any more
+
 # then in your transaction dict:
 transaction["data"] = encoded_data
 # you can now sign and send the transaction to the UR
@@ -264,7 +282,7 @@ transaction["data"] = encoded_data
 This function is used to give an allowance to the universal router thanks to the Permit2 contract (([`0x000000000022D473030F116dDEE9F6B43aC78BA3`](https://etherscan.io/address/0x000000000022D473030F116dDEE9F6B43aC78BA3)).
 It is also necessary to approve the Permit2 contract using the token approve function.
 ```python
-from uniswap_universal_router_decoder.router_codec import RouterCodec
+from uniswap_universal_router_decoder import RouterCodec
 
 codec = RouterCodec()
 data, signable_message = codec.create_permit2_signable_message(
@@ -281,7 +299,7 @@ data, signable_message = codec.create_permit2_signable_message(
 signed_message = acc.sign_message(signable_message)  # where acc is your LocalAccount
 
 # And now you can encode the data:
-encoded_data = codec.encode.permit2_permit(data, signed_message)
+encoded_data = codec.encode.chain().permit2_permit(data, signed_message).build(deadline)
 
 # Then in your transaction dict:
 transaction["data"] = encoded_data
@@ -294,7 +312,7 @@ After that, you can swap tokens using the Uniswap universal router.
 Don't forget to give a token allowance to the Permit2 contract as well.
 
 ```python
-from uniswap_universal_router_decoder.router_codec import RouterCodec
+from uniswap_universal_router_decoder import FunctionRecipient, RouterCodec
 
 codec = RouterCodec()
 
@@ -314,12 +332,13 @@ signed_message = acc.sign_message(signable_message)  # where acc is your LocalAc
 
 # Permit + v2 swap encoding
 path = [token_in_address, token_out_address]
-encoded_data = codec.encode.v2_swap_exact_in_with_permit(
-    permit_single=data,
-    signed_permit_single=signed_message,
-    amount_in=amount_in,
-    amount_out_min=amount_out_min,
-    path=path,
+encoded_data = (
+    codec
+        .encode
+        .chain()
+        .permit2_permit(data, signed_message)
+        .v2_swap_exact_in(FunctionRecipient.SENDER, Wei(10**18), Wei(0), path)
+        .build(deadline)
 )
 
 # Then in your transaction dict:
