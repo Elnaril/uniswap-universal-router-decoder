@@ -68,86 +68,6 @@ class _Encoder:
             path += _item
         return Web3.to_bytes(hexstr=HexStr(path))
 
-    def _encode_wrap_eth_sub_contract(self, recipient: ChecksumAddress, amount_min: Wei) -> HexStr:
-        abi_mapping = self._abi_map[_RouterFunction.WRAP_ETH]
-        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
-        contract_function: ContractFunction = sub_contract.functions.WRAP_ETH(recipient, amount_min)
-        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, [recipient, amount_min]))
-
-    def _encode_v2_swap_exact_in_sub_contract(
-            self,
-            recipient: ChecksumAddress,
-            amount_in: Wei,
-            amount_out_min: Wei,
-            path: Sequence[ChecksumAddress],
-            payer_is_user: bool) -> HexStr:
-        args = (recipient, amount_in, amount_out_min, path, payer_is_user)
-        abi_mapping = self._abi_map[_RouterFunction.V2_SWAP_EXACT_IN]
-        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
-        contract_function: ContractFunction = sub_contract.functions.V2_SWAP_EXACT_IN(*args)
-        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, args))
-
-    def _encode_v2_swap_exact_out_sub_contract(
-            self,
-            recipient: ChecksumAddress,
-            amount_out: Wei,
-            amount_in_max: Wei,
-            path: Sequence[ChecksumAddress],
-            payer_is_user: bool) -> HexStr:
-        args = (recipient, amount_out, amount_in_max, path, payer_is_user)
-        abi_mapping = self._abi_map[_RouterFunction.V2_SWAP_EXACT_OUT]
-        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
-        contract_function: ContractFunction = sub_contract.functions.V2_SWAP_EXACT_OUT(*args)
-        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, args))
-
-    def _encode_v3_swap_exact_in_sub_contract(
-            self,
-            recipient: ChecksumAddress,
-            amount_in: Wei,
-            amount_out_min: Wei,
-            path: Sequence[Union[int, ChecksumAddress]],
-            payer_is_user: bool) -> HexStr:
-        encoded_v3_path = self.v3_path(_RouterFunction.V3_SWAP_EXACT_IN.name, path)
-        args = (recipient, amount_in, amount_out_min, encoded_v3_path, payer_is_user)
-        abi_mapping = self._abi_map[_RouterFunction.V3_SWAP_EXACT_IN]
-        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
-        contract_function: ContractFunction = sub_contract.functions.V3_SWAP_EXACT_IN(*args)
-        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, args))
-
-    def _encode_v3_swap_exact_out_sub_contract(
-            self,
-            recipient: ChecksumAddress,
-            amount_out: Wei,
-            amount_in_max: Wei,
-            path: Sequence[Union[int, ChecksumAddress]],
-            payer_is_user: bool) -> HexStr:
-        encoded_v3_path = self.v3_path(_RouterFunction.V3_SWAP_EXACT_OUT.name, path)
-        args = (recipient, amount_out, amount_in_max, encoded_v3_path, payer_is_user)
-        abi_mapping = self._abi_map[_RouterFunction.V3_SWAP_EXACT_OUT]
-        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
-        contract_function: ContractFunction = sub_contract.functions.V3_SWAP_EXACT_OUT(*args)
-        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, args))
-
-    def _encode_permit2_permit_sub_contract(
-            self,
-            permit_single: Dict[str, Any],
-            signed_permit_single: SignedMessage) -> HexStr:
-        struct = (
-            tuple(permit_single["details"].values()),
-            permit_single["spender"],
-            permit_single["sigDeadline"],
-        )
-        args = (struct, signed_permit_single.signature)
-        abi_mapping = self._abi_map[_RouterFunction.PERMIT2_PERMIT]
-        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
-        contract_function: ContractFunction = sub_contract.functions.PERMIT2_PERMIT(*args)
-        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, args))
-
-    @staticmethod
-    def _encode_execution_function(arguments: Tuple[bytes, List[bytes], int]) -> HexStr:
-        encoded_data = encode(_execution_function_input_types, arguments)
-        return Web3.to_hex(Web3.to_bytes(hexstr=_execution_function_selector) + encoded_data)
-
     def chain(self) -> _ChainedFunctionBuilder:
         """
         :return: Initialize the chain of encoded functions
@@ -174,7 +94,7 @@ class _ChainedFunctionBuilder:
         }
         recipient = recipient_mapping[function_recipient]
         if recipient:
-            return recipient
+            return Web3.to_checksum_address(recipient)
         else:
             raise ValueError(
                 f"Invalid function_recipient: {function_recipient} or custom_recipient: {custom_recipient}: "

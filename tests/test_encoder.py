@@ -11,7 +11,26 @@ from web3.types import (
 )
 
 from uniswap_universal_router_decoder import FunctionRecipient
+from uniswap_universal_router_decoder._encoder import _ChainedFunctionBuilder  # noqa
 from uniswap_universal_router_decoder._enums import _RouterFunction  # noqa
+
+
+@pytest.mark.parametrize(
+    "function_recipient, custom_recipient, expected_recipient, expected_exception",
+    (
+        (FunctionRecipient.SENDER, None, Web3.to_checksum_address("0x0000000000000000000000000000000000000001"), None),
+        (FunctionRecipient.ROUTER, None, Web3.to_checksum_address("0x0000000000000000000000000000000000000002"), None),
+        (FunctionRecipient.CUSTOM, Web3.to_checksum_address("0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6"), Web3.to_checksum_address("0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6"), None),  # noqa
+        (FunctionRecipient.CUSTOM, None, None, ValueError),
+        (FunctionRecipient.CUSTOM, "moo", None, ValueError),
+    )
+)
+def test_get_recipient(function_recipient, custom_recipient, expected_recipient, expected_exception):
+    if expected_exception:
+        with pytest.raises(expected_exception):
+            _ChainedFunctionBuilder._get_recipient(function_recipient, custom_recipient)
+    else:
+        assert expected_recipient == _ChainedFunctionBuilder._get_recipient(function_recipient, custom_recipient)
 
 
 def test_chain_wrap_eth(codec):
