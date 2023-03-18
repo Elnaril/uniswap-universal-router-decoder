@@ -22,7 +22,7 @@
 ## Release Notes
 ### V0.8.0
  - Breaking changes because of refactoring
- - Command chaining extension: all supported UR function can now be chained in a single transaction
+ - Command chaining extension: all supported UR functions can now be chained in a single transaction
 ### V0.7.1
  -  Fix issue [#1](https://github.com/Elnaril/uniswap-universal-router-decoder/issues/1) - v3 path decoding fails for some paths 
 ### V0.7.0
