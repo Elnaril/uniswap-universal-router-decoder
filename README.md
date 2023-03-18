@@ -1,5 +1,7 @@
-# Uniswap Universal Router Decoder & Encoder
+# Uniswap Universal Router Decoder & Encoder v0.8.0
 ⚠ This version introduces breaking changes compared to v0.7 !
+
+---
 
 #### Project Information
 [![Tests & Lint](https://github.com/Elnaril/uniswap-universal-router-decoder/actions/workflows/tests.yml/badge.svg)](https://github.com/Elnaril/uniswap-universal-router-decoder/actions/workflows/tests.yml)
@@ -15,10 +17,12 @@
 [![Type Checker: mypy](https://img.shields.io/badge/%20type%20checker-mypy-%231674b1?style=flat&labelColor=ef8336)](https://mypy-lang.org/)
 [![Linter: flake8](https://img.shields.io/badge/%20linter-flake8-%231674b1?style=flat&labelColor=ef8336)](https://flake8.pycqa.org/en/latest/)
 
+---
+
 ## Release Notes
 ### V0.8.0
  - Breaking changes because of refactoring
- - Command chaining extension: all supported UR function can now be chained in a single transaction
+ - Command chaining extension: all supported UR functions can now be chained in a single transaction
 ### V0.7.1
  -  Fix issue [#1](https://github.com/Elnaril/uniswap-universal-router-decoder/issues/1) - v3 path decoding fails for some paths 
 ### V0.7.0
@@ -30,6 +34,8 @@
  - Breaking changes: use Web3.py v6 i/o v5
  - Add support for the PERMIT2_PERMIT function
  - Add support for chaining PERMIT2_PERMIT and V2_SWAP_EXACT_IN in the same transaction
+
+---
 
 ## Overview and Points of Attention
 
@@ -59,6 +65,8 @@ on Ethereum Mainnet). It is based on, and is intended to be used with [web3.py](
 | 0x10 - 0x1d |  | ❌ | ❌
 | 0x1e - 0x3f | placeholders | N/A | N/A
 
+---
+
 ## Installation
 A good practice is to use [Python virtual environments](https://python.readthedocs.io/en/latest/library/venv.html), here is a [tutorial](https://www.freecodecamp.org/news/how-to-setup-virtual-environments-in-python/).
 
@@ -71,6 +79,8 @@ pip install -U pip
 # install the decoder from pypi.org
 pip install uniswap-universal-router-decoder
 ```
+
+---
 
 ## Usage
 
@@ -161,7 +171,7 @@ The result is a tuple, starting with the "in-token" and ending with the "out-tok
 
 ### How to encode
 The UR allows the chaining of several functions in the same transaction.
-This codec supports it (at least for supported functions) and expose public methods that can be chained.
+This codec supports it (at least for supported functions) and exposes public methods that can be chained.
 
 The chaining starts with the `encode.chain()` method and ends with the `build()` one which return the full encoded data to be included in the transaction.
 Below some examples of encoded input for one function and one example for 2 functions.
@@ -174,6 +184,8 @@ default_deadline = RouterCodec.get_default_deadline()
 default_expiration = RouterCodec.get_default_expiration()
 
 ```
+These 2 functions accept a custom duration in seconds as argument.
+
 
 ### How to encode a call to the function WRAP_ETH
 This function can be used to convert eth to weth using the UR.
@@ -346,7 +358,3 @@ transaction["data"] = encoded_data
 
 # you can now sign and send the transaction to the UR
 ```
-
----
-
-[![](https://visitcount.itsvg.in/api?id=elnaril-uurd-repo&label=Project%20Views&color=8&icon=5&pretty=false)](https://visitcount.itsvg.in)
