@@ -1,0 +1,2 @@
+uniswap-universal-router-decoder==0.8.0
+web3==6.4.0
