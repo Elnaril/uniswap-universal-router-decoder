@@ -15,3 +15,5 @@ notes/
 .mypy_cache
 .pytest_cache
 .tox
+
+tutorials/buy_tokens/venv_ur_tutorial/
