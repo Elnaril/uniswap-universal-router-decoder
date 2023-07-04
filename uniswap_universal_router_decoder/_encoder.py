@@ -137,6 +137,30 @@ class _ChainedFunctionBuilder:
         self.arguments.append(Web3.to_bytes(hexstr=self._encode_wrap_eth_sub_contract(recipient, amount)))
         return self
 
+    def _encode_unwrap_weth_sub_contract(self, recipient: ChecksumAddress, amount_min: Wei) -> HexStr:
+        abi_mapping = self._abi_map[_RouterFunction.UNWRAP_WETH]
+        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
+        contract_function: ContractFunction = sub_contract.functions.UNWRAP_WETH(recipient, amount_min)
+        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, [recipient, amount_min]))
+
+    def unwrap_weth(
+            self,
+            function_recipient: FunctionRecipient,
+            amount: Wei,
+            custom_recipient: Optional[ChecksumAddress] = None) -> _ChainedFunctionBuilder:
+        """
+        Encode the call to the function UNWRAP_WETH which convert WETH to ETH through the UR
+
+        :param function_recipient: A FunctionRecipient which defines the recipient of this function output.
+        :param amount: The amount of sent WETH in WEI.
+        :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
+        :return: The chain link corresponding to this function call.
+        """
+        recipient = self._get_recipient(function_recipient, custom_recipient)
+        self.commands.append(_RouterFunction.UNWRAP_WETH)
+        self.arguments.append(Web3.to_bytes(hexstr=self._encode_unwrap_weth_sub_contract(recipient, amount)))
+        return self
+
     def _encode_v2_swap_exact_in_sub_contract(
             self,
             recipient: ChecksumAddress,
@@ -184,6 +208,35 @@ class _ChainedFunctionBuilder:
             )
         )
         return self
+
+    def v2_swap_exact_in_from_balance(
+            self,
+            function_recipient: FunctionRecipient,
+            amount_out_min: Wei,
+            path: Sequence[ChecksumAddress],
+            custom_recipient: Optional[ChecksumAddress] = None,
+            payer_is_sender: bool = True) -> _ChainedFunctionBuilder:
+        """
+        Encode the call to the function V2_SWAP_EXACT_IN, using the router balance as amount_in,
+        which swaps tokens on Uniswap V2.
+        Typically used when the amount_in is unknown because it comes from a V*_SWAP_EXACT_IN output.
+        Correct allowances must have been set before sending such transaction.
+
+        :param function_recipient: A FunctionRecipient which defines the recipient of this function output.
+        :param amount_out_min: The minimum accepted bought token (token_out)
+        :param path: The V2 path: a list of 2 or 3 tokens where the first is token_in and the last is token_out
+        :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
+        :param payer_is_sender: True if the in tokens come from the sender, False if they already are in the router
+        :return: The chain link corresponding to this function call.
+        """
+        return self.v2_swap_exact_in(
+            function_recipient,
+            _RouterConstant.ROUTER_BALANCE.value,
+            amount_out_min,
+            path,
+            custom_recipient,
+            payer_is_sender,
+        )
 
     def _encode_v2_swap_exact_out_sub_contract(
             self,
@@ -282,6 +335,36 @@ class _ChainedFunctionBuilder:
             )
         )
         return self
+
+    def v3_swap_exact_in_from_balance(
+            self,
+            function_recipient: FunctionRecipient,
+            amount_out_min: Wei,
+            path: Sequence[Union[int, ChecksumAddress]],
+            custom_recipient: Optional[ChecksumAddress] = None,
+            payer_is_sender: bool = True) -> _ChainedFunctionBuilder:
+        """
+        Encode the call to the function V3_SWAP_EXACT_IN, using the router balance as amount_in,
+        which swaps tokens on Uniswap V3.
+        Typically used when the amount_in is unknown because it comes from a V*_SWAP_EXACT_IN output.
+        Correct allowances must have been set before sending such transaction.
+
+        :param function_recipient: A FunctionRecipient which defines the recipient of this function output.
+        :param amount_out_min: The minimum accepted bought token (token_out) in Wei
+        :param path: The V3 path: a list of tokens where the first is the token_in, the last one is the token_out, and
+        with the pool fee between each token in basis points (ex: 3000 for 0.3%)
+        :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
+        :param payer_is_sender: True if the in tokens come from the sender, False if they already are in the router
+        :return: The chain link corresponding to this function call.
+        """
+        return self.v3_swap_exact_in(
+            function_recipient,
+            _RouterConstant.ROUTER_BALANCE.value,
+            amount_out_min,
+            path,
+            custom_recipient,
+            payer_is_sender,
+        )
 
     def _encode_v3_swap_exact_out_sub_contract(
             self,
