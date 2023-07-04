@@ -1,5 +1,4 @@
-# Uniswap Universal Router Decoder & Encoder v0.8.0
-⚠ This version introduces breaking changes compared to v0.7 !
+# Uniswap Universal Router Decoder & Encoder v0.9.0
 
 ---
 
@@ -20,32 +19,22 @@
 ---
 
 ## Release Notes
+### V0.9.0
+ - Add support for UNWRAP_WETH encoding
+ - Add v2_swap_exact_in_from_balance() and v3_swap_exact_in_from_balance(): 2 convenient methods which are used when the exact in_amount is not known when the transaction is built, typically chained after a V*_SWAP_EXACT_IN.
 ### V0.8.0
  - Breaking changes because of refactoring
  - Command chaining extension: all supported UR functions can now be chained in a single transaction
-### V0.7.1
- -  Fix issue [#1](https://github.com/Elnaril/uniswap-universal-router-decoder/issues/1) - v3 path decoding fails for some paths 
-### V0.7.0
- - Add support for encoding V2_SWAP_EXACT_OUT
- - Add support for encoding V3_SWAP_EXACT_OUT
- - Fix V3_SWAP_EXACT_OUT ABI
- - Fix typos in README
-### V0.6.0
- - Breaking changes: use Web3.py v6 i/o v5
- - Add support for the PERMIT2_PERMIT function
- - Add support for chaining PERMIT2_PERMIT and V2_SWAP_EXACT_IN in the same transaction
 
 ---
 
 ## Overview and Points of Attention
 
 The object of this library is to decode & encode the transaction input sent to the Uniswap universal router (UR)
-(address [`0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B`](https://etherscan.io/address/0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B) 
+(address [`0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD`](https://etherscan.io/address/0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B) 
 on Ethereum Mainnet). It is based on, and is intended to be used with [web3.py](https://github.com/ethereum/web3.py)
 
 ⚠ This library has not been audited, so use at your own risk !
-
-⚠ At this stage, there is no guarantee of compatibility between 2 versions: consider forcing the version in your dependency requirements.
 
 ⚠ This project is a work in progress so not all commands are decoded yet. Below the list of the already implemented ones.
 
@@ -59,7 +48,7 @@ on Ethereum Mainnet). It is based on, and is intended to be used with [web3.py](
 | 0x09 | V2_SWAP_EXACT_OUT | ✅ | ✅
 | 0x0a | PERMIT2_PERMIT | ✅ | ✅
 | 0x0b | WRAP_ETH | ✅ | ✅
-| 0x0c | UNWRAP_WETH | ✅ | ❌
+| 0x0c | UNWRAP_WETH | ✅ | ✅
 | 0x0d | PERMIT2_TRANSFER_FROM_BATCH | ❌ | ❌
 | 0x0e - 0x0f | placeholders | N/A | N/A
 | 0x10 - 0x1d |  | ❌ | ❌
@@ -200,7 +189,6 @@ transaction["data"] = encoded_data
 
 # you can now sign and send the transaction to the UR
 ```
-
 
 ### How to encode a call to the function V2_SWAP_EXACT_IN
 This function can be used to swap tokens on a V2 pool. Correct allowances must have been set before using sending such transaction.
