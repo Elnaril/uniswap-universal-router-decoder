@@ -31,7 +31,7 @@
 ## Overview and Points of Attention
 
 The object of this library is to decode & encode the transaction input sent to the Uniswap universal router (UR)
-(address [`0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD`](https://etherscan.io/address/0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B) 
+(address [`0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD`](https://etherscan.io/address/0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD) 
 on Ethereum Mainnet). It is based on, and is intended to be used with [web3.py](https://github.com/ethereum/web3.py)
 
 ⚠ This library has not been audited, so use at your own risk !
@@ -145,7 +145,7 @@ decoded_transaction = codec.decode.transaction(trx_hash)
 ```
 
 ### How to decode an Uniswap V3 swap path
-The `RouterCodec` class exposes also the method `decode.v3_path` which can be used to decode a given Uniswap V3 path.
+The `RouterCodec` class exposes also the method `decode.v3_path()` which can be used to decode a given Uniswap V3 path.
 
 ```python
 from uniswap_universal_router_decoder import RouterCodec
@@ -191,7 +191,7 @@ transaction["data"] = encoded_data
 ```
 
 ### How to encode a call to the function V2_SWAP_EXACT_IN
-This function can be used to swap tokens on a V2 pool. Correct allowances must have been set before using sending such transaction.
+This function can be used to swap tokens on a V2 pool. Correct allowances must have been set before sending such transaction.
 ```python
 from uniswap_universal_router_decoder import FunctionRecipient, RouterCodec
 
@@ -213,7 +213,7 @@ transaction["data"] = encoded_data
 ```
 
 ### How to encode a call to the function V2_SWAP_EXACT_OUT
-This function can be used to swap tokens on a V2 pool. Correct allowances must have been set before using sending such transaction.
+This function can be used to swap tokens on a V2 pool. Correct allowances must have been set before sending such transaction.
 ```python
 from uniswap_universal_router_decoder import FunctionRecipient, RouterCodec
 
@@ -257,7 +257,7 @@ transaction["data"] = encoded_data
 ```
 
 ### How to encode a call to the function V3_SWAP_EXACT_OUT
-This function can be used to swap tokens on a V3 pool. Correct allowances must have been set before using sending such transaction.
+This function can be used to swap tokens on a V3 pool. Correct allowances must have been set before sending such transaction.
 ```python
 from uniswap_universal_router_decoder import FunctionRecipient, RouterCodec
 
