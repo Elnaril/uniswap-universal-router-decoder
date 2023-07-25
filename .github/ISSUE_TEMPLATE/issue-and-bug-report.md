@@ -13,6 +13,10 @@ Sometime issue titles are misleading: search by keywords and check the questions
 **Describe the issue or bug**
 A clear and concise description of what the issue or bug is.
 
+**Formatting**
+If you paste/write some code, make sure it is correctly formatted.
+If relevant, consider formatting any output for better readability.
+
 **Expected behavior**
 A clear and concise description of what you expected to happen.
 
