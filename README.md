@@ -290,7 +290,7 @@ data, signable_message = codec.create_permit2_signable_message(
     amount,  # max = 2**160 - 1
     expiration,
     nonce,  # Permit2 nonce
-    spender,  # UR
+    spender,  # The UR checksum address
     deadline,
     1,  # chain id
 )
@@ -322,7 +322,7 @@ data, signable_message = codec.create_permit2_signable_message(
     amount,  # max = 2**160 - 1
     expiration,
     nonce,  # Permit2 nonce
-    spender,  # UR
+    spender,  # The UR checksum address
     deadline,
     1,  # chain id
 )
