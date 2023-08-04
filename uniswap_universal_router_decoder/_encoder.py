@@ -215,7 +215,7 @@ class _ChainedFunctionBuilder:
             amount_out_min: Wei,
             path: Sequence[ChecksumAddress],
             custom_recipient: Optional[ChecksumAddress] = None,
-            payer_is_sender: bool = True) -> _ChainedFunctionBuilder:
+            payer_is_sender: bool = False) -> _ChainedFunctionBuilder:
         """
         Encode the call to the function V2_SWAP_EXACT_IN, using the router balance as amount_in,
         which swaps tokens on Uniswap V2.
@@ -226,7 +226,7 @@ class _ChainedFunctionBuilder:
         :param amount_out_min: The minimum accepted bought token (token_out)
         :param path: The V2 path: a list of 2 or 3 tokens where the first is token_in and the last is token_out
         :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
-        :param payer_is_sender: True if the in tokens come from the sender, False if they already are in the router
+        :param payer_is_sender: Always False. Will be removed in next version
         :return: The chain link corresponding to this function call.
         """
         return self.v2_swap_exact_in(
@@ -342,7 +342,7 @@ class _ChainedFunctionBuilder:
             amount_out_min: Wei,
             path: Sequence[Union[int, ChecksumAddress]],
             custom_recipient: Optional[ChecksumAddress] = None,
-            payer_is_sender: bool = True) -> _ChainedFunctionBuilder:
+            payer_is_sender: bool = False) -> _ChainedFunctionBuilder:
         """
         Encode the call to the function V3_SWAP_EXACT_IN, using the router balance as amount_in,
         which swaps tokens on Uniswap V3.
@@ -354,7 +354,7 @@ class _ChainedFunctionBuilder:
         :param path: The V3 path: a list of tokens where the first is the token_in, the last one is the token_out, and
         with the pool fee between each token in basis points (ex: 3000 for 0.3%)
         :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
-        :param payer_is_sender: True if the in tokens come from the sender, False if they already are in the router
+        :param payer_is_sender: Always False. Will be removed in next version
         :return: The chain link corresponding to this function call.
         """
         return self.v3_swap_exact_in(

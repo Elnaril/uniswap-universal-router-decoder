@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "uniswap-universal-router-decoder"
-version = "0.9.0"
+version = "0.9.1.dev0"
 authors = [
   { name="Elnaril", email="elnaril_dev@caramail.com" },
 ]

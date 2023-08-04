@@ -52,7 +52,7 @@ def test_decode_transaction(trx_hash, w3, rpc_endpoint, expected_fct_names):
         if expected_name:
             assert expected_name == command_inputs[i][0].fn_name
         else:
-            assert type(command_inputs[i]) == str
+            assert isinstance(command_inputs[i], str)
             int(command_inputs[i], 16)  # check the str is actually a hex
 
 
