@@ -19,6 +19,9 @@
 ---
 
 ## Release Notes
+### V0.9.1
+ - Fix lint error
+ - Change v*_swap_exact_in_from_balance payer_is_sender default to False. This parameter will be removed in the next version.
 ### V0.9.0
  - Add support for UNWRAP_WETH encoding
  - Add v2_swap_exact_in_from_balance() and v3_swap_exact_in_from_balance(): 2 convenient methods which are used when the exact in_amount is not known when the transaction is built, typically chained after a V*_SWAP_EXACT_IN.
