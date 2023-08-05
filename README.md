@@ -1,4 +1,4 @@
-# Uniswap Universal Router Decoder & Encoder v0.9.0
+# Uniswap Universal Router Decoder & Encoder
 
 ---
 
