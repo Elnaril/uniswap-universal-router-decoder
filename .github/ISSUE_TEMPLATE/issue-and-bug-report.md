@@ -7,6 +7,10 @@ assignees: ''
 
 ---
 
+**Issue or question?**
+If it's a question, please consider using instead the [Q&A](https://github.com/Elnaril/uniswap-universal-router-decoder/discussions/categories/q-a) section of the discussions.
+And if an issue is found in the lib, then it can be opened here. 
+
 **Check existing issues and bugs (open and closed)**
 Sometime issue titles are misleading: search by keywords and check the questions/reports and answers to be sure yours has not yet been addressed.
 
@@ -14,7 +18,7 @@ Sometime issue titles are misleading: search by keywords and check the questions
 A clear and concise description of what the issue or bug is.
 
 **Formatting**
-If you paste/write some code, make sure it is correctly formatted.
+/!\ If you paste/write some code, make sure it is correctly formatted.
 If relevant, consider formatting any output for better readability.
 
 **Expected behavior**
