@@ -16,4 +16,4 @@ notes/
 .pytest_cache
 .tox
 
-tutorials/buy_tokens/venv_ur_tutorial/
+venv_ur_tutorial/
