@@ -1,8 +1,24 @@
 name: Tests & Lint
 
 on:
-  - push
-  - pull_request
+  push:
+    paths-ignore:
+      - '.github/**'
+      - 'integration_tests/**'
+      - 'tutorials/**'
+      - 'README.md'
+      - 'LICENSE'
+      - '.gitignore'
+      - 'coverage.json'
+  pull_request:
+    paths-ignore:
+      - '.github/**'
+      - 'integration_tests/**'
+      - 'tutorials/**'
+      - 'README.md'
+      - 'LICENSE'
+      - '.gitignore'
+      - 'coverage.json'
 
 jobs:
   build:
