@@ -3,6 +3,7 @@ from web3 import Account, Web3
 
 private_key = "0x6c9803151aa5cf420e98dd1afb9db96f0510918cb2249e9858519d47777125c9"
 
+# Ethereum fork with Ganache at block number = 17365005
 chain_id = 1337
 rpc_endpoint = "http://127.0.0.1:8545"
 
@@ -30,7 +31,6 @@ encoded_input = (
         .v2_swap_exact_in(FunctionRecipient.SENDER, amount_in, min_amount_out, path, payer_is_sender=False)
         .build(codec.get_default_deadline())
 )
-    
 
 w3 = Web3(Web3.HTTPProvider(rpc_endpoint))
 account = Account.from_key(private_key)
@@ -57,5 +57,3 @@ uni_balance = uni_contract.functions.balanceOf(account.address).call()
 
 print(uni_balance / 10**18)
 print(w3.eth.get_balance("0x5086D4289c219bcA9F65CC7F3aeC479EBFE1d934"))
-
-
