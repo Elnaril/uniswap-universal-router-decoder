@@ -454,6 +454,82 @@ class _ChainedFunctionBuilder:
         )
         return self
 
+    def _encode_sweep_sub_contract(self, token: ChecksumAddress, recipient: ChecksumAddress, amount_min: Wei) -> HexStr:
+        abi_mapping = self._abi_map[_RouterFunction.SWEEP]
+        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
+        contract_function: ContractFunction = sub_contract.functions.SWEEP(token, recipient, amount_min)
+        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, [token, recipient, amount_min]))
+
+    def sweep(
+            self,
+            function_recipient: FunctionRecipient,
+            token_address: ChecksumAddress,
+            amount_min: Wei,
+            custom_recipient: Optional[ChecksumAddress] = None) -> _ChainedFunctionBuilder:
+        """
+        Encode the call to the function SWEEP which sweeps all of the router's ERC20 or ETH to an address
+
+        :param function_recipient: A FunctionRecipient which defines the recipient of this function output.
+        :param token_address: The address of the token to sweep or "0x0000000000000000000000000000000000000000" for ETH.
+        :param amount_min: The minimum desired amount
+        :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
+        :return: The chain link corresponding to this function call.
+        """
+        recipient = self._get_recipient(function_recipient, custom_recipient)
+        self.commands.append(_RouterFunction.SWEEP)
+        self.arguments.append(
+            Web3.to_bytes(
+                hexstr=self._encode_sweep_sub_contract(
+                    token_address,
+                    recipient,
+                    amount_min,
+                )
+            )
+        )
+        return self
+
+    def _encode_pay_portion_sub_contract(self, token: ChecksumAddress, recipient: ChecksumAddress, bips: int) -> HexStr:
+        abi_mapping = self._abi_map[_RouterFunction.PAY_PORTION]
+        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
+        contract_function: ContractFunction = sub_contract.functions.PAY_PORTION(token, recipient, bips)
+        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, [token, recipient, bips]))
+
+    def pay_portion(
+            self,
+            function_recipient: FunctionRecipient,
+            token_address: ChecksumAddress,
+            bips: int,
+            custom_recipient: Optional[ChecksumAddress] = None) -> _ChainedFunctionBuilder:
+        """
+        Encode the call to the function PAY_PORTION which transfers a part of the router's ERC20 or ETH to an address.
+        Transferred amount = balance * bips / 10_000
+
+        :param function_recipient: A FunctionRecipient which defines the recipient of this function output.
+        :param token_address: The address of token to pay or "0x0000000000000000000000000000000000000000" for ETH.
+        :param bips: integer between 0 and 10_000
+        :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
+        :return: The chain link corresponding to this function call.
+        """
+        if (
+            bips < 0
+            or bips > 10_000
+            or not isinstance(bips, int)
+        ):
+            raise ValueError(f"Invalid argument: bips must be an int between 0 and 10_000. Received {bips}")
+
+        recipient = self._get_recipient(function_recipient, custom_recipient)
+        self.commands.append(_RouterFunction.PAY_PORTION)
+        self.arguments.append(
+            Web3.to_bytes(
+                hexstr=self._encode_pay_portion_sub_contract(
+                    token_address,
+                    recipient,
+                    bips,
+                )
+            )
+        )
+        return self
+
     def build(self, deadline: Optional[int] = None) -> HexStr:
         """
         Build the encoded input for all the chained commands, ready to be sent to the UR
