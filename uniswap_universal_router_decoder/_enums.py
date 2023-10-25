@@ -17,6 +17,8 @@ class _RouterFunction(Enum):
     # https://docs.uniswap.org/contracts/universal-router/technical-reference#command
     V3_SWAP_EXACT_IN = 0
     V3_SWAP_EXACT_OUT = 1
+    SWEEP = 4
+    PAY_PORTION = 6
     V2_SWAP_EXACT_IN = 8
     V2_SWAP_EXACT_OUT = 9
     PERMIT2_PERMIT = 10

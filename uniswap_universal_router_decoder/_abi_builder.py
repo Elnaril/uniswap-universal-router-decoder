@@ -95,6 +95,8 @@ class _ABIBuilder:
             _RouterFunction.PERMIT2_PERMIT: self._add_mapping(self._build_permit2_permit),
             _RouterFunction.WRAP_ETH: self._add_mapping(self._build_wrap_eth),
             _RouterFunction.UNWRAP_WETH: self._add_mapping(self._build_unwrap_weth),
+            _RouterFunction.SWEEP: self._add_mapping(self._build_sweep),
+            _RouterFunction.PAY_PORTION: self._add_mapping(self._build_pay_portion),
         }
         return abi_map
 
@@ -146,3 +148,13 @@ class _ABIBuilder:
         builder = _FunctionABIBuilder("V3_SWAP_EXACT_OUT")
         builder.add_address("recipient").add_int("amountOut").add_int("amountInMax").add_bytes("path")
         return builder.add_bool("payerIsSender").build()
+
+    @staticmethod
+    def _build_sweep() -> _FunctionABI:
+        builder = _FunctionABIBuilder("SWEEP")
+        return builder.add_address("token").add_address("recipient").add_int("amountMin").build()
+
+    @staticmethod
+    def _build_pay_portion() -> _FunctionABI:
+        builder = _FunctionABIBuilder("PAY_PORTION")
+        return builder.add_address("token").add_address("recipient").add_int("bips").build()
