@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "uniswap-universal-router-decoder"
-version = "0.9.1"
+version = "1.0.0"
 authors = [
   { name="Elnaril", email="elnaril_dev@caramail.com" },
 ]
@@ -35,4 +35,6 @@ packages = ["uniswap_universal_router_decoder"]
 [project.urls]
 "Homepage" = "https://github.com/Elnaril/uniswap-universal-router-decoder"
 "Bug Tracker" = "https://github.com/Elnaril/uniswap-universal-router-decoder/issues"
-"Fiverr" = "https://www.fiverr.com/elnaril"
+"Discussions" = "https://github.com/Elnaril/uniswap-universal-router-decoder/discussions"
+"Fiverr" = "https://www.fiverr.com/freelancers/elnaril"
+"Buy Me A Coffee" = "https://www.buymeacoffee.com/elnaril"
