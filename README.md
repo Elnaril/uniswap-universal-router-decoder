@@ -19,15 +19,18 @@
 ---
 
 ## Release Notes
+### v1.0.0
+ - Add support for SWEEP and PAY_PORTION
+ - Fix decoding issues
+ - Remove useless parameter `payer_is_sender` from `v*_swap_exact_in_from_balance()` methods
+ - Update Router ABI
+ - Add uint48 and uint160 in ABI builder
 ### V0.9.1
  - Fix lint error
- - Change v*_swap_exact_in_from_balance payer_is_sender default to False. This parameter will be removed in the next version.
+ - Change `v*_swap_exact_in_from_balance()` `payer_is_sender` default to False. This parameter will be removed in the next version.
 ### V0.9.0
  - Add support for UNWRAP_WETH encoding
- - Add v2_swap_exact_in_from_balance() and v3_swap_exact_in_from_balance(): 2 convenient methods which are used when the exact in_amount is not known when the transaction is built, typically chained after a V*_SWAP_EXACT_IN.
-### V0.8.0
- - Breaking changes because of refactoring
- - Command chaining extension: all supported UR functions can now be chained in a single transaction
+ - Add `v2_swap_exact_in_from_balance()` and `v3_swap_exact_in_from_balance()`: 2 convenient methods which are used when the exact in_amount is not known when the transaction is built, typically chained after a `V*_SWAP_EXACT_IN`.
 
 ---
 
@@ -45,7 +48,10 @@ on Ethereum Mainnet). It is based on, and is intended to be used with [web3.py](
 | ---------- | ------------- |:------:|:------:
 | 0x00 | V3_SWAP_EXACT_IN | ✅ | ✅
 | 0x01 | V3_SWAP_EXACT_OUT | ✅ | ✅
-| 0x02 - 0x06 |  | ❌ | ❌
+| 0x02 - 0x03 |  | ❌ | ❌
+| 0x04 | SWEEP | ✅ | ✅
+| 0x05 | TRANSFER | ❌ | ❌
+| 0x06 | PAY_PORTION | ✅ | ✅
 | 0x07 | placeholder  | N/A | N/A
 | 0x08 | V2_SWAP_EXACT_IN | ✅ | ✅
 | 0x09 | V2_SWAP_EXACT_OUT | ✅ | ✅
@@ -162,7 +168,7 @@ The result is a tuple, starting with the "in-token" and ending with the "out-tok
 
 
 ### How to encode
-The UR allows the chaining of several functions in the same transaction.
+The Universal Router allows the chaining of several functions in the same transaction.
 This codec supports it (at least for supported functions) and exposes public methods that can be chained.
 
 The chaining starts with the `encode.chain()` method and ends with the `build()` one which return the full encoded data to be included in the transaction.
@@ -214,6 +220,7 @@ transaction["data"] = encoded_data
 
 # you can now sign and send the transaction to the UR
 ```
+For more details, see this [tutorial](https://hackernoon.com/how-to-buy-a-token-on-the-uniswap-universal-router-with-python)
 
 ### How to encode a call to the function V2_SWAP_EXACT_OUT
 This function can be used to swap tokens on a V2 pool. Correct allowances must have been set before sending such transaction.
@@ -282,8 +289,9 @@ transaction["data"] = encoded_data
 ```
 
 ### How to encode a call to the function PERMIT2_PERMIT
-This function is used to give an allowance to the universal router thanks to the Permit2 contract (([`0x000000000022D473030F116dDEE9F6B43aC78BA3`](https://etherscan.io/address/0x000000000022D473030F116dDEE9F6B43aC78BA3)).
+This function is used to give an allowance to the universal router thanks to the Permit2 contract ([`0x000000000022D473030F116dDEE9F6B43aC78BA3`](https://etherscan.io/address/0x000000000022D473030F116dDEE9F6B43aC78BA3)).
 It is also necessary to approve the Permit2 contract using the token approve function.
+See this [tutorial](https://hackernoon.com/python-how-to-use-permit2-with-the-uniswap-universal-router)
 ```python
 from uniswap_universal_router_decoder import RouterCodec
 

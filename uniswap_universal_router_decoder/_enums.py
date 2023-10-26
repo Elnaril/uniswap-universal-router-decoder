@@ -27,6 +27,13 @@ class _RouterFunction(Enum):
 
 
 class FunctionRecipient(Enum):
+    """
+    SENDER: When the function recipient is the sender
+
+    ROUTER: When the function recipient is the router
+
+    CUSTOM: When the function recipient is neither the trx sender nor the router
+    """
     SENDER = "recipient is transaction sender"
     ROUTER = "recipient is universal router"
     CUSTOM = "recipient is custom"
