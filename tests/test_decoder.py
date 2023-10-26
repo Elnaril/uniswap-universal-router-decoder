@@ -38,7 +38,7 @@ trx_hash_08 = HexStr("0x62176a906ef7f178814a0924d390082053bd8992c2902f4367561946
 expected_function_names_08 = ("WRAP_ETH", "V2_SWAP_EXACT_OUT", "PAY_PORTION", "SWEEP", "UNWRAP_WETH")
 
 trx_hash_09 = HexStr("0x2b6af8ef8fe18829a0fcf2b0f391c55daf76f53bb68369ecaefdb1f38045f919")
-expected_function_names_09 = ("PERMIT2_PERMIT", "V2_SWAP_EXACT_IN", "V2_SWAP_EXACT_IN", "V3_SWAP_EXACT_IN", "V2_SWAP_EXACT_IN", "V3_SWAP_EXACT_IN", "SWEEP")
+expected_function_names_09 = ("PERMIT2_PERMIT", "V2_SWAP_EXACT_IN", "V2_SWAP_EXACT_IN", "V3_SWAP_EXACT_IN", "V2_SWAP_EXACT_IN", "V3_SWAP_EXACT_IN", "SWEEP")  # noqa
 
 
 @pytest.mark.parametrize(
