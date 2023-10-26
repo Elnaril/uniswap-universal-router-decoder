@@ -17,6 +17,8 @@ class _RouterFunction(Enum):
     # https://docs.uniswap.org/contracts/universal-router/technical-reference#command
     V3_SWAP_EXACT_IN = 0
     V3_SWAP_EXACT_OUT = 1
+    SWEEP = 4
+    PAY_PORTION = 6
     V2_SWAP_EXACT_IN = 8
     V2_SWAP_EXACT_OUT = 9
     PERMIT2_PERMIT = 10
@@ -25,6 +27,13 @@ class _RouterFunction(Enum):
 
 
 class FunctionRecipient(Enum):
+    """
+    SENDER: When the function recipient is the sender
+
+    ROUTER: When the function recipient is the router
+
+    CUSTOM: When the function recipient is neither the trx sender nor the router
+    """
     SENDER = "recipient is transaction sender"
     ROUTER = "recipient is universal router"
     CUSTOM = "recipient is custom"

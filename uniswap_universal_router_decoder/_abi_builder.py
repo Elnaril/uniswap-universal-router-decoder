@@ -56,8 +56,18 @@ class _FunctionABIBuilder:
         self.abi.inputs.append({"name": arg_name, "type": "address"})
         return self
 
-    def add_int(self, arg_name: str) -> _FunctionABIBuilder:
+    def add_uint256(self, arg_name: str) -> _FunctionABIBuilder:
         self.abi.inputs.append({"name": arg_name, "type": "uint256"})
+        return self
+
+    add_int = add_uint256
+
+    def add_uint160(self, arg_name: str) -> _FunctionABIBuilder:
+        self.abi.inputs.append({"name": arg_name, "type": "uint160"})
+        return self
+
+    def add_uint48(self, arg_name: str) -> _FunctionABIBuilder:
+        self.abi.inputs.append({"name": arg_name, "type": "uint48"})
         return self
 
     def add_address_array(self, arg_name: str) -> _FunctionABIBuilder:
@@ -95,6 +105,8 @@ class _ABIBuilder:
             _RouterFunction.PERMIT2_PERMIT: self._add_mapping(self._build_permit2_permit),
             _RouterFunction.WRAP_ETH: self._add_mapping(self._build_wrap_eth),
             _RouterFunction.UNWRAP_WETH: self._add_mapping(self._build_unwrap_weth),
+            _RouterFunction.SWEEP: self._add_mapping(self._build_sweep),
+            _RouterFunction.PAY_PORTION: self._add_mapping(self._build_pay_portion),
         }
         return abi_map
 
@@ -114,7 +126,7 @@ class _ABIBuilder:
     def _build_permit2_permit() -> _FunctionABI:
         builder = _FunctionABIBuilder("PERMIT2_PERMIT")
         inner_struct = builder.create_struct("details")
-        inner_struct.add_address("token").add_int("amount").add_int("expiration").add_int("nonce")
+        inner_struct.add_address("token").add_uint160("amount").add_uint48("expiration").add_uint48("nonce")
         outer_struct = builder.create_struct("struct")
         outer_struct.add_struct(inner_struct).add_address("spender").add_int("sigDeadline")
         return builder.add_struct(outer_struct).add_bytes("data").build()
@@ -146,3 +158,13 @@ class _ABIBuilder:
         builder = _FunctionABIBuilder("V3_SWAP_EXACT_OUT")
         builder.add_address("recipient").add_int("amountOut").add_int("amountInMax").add_bytes("path")
         return builder.add_bool("payerIsSender").build()
+
+    @staticmethod
+    def _build_sweep() -> _FunctionABI:
+        builder = _FunctionABIBuilder("SWEEP")
+        return builder.add_address("token").add_address("recipient").add_int("amountMin").build()
+
+    @staticmethod
+    def _build_pay_portion() -> _FunctionABI:
+        builder = _FunctionABIBuilder("PAY_PORTION")
+        return builder.add_address("token").add_address("recipient").add_int("bips").build()

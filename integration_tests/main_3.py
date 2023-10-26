@@ -104,7 +104,7 @@ def buy_usdc():
         .chain()
         .wrap_eth(FunctionRecipient.ROUTER, amount_in)
         # can chain one of the 2 following v3 swap functions:
-        .v3_swap_exact_in_from_balance(FunctionRecipient.SENDER, amount_out_min, v3_path, payer_is_sender=False)
+        .v3_swap_exact_in_from_balance(FunctionRecipient.SENDER, amount_out_min, v3_path)
         # .v3_swap_exact_in(FunctionRecipient.SENDER, amount_in, amount_out_min, v3_path, payer_is_sender=False)
         .build(codec.get_default_deadline())
     )
