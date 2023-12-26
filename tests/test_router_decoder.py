@@ -53,7 +53,7 @@ trx_hash_05 = HexStr("0x47c0f1dd13edf9f1608f9f34bdba9ad40cb95dd081033cad69f5b88e
 expected_function_names_05 = (None, None)
 
 trx_hash_09 = HexStr("0x2b6af8ef8fe18829a0fcf2b0f391c55daf76f53bb68369ecaefdb1f38045f919")
-expected_function_names_09 = ("PERMIT2_PERMIT", "V2_SWAP_EXACT_IN", "V2_SWAP_EXACT_IN", "V3_SWAP_EXACT_IN", "V2_SWAP_EXACT_IN", "V3_SWAP_EXACT_IN", None)
+expected_function_names_09 = ("PERMIT2_PERMIT", "V2_SWAP_EXACT_IN", "V2_SWAP_EXACT_IN", "V3_SWAP_EXACT_IN", "V2_SWAP_EXACT_IN", "V3_SWAP_EXACT_IN", None)  # noqa
 
 
 @pytest.mark.parametrize(
@@ -80,7 +80,7 @@ def test_decode_transaction(trx_hash, w3, rpc_endpoint, expected_fct_names):
         if expected_name:
             assert expected_name == command_inputs[i][0].fn_name
         else:
-            assert type(command_inputs[i]) == str
+            assert type(command_inputs[i]) is str
             int(command_inputs[i], 16)  # check the str is actually a hex
 
 
