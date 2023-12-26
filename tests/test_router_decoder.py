@@ -52,6 +52,9 @@ expected_function_names_04 = ("WRAP_ETH", "V2_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OU
 trx_hash_05 = HexStr("0x47c0f1dd13edf9f1608f9f34bdba9ad40cb95dd081033cad69f5b88e451b4b55")
 expected_function_names_05 = (None, None)
 
+trx_hash_09 = HexStr("0x2b6af8ef8fe18829a0fcf2b0f391c55daf76f53bb68369ecaefdb1f38045f919")
+expected_function_names_09 = ("PERMIT2_PERMIT", "V2_SWAP_EXACT_IN", "V2_SWAP_EXACT_IN", "V3_SWAP_EXACT_IN", "V2_SWAP_EXACT_IN", "V3_SWAP_EXACT_IN", None)
+
 
 @pytest.mark.parametrize(
     "trx_hash, w3, rpc_endpoint, expected_fct_names",
@@ -61,6 +64,7 @@ expected_function_names_05 = (None, None)
         (trx_hash_03, w3_instance, None, expected_function_names_03),
         (trx_hash_04, w3_instance, None, expected_function_names_04),
         (trx_hash_05, w3_instance, None, expected_function_names_05),
+        (trx_hash_09, w3_instance, None, expected_function_names_09),
     )
 )
 def test_decode_transaction(trx_hash, w3, rpc_endpoint, expected_fct_names):

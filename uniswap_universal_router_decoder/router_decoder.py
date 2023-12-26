@@ -73,7 +73,7 @@ class RouterDecoder:
         command = decoded_input["commands"]
         command_input = decoded_input["inputs"]
         decoded_command_input = []
-        for i, b in enumerate(command[-6:]):
+        for i, b in enumerate(command[-7:]):
             # iterating over bytes produces integers
             try:
                 abi_mapping = self._abi_map[_RouterFunction(b)]
@@ -146,7 +146,7 @@ class RouterDecoder:
             else:
                 _item = f"{item:06X}"
             path += _item
-        return Web3.toBytes(hexstr=HexStr(path))
+        return Web3.toBytes(hexstr=HexStr(path))  # type: ignore
 
     def _encode_wrap_eth_sub_contract(self, recipient: ChecksumAddress, amount_min: Wei) -> HexStr:
         abi_mapping = self._abi_map[_RouterFunction.WRAP_ETH]
@@ -218,7 +218,7 @@ class RouterDecoder:
     @staticmethod
     def _encode_execution_function(arguments: Tuple[bytes, List[bytes], int]) -> HexStr:
         encoded_data = encode(_execution_function_input_types, arguments)  # type: ignore
-        return Web3.toHex(Web3.toBytes(hexstr=_execution_function_selector) + encoded_data)
+        return Web3.toHex(Web3.toBytes(hexstr=_execution_function_selector) + encoded_data)  # type: ignore
 
     def encode_data_for_wrap_eth(self, amount: Wei, deadline: Optional[int] = None) -> HexStr:
         """
