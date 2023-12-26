@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "uniswap-universal-router-decoder"
-version = "0.5.3"
+version = "0.5.4"
 authors = [
   { name="Elnaril", email="elnaril_dev@caramail.com" },
 ]
@@ -12,7 +12,7 @@ description = "Decode & Encode transaction data sent to Uniswap universal router
 readme = "README.md"
 requires-python = ">=3.8"
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Natural Language :: English",
@@ -26,7 +26,7 @@ license = {text = "MIT License"}
 dependencies = [
   "web3<6.0.0",
 ]
-keywords = ["blockchain", "ethereum", "uniswap", "universal router", "decoder", "encoder"]
+keywords = ["blockchain", "ethereum", "uniswap", "universal router", "decoder", "encoder", "codec", "wrapper", "sdk"]
 
 [tool.setuptools]
 packages = ["uniswap_universal_router_decoder"]
@@ -34,4 +34,7 @@ packages = ["uniswap_universal_router_decoder"]
 [project.urls]
 "Homepage" = "https://github.com/Elnaril/uniswap-universal-router-decoder"
 "Bug Tracker" = "https://github.com/Elnaril/uniswap-universal-router-decoder/issues"
-"Fiverr" = "https://www.fiverr.com/elnaril"
+"Discussions" = "https://github.com/Elnaril/uniswap-universal-router-decoder/discussions"
+"Fiverr" = "https://www.fiverr.com/freelancers/elnaril"
+"Buy Me A Coffee" = "https://www.buymeacoffee.com/elnaril"
+
