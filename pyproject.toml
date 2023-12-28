@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "uniswap-universal-router-decoder"
-version = "1.0.0"
+version = "1.0.1"
 authors = [
   { name="Elnaril", email="elnaril_dev@caramail.com" },
 ]
@@ -12,7 +12,7 @@ description = "Decode & Encode transaction data sent to Uniswap Universal Router
 readme = "README.md"
 requires-python = ">=3.8"
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Natural Language :: English",
@@ -27,7 +27,7 @@ license = {text = "MIT License"}
 dependencies = [
   "web3>=6.0.0,<7.0.0",
 ]
-keywords = ["blockchain", "ethereum", "uniswap", "universal router", "decoder", "encoder", "codec", "wrapper"]
+keywords = ["blockchain", "ethereum", "uniswap", "universal router", "decoder", "encoder", "codec", "wrapper", "SDK"]
 
 [tool.setuptools]
 packages = ["uniswap_universal_router_decoder"]
