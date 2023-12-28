@@ -19,6 +19,8 @@
 ---
 
 ## Release Notes
+### v1.0.1
+ - Fix issue #35 - fails to decode input data when there is too many commands
 ### v1.0.0
  - Add support for SWEEP and PAY_PORTION
  - Fix decoding issues
@@ -171,8 +173,8 @@ The result is a tuple, starting with the "in-token" and ending with the "out-tok
 The Universal Router allows the chaining of several functions in the same transaction.
 This codec supports it (at least for supported functions) and exposes public methods that can be chained.
 
-The chaining starts with the `encode.chain()` method and ends with the `build()` one which return the full encoded data to be included in the transaction.
-Below some examples of encoded input for one function and one example for 2 functions.
+The chaining starts with the `encode.chain()` method and ends with the `build()` one which returns the full encoded data to be included in the transaction.
+Below some examples of encoded data for one function and one example for 2 functions.
 
 Default values for deadlines and expirations can be computed with the static methods `get_default_deadline()` and `get_default_expiration()` respectively.
 ```python
@@ -357,3 +359,6 @@ transaction["data"] = encoded_data
 
 # you can now sign and send the transaction to the UR
 ```
+
+## Tutorials and Recipes:
+See the [SDK Wiki](https://github.com/Elnaril/uniswap-universal-router-decoder/wiki).
