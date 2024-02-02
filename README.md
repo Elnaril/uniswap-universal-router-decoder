@@ -109,7 +109,10 @@ Example of decoded input returned by `decode.function_input()`:
                 {                                      # and its parameters
                     'recipient': '0x0000000000000000000000000000000000000002',  # code indicating the recipient of this command is the router
                     'amountMin': 4500000000000000000  # the amount in WEI to wrap
-                }
+                },
+                {
+                    'revert_on_fail': True  # flag indicating if the transaction must revert when this command fails
+                },
             ),
             (
                 <Function V3_SWAP_EXACT_IN(address,uint256,uint256,bytes,bool)>,  # the function corresponding to the second command
@@ -121,7 +124,10 @@ Example of decoded input returned by `decode.function_input()`:
                            b'\x00\x01\xf4\xa0\xb8i\x91\xc6!\x8b6\xc1\xd1\x9dJ.'  # can be decoded with the method decode.v3_path()
                            b'\x9e\xb0\xce6\x06\xebH',
                     'payerIsSender': False  # a bool indicating if the input tokens come from the sender or are already in the UR
-                }
+                },
+                {
+                    'revert_on_fail': True  # flag indicating if the transaction must revert when this command fails
+                },
             )
         ],
         'deadline': 1678441619  # The deadline after which the transaction is not valid any more.

@@ -71,6 +71,7 @@ def test_decode_transaction(trx_hash, w3, rpc_endpoint, expected_fct_names):
     for i, expected_name in enumerate(expected_fct_names):
         if expected_name:
             assert expected_name == command_inputs[i][0].fn_name
+            assert command_inputs[i][2]['revert_on_fail'] is True
         else:
             assert isinstance(command_inputs[i], str)
             int(command_inputs[i], 16)  # check the str is actually a hex

@@ -25,7 +25,10 @@ from web3.types import (
 
 from uniswap_universal_router_decoder._abi_builder import _ABIMap
 from uniswap_universal_router_decoder._constants import _router_abi
-from uniswap_universal_router_decoder._enums import _RouterFunction
+from uniswap_universal_router_decoder._enums import (
+    _RouterConstant,
+    _RouterFunction,
+)
 
 
 class _Decoder:
@@ -47,11 +50,15 @@ class _Decoder:
         decoded_command_input = []
         for i, b in enumerate(command):
             # iterating over bytes produces integers
+            command_function = b & _RouterConstant.COMMAND_TYPE_MASK.value
             try:
-                abi_mapping = self._abi_map[_RouterFunction(b)]
+                abi_mapping = self._abi_map[_RouterFunction(command_function)]
                 data = abi_mapping.selector + command_input[i]
                 sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
-                decoded_command_input.append(sub_contract.decode_function_input(data))
+                revert_on_fail = not bool(b & _RouterConstant.FLAG_ALLOW_REVERT.value)
+                decoded_command_input.append(
+                    sub_contract.decode_function_input(data) + ({"revert_on_fail": revert_on_fail}, )
+                )
             except (ValueError, KeyError):
                 decoded_command_input.append(command_input[i].hex())
         decoded_input["inputs"] = decoded_command_input
