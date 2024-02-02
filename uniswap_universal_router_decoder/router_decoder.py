@@ -73,7 +73,7 @@ class RouterDecoder:
         command = decoded_input["commands"]
         command_input = decoded_input["inputs"]
         decoded_command_input = []
-        for i, b in enumerate(command[-7:]):
+        for i, b in enumerate(command):
             # iterating over bytes produces integers
             try:
                 abi_mapping = self._abi_map[_RouterFunction(b)]
