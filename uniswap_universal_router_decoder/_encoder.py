@@ -123,19 +123,18 @@ class _ChainedFunctionBuilder:
             self,
             function_recipient: FunctionRecipient,
             amount: Wei,
-            custom_recipient: Optional[ChecksumAddress] = None,
-            revert_on_fail: bool = True) -> _ChainedFunctionBuilder:
+            custom_recipient: Optional[ChecksumAddress] = None) -> _ChainedFunctionBuilder:
         """
         Encode the call to the function WRAP_ETH which convert ETH to WETH through the UR
 
         :param function_recipient: A FunctionRecipient which defines the recipient of this function output.
         :param amount: The amount of sent ETH in WEI.
         :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
-        :param revert_on_fail: Flag indicating if the whole transaction must revert if this command fails.
+
         :return: The chain link corresponding to this function call.
         """
         recipient = self._get_recipient(function_recipient, custom_recipient)
-        self.commands.append(self._get_command(_RouterFunction.WRAP_ETH, revert_on_fail))
+        self.commands.append(_RouterFunction.WRAP_ETH.value)
         self.arguments.append(Web3.to_bytes(hexstr=self._encode_wrap_eth_sub_contract(recipient, amount)))
         return self
 
@@ -149,19 +148,18 @@ class _ChainedFunctionBuilder:
             self,
             function_recipient: FunctionRecipient,
             amount: Wei,
-            custom_recipient: Optional[ChecksumAddress] = None,
-            revert_on_fail: bool = True) -> _ChainedFunctionBuilder:
+            custom_recipient: Optional[ChecksumAddress] = None) -> _ChainedFunctionBuilder:
         """
         Encode the call to the function UNWRAP_WETH which convert WETH to ETH through the UR
 
         :param function_recipient: A FunctionRecipient which defines the recipient of this function output.
         :param amount: The amount of sent WETH in WEI.
         :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
-        :param revert_on_fail: Flag indicating if the whole transaction must revert if this command fails.
+
         :return: The chain link corresponding to this function call.
         """
         recipient = self._get_recipient(function_recipient, custom_recipient)
-        self.commands.append(self._get_command(_RouterFunction.UNWRAP_WETH, revert_on_fail))
+        self.commands.append(_RouterFunction.UNWRAP_WETH.value)
         self.arguments.append(Web3.to_bytes(hexstr=self._encode_unwrap_weth_sub_contract(recipient, amount)))
         return self
 
@@ -185,8 +183,7 @@ class _ChainedFunctionBuilder:
             amount_out_min: Wei,
             path: Sequence[ChecksumAddress],
             custom_recipient: Optional[ChecksumAddress] = None,
-            payer_is_sender: bool = True,
-            revert_on_fail: bool = True) -> _ChainedFunctionBuilder:
+            payer_is_sender: bool = True) -> _ChainedFunctionBuilder:
         """
         Encode the call to the function V2_SWAP_EXACT_IN, which swaps tokens on Uniswap V2.
         Correct allowances must have been set before sending such transaction.
@@ -197,11 +194,11 @@ class _ChainedFunctionBuilder:
         :param path: The V2 path: a list of 2 or 3 tokens where the first is token_in and the last is token_out
         :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
         :param payer_is_sender: True if the in tokens come from the sender, False if they already are in the router
-        :param revert_on_fail: Flag indicating if the whole transaction must revert if this command fails.
+
         :return: The chain link corresponding to this function call.
         """
         recipient = self._get_recipient(function_recipient, custom_recipient)
-        self.commands.append(self._get_command(_RouterFunction.V2_SWAP_EXACT_IN, revert_on_fail))
+        self.commands.append(_RouterFunction.V2_SWAP_EXACT_IN.value)
         self.arguments.append(
             Web3.to_bytes(
                 hexstr=self._encode_v2_swap_exact_in_sub_contract(
@@ -220,8 +217,7 @@ class _ChainedFunctionBuilder:
             function_recipient: FunctionRecipient,
             amount_out_min: Wei,
             path: Sequence[ChecksumAddress],
-            custom_recipient: Optional[ChecksumAddress] = None,
-            revert_on_fail: bool = True) -> _ChainedFunctionBuilder:
+            custom_recipient: Optional[ChecksumAddress] = None) -> _ChainedFunctionBuilder:
         """
         Encode the call to the function V2_SWAP_EXACT_IN, using the router balance as amount_in,
         which swaps tokens on Uniswap V2.
@@ -232,7 +228,7 @@ class _ChainedFunctionBuilder:
         :param amount_out_min: The minimum accepted bought token (token_out)
         :param path: The V2 path: a list of 2 or 3 tokens where the first is token_in and the last is token_out
         :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
-        :param revert_on_fail: Flag indicating if the whole transaction must revert if this command fails.
+
         :return: The chain link corresponding to this function call.
         """
         return self.v2_swap_exact_in(
@@ -242,7 +238,6 @@ class _ChainedFunctionBuilder:
             path,
             custom_recipient,
             False,
-            revert_on_fail,
         )
 
     def _encode_v2_swap_exact_out_sub_contract(
@@ -265,8 +260,7 @@ class _ChainedFunctionBuilder:
             amount_in_max: Wei,
             path: Sequence[ChecksumAddress],
             custom_recipient: Optional[ChecksumAddress] = None,
-            payer_is_sender: bool = True,
-            revert_on_fail: bool = True) -> _ChainedFunctionBuilder:
+            payer_is_sender: bool = True) -> _ChainedFunctionBuilder:
         """
         Encode the call to the function V2_SWAP_EXACT_OUT, which swaps tokens on Uniswap V2.
         Correct allowances must have been set before sending such transaction.
@@ -277,11 +271,11 @@ class _ChainedFunctionBuilder:
         :param path: The V2 path: a list of 2 or 3 tokens where the first is token_in and the last is token_out
         :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
         :param payer_is_sender: True if the in tokens come from the sender, False if they already are in the router
-        :param revert_on_fail: Flag indicating if the whole transaction must revert if this command fails.
+
         :return: The chain link corresponding to this function call.
         """
         recipient = self._get_recipient(function_recipient, custom_recipient)
-        self.commands.append(self._get_command(_RouterFunction.V2_SWAP_EXACT_OUT, revert_on_fail))
+        self.commands.append(_RouterFunction.V2_SWAP_EXACT_OUT.value)
         self.arguments.append(
             Web3.to_bytes(
                 hexstr=self._encode_v2_swap_exact_out_sub_contract(
@@ -316,8 +310,7 @@ class _ChainedFunctionBuilder:
             amount_out_min: Wei,
             path: Sequence[Union[int, ChecksumAddress]],
             custom_recipient: Optional[ChecksumAddress] = None,
-            payer_is_sender: bool = True,
-            revert_on_fail: bool = True) -> _ChainedFunctionBuilder:
+            payer_is_sender: bool = True) -> _ChainedFunctionBuilder:
         """
         Encode the call to the function V3_SWAP_EXACT_IN, which swaps tokens on Uniswap V3.
         Correct allowances must have been set before sending such transaction.
@@ -329,11 +322,11 @@ class _ChainedFunctionBuilder:
         with the pool fee between each token in basis points (ex: 3000 for 0.3%)
         :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
         :param payer_is_sender: True if the in tokens come from the sender, False if they already are in the router
-        :param revert_on_fail: Flag indicating if the whole transaction must revert if this command fails.
+
         :return: The chain link corresponding to this function call.
         """
         recipient = self._get_recipient(function_recipient, custom_recipient)
-        self.commands.append(self._get_command(_RouterFunction.V3_SWAP_EXACT_IN, revert_on_fail))
+        self.commands.append(_RouterFunction.V3_SWAP_EXACT_IN.value)
         self.arguments.append(
             Web3.to_bytes(
                 hexstr=self._encode_v3_swap_exact_in_sub_contract(
@@ -352,8 +345,7 @@ class _ChainedFunctionBuilder:
             function_recipient: FunctionRecipient,
             amount_out_min: Wei,
             path: Sequence[Union[int, ChecksumAddress]],
-            custom_recipient: Optional[ChecksumAddress] = None,
-            revert_on_fail: bool = True) -> _ChainedFunctionBuilder:
+            custom_recipient: Optional[ChecksumAddress] = None) -> _ChainedFunctionBuilder:
         """
         Encode the call to the function V3_SWAP_EXACT_IN, using the router balance as amount_in,
         which swaps tokens on Uniswap V3.
@@ -365,7 +357,7 @@ class _ChainedFunctionBuilder:
         :param path: The V3 path: a list of tokens where the first is the token_in, the last one is the token_out, and
         with the pool fee between each token in basis points (ex: 3000 for 0.3%)
         :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
-        :param revert_on_fail: Flag indicating if the whole transaction must revert if this command fails.
+
         :return: The chain link corresponding to this function call.
         """
         return self.v3_swap_exact_in(
@@ -375,7 +367,6 @@ class _ChainedFunctionBuilder:
             path,
             custom_recipient,
             False,
-            revert_on_fail,
         )
 
     def _encode_v3_swap_exact_out_sub_contract(
@@ -399,8 +390,7 @@ class _ChainedFunctionBuilder:
             amount_in_max: Wei,
             path: Sequence[Union[int, ChecksumAddress]],
             custom_recipient: Optional[ChecksumAddress] = None,
-            payer_is_sender: bool = True,
-            revert_on_fail: bool = True) -> _ChainedFunctionBuilder:
+            payer_is_sender: bool = True) -> _ChainedFunctionBuilder:
         """
         Encode the call to the function V3_SWAP_EXACT_OUT, which swaps tokens on Uniswap V3.
         Correct allowances must have been set before sending such transaction.
@@ -412,11 +402,11 @@ class _ChainedFunctionBuilder:
         with the pool fee between each token in basis points (ex: 3000 for 0.3%)
         :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
         :param payer_is_sender: True if the in tokens come from the sender, False if they already are in the router
-        :param revert_on_fail: Flag indicating if the whole transaction must revert if this command fails.
+
         :return: The chain link corresponding to this function call.
         """
         recipient = self._get_recipient(function_recipient, custom_recipient)
-        self.commands.append(self._get_command(_RouterFunction.V3_SWAP_EXACT_OUT, revert_on_fail))
+        self.commands.append(_RouterFunction.V3_SWAP_EXACT_OUT.value)
         self.arguments.append(
             Web3.to_bytes(
                 hexstr=self._encode_v3_swap_exact_out_sub_contract(
@@ -448,18 +438,17 @@ class _ChainedFunctionBuilder:
     def permit2_permit(
             self,
             permit_single: Dict[str, Any],
-            signed_permit_single: SignedMessage,
-            revert_on_fail: bool = True) -> _ChainedFunctionBuilder:
+            signed_permit_single: SignedMessage) -> _ChainedFunctionBuilder:
         """
         Encode the call to the function PERMIT2_PERMIT, which gives token allowances to the Permit2 contract.
         In addition, the Permit2 must be approved using the token contracts as usual.
 
         :param permit_single: The 1st element returned by create_permit2_signable_message()
         :param signed_permit_single: The 2nd element returned by create_permit2_signable_message(), once signed.
-        :param revert_on_fail: Flag indicating if the whole transaction must revert if this command fails.
+
         :return: The chain link corresponding to this function call.
         """
-        self.commands.append(self._get_command(_RouterFunction.PERMIT2_PERMIT, revert_on_fail))
+        self.commands.append(_RouterFunction.PERMIT2_PERMIT.value)
         self.arguments.append(
             Web3.to_bytes(
                 hexstr=self._encode_permit2_permit_sub_contract(
@@ -481,8 +470,7 @@ class _ChainedFunctionBuilder:
             function_recipient: FunctionRecipient,
             token_address: ChecksumAddress,
             amount_min: Wei,
-            custom_recipient: Optional[ChecksumAddress] = None,
-            revert_on_fail: bool = True) -> _ChainedFunctionBuilder:
+            custom_recipient: Optional[ChecksumAddress] = None) -> _ChainedFunctionBuilder:
         """
         Encode the call to the function SWEEP which sweeps all of the router's ERC20 or ETH to an address
 
@@ -490,11 +478,11 @@ class _ChainedFunctionBuilder:
         :param token_address: The address of the token to sweep or "0x0000000000000000000000000000000000000000" for ETH.
         :param amount_min: The minimum desired amount
         :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
-        :param revert_on_fail: Flag indicating if the whole transaction must revert if this command fails.
+
         :return: The chain link corresponding to this function call.
         """
         recipient = self._get_recipient(function_recipient, custom_recipient)
-        self.commands.append(self._get_command(_RouterFunction.SWEEP, revert_on_fail))
+        self.commands.append(_RouterFunction.SWEEP.value)
         self.arguments.append(
             Web3.to_bytes(
                 hexstr=self._encode_sweep_sub_contract(
@@ -517,8 +505,7 @@ class _ChainedFunctionBuilder:
             function_recipient: FunctionRecipient,
             token_address: ChecksumAddress,
             bips: int,
-            custom_recipient: Optional[ChecksumAddress] = None,
-            revert_on_fail: bool = True) -> _ChainedFunctionBuilder:
+            custom_recipient: Optional[ChecksumAddress] = None) -> _ChainedFunctionBuilder:
         """
         Encode the call to the function PAY_PORTION which transfers a part of the router's ERC20 or ETH to an address.
         Transferred amount = balance * bips / 10_000
@@ -527,7 +514,7 @@ class _ChainedFunctionBuilder:
         :param token_address: The address of token to pay or "0x0000000000000000000000000000000000000000" for ETH.
         :param bips: integer between 0 and 10_000
         :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
-        :param revert_on_fail: Flag indicating if the whole transaction must revert if this command fails.
+
         :return: The chain link corresponding to this function call.
         """
         if (
@@ -538,7 +525,7 @@ class _ChainedFunctionBuilder:
             raise ValueError(f"Invalid argument: bips must be an int between 0 and 10_000. Received {bips}")
 
         recipient = self._get_recipient(function_recipient, custom_recipient)
-        self.commands.append(self._get_command(_RouterFunction.PAY_PORTION, revert_on_fail))
+        self.commands.append(_RouterFunction.PAY_PORTION.value)
         self.arguments.append(
             Web3.to_bytes(
                 hexstr=self._encode_pay_portion_sub_contract(
