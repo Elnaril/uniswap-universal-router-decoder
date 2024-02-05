@@ -7,7 +7,6 @@ Encoding part of the Uniswap Universal Router Codec
 """
 from __future__ import annotations
 
-from datetime import datetime
 from typing import (
     Any,
     cast,
@@ -35,6 +34,8 @@ from uniswap_universal_router_decoder._abi_builder import _ABIMap
 from uniswap_universal_router_decoder._constants import (
     _execution_function_input_types,
     _execution_function_selector,
+    _execution_without_deadline_function_input_types,
+    _execution_without_deadline_function_selector,
     _router_abi,
 )
 from uniswap_universal_router_decoder._enums import (
@@ -112,6 +113,11 @@ class _ChainedFunctionBuilder:
     def _encode_execution_function(arguments: Tuple[bytes, List[bytes], int]) -> HexStr:
         encoded_data = encode(_execution_function_input_types, arguments)
         return Web3.to_hex(Web3.to_bytes(hexstr=_execution_function_selector) + encoded_data)
+
+    @staticmethod
+    def _encode_execution_without_deadline_function(arguments: Tuple[bytes, List[bytes]]) -> HexStr:
+        encoded_data = encode(_execution_without_deadline_function_input_types, arguments)
+        return Web3.to_hex(Web3.to_bytes(hexstr=_execution_without_deadline_function_selector) + encoded_data)
 
     def _encode_wrap_eth_sub_contract(self, recipient: ChecksumAddress, amount_min: Wei) -> HexStr:
         abi_mapping = self._abi_map[_RouterFunction.WRAP_ETH]
@@ -537,18 +543,53 @@ class _ChainedFunctionBuilder:
         )
         return self
 
+    def _encode_transfer_sub_contract(self, token: ChecksumAddress, recipient: ChecksumAddress, value: int) -> HexStr:
+        abi_mapping = self._abi_map[_RouterFunction.TRANSFER]
+        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
+        contract_function: ContractFunction = sub_contract.functions.TRANSFER(token, recipient, value)
+        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, [token, recipient, value]))
+
+    def transfer(
+            self,
+            function_recipient: FunctionRecipient,
+            token_address: ChecksumAddress,
+            value: int,
+            custom_recipient: Optional[ChecksumAddress] = None) -> _ChainedFunctionBuilder:
+        """
+        Encode the call to the function TRANSFER which transfers a part of the router's ERC20 or ETH to an address.
+        Transferred amount = balance * bips / 10_000
+
+        :param function_recipient: A FunctionRecipient which defines the recipient of this function output.
+        :param token_address: The address of token to pay or "0x0000000000000000000000000000000000000000" for ETH.
+        :param value: The amount to transfer (in Wei)
+        :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
+
+        :return: The chain link corresponding to this function call.
+        """
+
+        recipient = self._get_recipient(function_recipient, custom_recipient)
+        self.commands.append(_RouterFunction.TRANSFER.value)
+        self.arguments.append(
+            Web3.to_bytes(
+                hexstr=self._encode_transfer_sub_contract(
+                    token_address,
+                    recipient,
+                    value,
+                )
+            )
+        )
+        return self
+
     def build(self, deadline: Optional[int] = None) -> HexStr:
         """
         Build the encoded input for all the chained commands, ready to be sent to the UR
-        Currently default deadline is now + 180s
-        Todo: Support UR execution function without deadline
 
-        :param deadline: The unix timestamp after which the transaction won't be valid any more. Default to now + 180s.
+        :param deadline: The optional unix timestamp after which the transaction won't be valid any more.
         :return: The encoded data to add to the UR transaction dictionary parameters.
         """
-        execute_input = (
-            bytes(self.commands),
-            self.arguments,
-            deadline or int(datetime.now().timestamp() + 180)  # Todo: support UR execution function without deadline
-        )
-        return self._encode_execution_function(execute_input)
+        if deadline:
+            execute_input = (bytes(self.commands), self.arguments, deadline)
+            return self._encode_execution_function(execute_input)
+        else:
+            execute_without_deadline_input = (bytes(self.commands), self.arguments)
+            return self._encode_execution_without_deadline_function(execute_without_deadline_input)

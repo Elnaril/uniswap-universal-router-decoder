@@ -18,6 +18,7 @@ class _RouterFunction(Enum):
     V3_SWAP_EXACT_IN = 0
     V3_SWAP_EXACT_OUT = 1
     SWEEP = 4
+    TRANSFER = 5
     PAY_PORTION = 6
     V2_SWAP_EXACT_IN = 8
     V2_SWAP_EXACT_OUT = 9
