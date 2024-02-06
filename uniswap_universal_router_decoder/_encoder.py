@@ -553,7 +553,7 @@ class _ChainedFunctionBuilder:
             self,
             function_recipient: FunctionRecipient,
             token_address: ChecksumAddress,
-            value: int,
+            value: Wei,
             custom_recipient: Optional[ChecksumAddress] = None) -> _ChainedFunctionBuilder:
         """
         Encode the call to the function TRANSFER which transfers a part of the router's ERC20 or ETH to an address.
