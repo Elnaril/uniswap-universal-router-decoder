@@ -148,12 +148,43 @@ def buy_and_transfer():
     print(" => BUY & TRANSFER USDC/ETH: OK")
 
 
+def simple_transfers():
+    """
+    48 ETH transfers in one transaction
+    """
+    value = Wei(10**18)
+    total_value = 48 * value
+    eth_address = Web3.to_checksum_address("0x0000000000000000000000000000000000000000")
+
+    chain = codec.encode.chain()
+    for _ in range(8):
+        for j in range(6):
+            chain = chain.transfer(FunctionRecipient.CUSTOM, eth_address, value, recipients[j].address)
+
+    encoded_input = chain.build()
+
+    trx_hash = send_transaction(total_value, encoded_input)
+    receipt = w3.eth.wait_for_transaction_receipt(trx_hash)
+    assert receipt["status"] == 1, f'receipt["status"] is actually {receipt["status"]}'  # trx status
+
+    for i in range(6):
+        print(recipients[i].address, w3.eth.get_balance(recipients[i].address))
+        assert w3.eth.get_balance(recipients[i].address) >= 8 * 10**18
+
+    gas_used = receipt["gasUsed"]
+    print("Gas used (total/per transfer):", gas_used, gas_used // 48)
+    assert receipt["gasUsed"] == 557986 < 48 * 21000
+
+    print(" => SIMPLE ETH MASS TRANSFERS: OK")
+
+
 def launch_integration_tests():
     print("------------------------------------------")
     print("| Launching integration tests            |")
     print("------------------------------------------")
     check_initialization()
     buy_and_transfer()
+    simple_transfers()
 
 
 def print_success_message():
