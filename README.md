@@ -19,6 +19,10 @@
 ---
 
 ## Release Notes
+### v1.1.0
+ - Add support for the TRANSFER function
+ - Add support for decoding the "revert on fail" flag and prepare for encoding on UR functions that support it.
+ - Add support for encoding the `execute()` function without deadline
 ### v1.0.1
  - Fix issue #35 - fails to decode input data when there is too many commands
 ### v1.0.0
@@ -27,12 +31,6 @@
  - Remove useless parameter `payer_is_sender` from `v*_swap_exact_in_from_balance()` methods
  - Update Router ABI
  - Add uint48 and uint160 in ABI builder
-### V0.9.1
- - Fix lint error
- - Change `v*_swap_exact_in_from_balance()` `payer_is_sender` default to False. This parameter will be removed in the next version.
-### V0.9.0
- - Add support for UNWRAP_WETH encoding
- - Add `v2_swap_exact_in_from_balance()` and `v3_swap_exact_in_from_balance()`: 2 convenient methods which are used when the exact in_amount is not known when the transaction is built, typically chained after a `V*_SWAP_EXACT_IN`.
 
 ---
 
@@ -52,7 +50,7 @@ on Ethereum Mainnet). It is based on, and is intended to be used with [web3.py](
 | 0x01 | V3_SWAP_EXACT_OUT | ✅ | ✅
 | 0x02 - 0x03 |  | ❌ | ❌
 | 0x04 | SWEEP | ✅ | ✅
-| 0x05 | TRANSFER | ❌ | ❌
+| 0x05 | TRANSFER | ✅ | ✅
 | 0x06 | PAY_PORTION | ✅ | ✅
 | 0x07 | placeholder  | N/A | N/A
 | 0x08 | V2_SWAP_EXACT_IN | ✅ | ✅
@@ -365,6 +363,28 @@ transaction["data"] = encoded_data
 
 # you can now sign and send the transaction to the UR
 ```
+
+### Other chainable functions
+(See integration tests for full examples) 
+
+#### PAY_PORTION
+Example where a recipient is paid 1% of the USDC amount:
+```python
+.pay_portion(FunctionRecipient.CUSTOM, usdc_address, 100, recipient_address)
+
+```
+#### SWEEP
+Example where the sender gets back all remaining USDC:
+```python
+.sweep(FunctionRecipient.SENDER, usdc_address, 0)
+```
+
+#### TRANSFER
+Example where an USDC amount is sent to a recipient:
+```python
+.transfer(FunctionRecipient.CUSTOM, usdc_address, usdc_amount, recipient_address)
+```
+
 
 ## Tutorials and Recipes:
 See the [SDK Wiki](https://github.com/Elnaril/uniswap-universal-router-decoder/wiki).
