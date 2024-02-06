@@ -200,16 +200,21 @@ def test_chain_permit2_permit(codec):
 
 
 @pytest.mark.parametrize(
-    "router_functions, expected_command",
+    "router_function, revert_on_fail, expected_command",
     (
-        ((), ""),
-        ((_RouterFunction.PERMIT2_PERMIT, ), "0a"),
-        ((_RouterFunction.PERMIT2_PERMIT, _RouterFunction.V2_SWAP_EXACT_IN), "0a08"),
-        ((_RouterFunction.WRAP_ETH, _RouterFunction.PERMIT2_PERMIT, _RouterFunction.V2_SWAP_EXACT_IN), "0b0a08"),
+        # Todo: use functions that actually support the NO_REVERT_FLAG, like SUDOSWAP or another NFT function
+        (_RouterFunction.V3_SWAP_EXACT_IN, True, 0x00),
+        (_RouterFunction.V3_SWAP_EXACT_IN, False, 0x80),
+        (_RouterFunction.V2_SWAP_EXACT_IN, True, 0x08),
+        (_RouterFunction.V2_SWAP_EXACT_IN, False, 0x88),
+        (_RouterFunction.PERMIT2_PERMIT, True, 0x0a),
+        (_RouterFunction.PERMIT2_PERMIT, False, 0x8a),
+        (_RouterFunction.WRAP_ETH, True, 0x0b),
+        (_RouterFunction.WRAP_ETH, False, 0x8b),
     )
 )
-def test_to_command(router_functions, expected_command, codec):
-    assert codec.encode.chain()._to_command(*router_functions).hex() == expected_command
+def test_get_command(router_function, revert_on_fail, expected_command, codec):
+    assert codec.encode.chain()._get_command(router_function, revert_on_fail) == expected_command
 
 
 def test_chain_v2_swap_exact_in_with_permit(codec):
@@ -290,3 +295,8 @@ def test_pay_portion_argument_validity(function_recipient, token_address, bips, 
             codec.encode.chain().pay_portion(function_recipient, token_address, bips, custom_recipient).build(1698245843)  # noqa
     else:
         _ = codec.encode.chain().pay_portion(function_recipient, token_address, bips, custom_recipient).build(1698245843)  # noqa
+
+
+def test_transfer(codec):
+    encoded_input = codec.encode.chain().transfer(FunctionRecipient.CUSTOM, Web3.to_checksum_address("0x0000000000000000000000000000000000000000"), 4 * 10**15, Web3.to_checksum_address("0xaDFec019eE085a93A9e947CF3ECC5f29a36EfAc0")).build()  # noqa
+    assert encoded_input == HexStr("0x24856bc300000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000000000000105000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000adfec019ee085a93a9e947cf3ecc5f29a36efac0000000000000000000000000000000000000000000000000000e35fa931a0000")  # noqa

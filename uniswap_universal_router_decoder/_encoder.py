@@ -7,7 +7,6 @@ Encoding part of the Uniswap Universal Router Codec
 """
 from __future__ import annotations
 
-from datetime import datetime
 from typing import (
     Any,
     cast,
@@ -35,6 +34,8 @@ from uniswap_universal_router_decoder._abi_builder import _ABIMap
 from uniswap_universal_router_decoder._constants import (
     _execution_function_input_types,
     _execution_function_selector,
+    _execution_without_deadline_function_input_types,
+    _execution_without_deadline_function_selector,
     _router_abi,
 )
 from uniswap_universal_router_decoder._enums import (
@@ -42,6 +43,9 @@ from uniswap_universal_router_decoder._enums import (
     _RouterFunction,
     FunctionRecipient,
 )
+
+
+NO_REVERT_FLAG = _RouterConstant.FLAG_ALLOW_REVERT.value
 
 
 class _Encoder:
@@ -80,7 +84,7 @@ class _ChainedFunctionBuilder:
         self._w3 = w3
         self._router_contract = self._w3.eth.contract(abi=_router_abi)
         self._abi_map = abi_map
-        self.commands: List[_RouterFunction] = []
+        self.commands: bytearray = bytearray()
         self.arguments: List[bytes] = []
 
     @staticmethod
@@ -102,16 +106,18 @@ class _ChainedFunctionBuilder:
             )
 
     @staticmethod
-    def _to_command(*router_functions: _RouterFunction) -> bytes:
-        command = b""
-        for r_fct in router_functions:
-            command += Web3.to_bytes(r_fct.value)
-        return command
+    def _get_command(router_function: _RouterFunction, revert_on_fail: bool) -> int:
+        return int(router_function.value if revert_on_fail else router_function.value | NO_REVERT_FLAG)
 
     @staticmethod
     def _encode_execution_function(arguments: Tuple[bytes, List[bytes], int]) -> HexStr:
         encoded_data = encode(_execution_function_input_types, arguments)
         return Web3.to_hex(Web3.to_bytes(hexstr=_execution_function_selector) + encoded_data)
+
+    @staticmethod
+    def _encode_execution_without_deadline_function(arguments: Tuple[bytes, List[bytes]]) -> HexStr:
+        encoded_data = encode(_execution_without_deadline_function_input_types, arguments)
+        return Web3.to_hex(Web3.to_bytes(hexstr=_execution_without_deadline_function_selector) + encoded_data)
 
     def _encode_wrap_eth_sub_contract(self, recipient: ChecksumAddress, amount_min: Wei) -> HexStr:
         abi_mapping = self._abi_map[_RouterFunction.WRAP_ETH]
@@ -130,10 +136,11 @@ class _ChainedFunctionBuilder:
         :param function_recipient: A FunctionRecipient which defines the recipient of this function output.
         :param amount: The amount of sent ETH in WEI.
         :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
+
         :return: The chain link corresponding to this function call.
         """
         recipient = self._get_recipient(function_recipient, custom_recipient)
-        self.commands.append(_RouterFunction.WRAP_ETH)
+        self.commands.append(_RouterFunction.WRAP_ETH.value)
         self.arguments.append(Web3.to_bytes(hexstr=self._encode_wrap_eth_sub_contract(recipient, amount)))
         return self
 
@@ -154,10 +161,11 @@ class _ChainedFunctionBuilder:
         :param function_recipient: A FunctionRecipient which defines the recipient of this function output.
         :param amount: The amount of sent WETH in WEI.
         :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
+
         :return: The chain link corresponding to this function call.
         """
         recipient = self._get_recipient(function_recipient, custom_recipient)
-        self.commands.append(_RouterFunction.UNWRAP_WETH)
+        self.commands.append(_RouterFunction.UNWRAP_WETH.value)
         self.arguments.append(Web3.to_bytes(hexstr=self._encode_unwrap_weth_sub_contract(recipient, amount)))
         return self
 
@@ -192,10 +200,11 @@ class _ChainedFunctionBuilder:
         :param path: The V2 path: a list of 2 or 3 tokens where the first is token_in and the last is token_out
         :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
         :param payer_is_sender: True if the in tokens come from the sender, False if they already are in the router
+
         :return: The chain link corresponding to this function call.
         """
         recipient = self._get_recipient(function_recipient, custom_recipient)
-        self.commands.append(_RouterFunction.V2_SWAP_EXACT_IN)
+        self.commands.append(_RouterFunction.V2_SWAP_EXACT_IN.value)
         self.arguments.append(
             Web3.to_bytes(
                 hexstr=self._encode_v2_swap_exact_in_sub_contract(
@@ -225,6 +234,7 @@ class _ChainedFunctionBuilder:
         :param amount_out_min: The minimum accepted bought token (token_out)
         :param path: The V2 path: a list of 2 or 3 tokens where the first is token_in and the last is token_out
         :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
+
         :return: The chain link corresponding to this function call.
         """
         return self.v2_swap_exact_in(
@@ -267,10 +277,11 @@ class _ChainedFunctionBuilder:
         :param path: The V2 path: a list of 2 or 3 tokens where the first is token_in and the last is token_out
         :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
         :param payer_is_sender: True if the in tokens come from the sender, False if they already are in the router
+
         :return: The chain link corresponding to this function call.
         """
         recipient = self._get_recipient(function_recipient, custom_recipient)
-        self.commands.append(_RouterFunction.V2_SWAP_EXACT_OUT)
+        self.commands.append(_RouterFunction.V2_SWAP_EXACT_OUT.value)
         self.arguments.append(
             Web3.to_bytes(
                 hexstr=self._encode_v2_swap_exact_out_sub_contract(
@@ -317,10 +328,11 @@ class _ChainedFunctionBuilder:
         with the pool fee between each token in basis points (ex: 3000 for 0.3%)
         :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
         :param payer_is_sender: True if the in tokens come from the sender, False if they already are in the router
+
         :return: The chain link corresponding to this function call.
         """
         recipient = self._get_recipient(function_recipient, custom_recipient)
-        self.commands.append(_RouterFunction.V3_SWAP_EXACT_IN)
+        self.commands.append(_RouterFunction.V3_SWAP_EXACT_IN.value)
         self.arguments.append(
             Web3.to_bytes(
                 hexstr=self._encode_v3_swap_exact_in_sub_contract(
@@ -351,6 +363,7 @@ class _ChainedFunctionBuilder:
         :param path: The V3 path: a list of tokens where the first is the token_in, the last one is the token_out, and
         with the pool fee between each token in basis points (ex: 3000 for 0.3%)
         :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
+
         :return: The chain link corresponding to this function call.
         """
         return self.v3_swap_exact_in(
@@ -395,10 +408,11 @@ class _ChainedFunctionBuilder:
         with the pool fee between each token in basis points (ex: 3000 for 0.3%)
         :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
         :param payer_is_sender: True if the in tokens come from the sender, False if they already are in the router
+
         :return: The chain link corresponding to this function call.
         """
         recipient = self._get_recipient(function_recipient, custom_recipient)
-        self.commands.append(_RouterFunction.V3_SWAP_EXACT_OUT)
+        self.commands.append(_RouterFunction.V3_SWAP_EXACT_OUT.value)
         self.arguments.append(
             Web3.to_bytes(
                 hexstr=self._encode_v3_swap_exact_out_sub_contract(
@@ -437,9 +451,10 @@ class _ChainedFunctionBuilder:
 
         :param permit_single: The 1st element returned by create_permit2_signable_message()
         :param signed_permit_single: The 2nd element returned by create_permit2_signable_message(), once signed.
+
         :return: The chain link corresponding to this function call.
         """
-        self.commands.append(_RouterFunction.PERMIT2_PERMIT)
+        self.commands.append(_RouterFunction.PERMIT2_PERMIT.value)
         self.arguments.append(
             Web3.to_bytes(
                 hexstr=self._encode_permit2_permit_sub_contract(
@@ -469,10 +484,11 @@ class _ChainedFunctionBuilder:
         :param token_address: The address of the token to sweep or "0x0000000000000000000000000000000000000000" for ETH.
         :param amount_min: The minimum desired amount
         :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
+
         :return: The chain link corresponding to this function call.
         """
         recipient = self._get_recipient(function_recipient, custom_recipient)
-        self.commands.append(_RouterFunction.SWEEP)
+        self.commands.append(_RouterFunction.SWEEP.value)
         self.arguments.append(
             Web3.to_bytes(
                 hexstr=self._encode_sweep_sub_contract(
@@ -504,6 +520,7 @@ class _ChainedFunctionBuilder:
         :param token_address: The address of token to pay or "0x0000000000000000000000000000000000000000" for ETH.
         :param bips: integer between 0 and 10_000
         :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
+
         :return: The chain link corresponding to this function call.
         """
         if (
@@ -514,7 +531,7 @@ class _ChainedFunctionBuilder:
             raise ValueError(f"Invalid argument: bips must be an int between 0 and 10_000. Received {bips}")
 
         recipient = self._get_recipient(function_recipient, custom_recipient)
-        self.commands.append(_RouterFunction.PAY_PORTION)
+        self.commands.append(_RouterFunction.PAY_PORTION.value)
         self.arguments.append(
             Web3.to_bytes(
                 hexstr=self._encode_pay_portion_sub_contract(
@@ -526,18 +543,53 @@ class _ChainedFunctionBuilder:
         )
         return self
 
+    def _encode_transfer_sub_contract(self, token: ChecksumAddress, recipient: ChecksumAddress, value: int) -> HexStr:
+        abi_mapping = self._abi_map[_RouterFunction.TRANSFER]
+        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
+        contract_function: ContractFunction = sub_contract.functions.TRANSFER(token, recipient, value)
+        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, [token, recipient, value]))
+
+    def transfer(
+            self,
+            function_recipient: FunctionRecipient,
+            token_address: ChecksumAddress,
+            value: Wei,
+            custom_recipient: Optional[ChecksumAddress] = None) -> _ChainedFunctionBuilder:
+        """
+        Encode the call to the function TRANSFER which transfers a part of the router's ERC20 or ETH to an address.
+        Transferred amount = balance * bips / 10_000
+
+        :param function_recipient: A FunctionRecipient which defines the recipient of this function output.
+        :param token_address: The address of token to pay or "0x0000000000000000000000000000000000000000" for ETH.
+        :param value: The amount to transfer (in Wei)
+        :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
+
+        :return: The chain link corresponding to this function call.
+        """
+
+        recipient = self._get_recipient(function_recipient, custom_recipient)
+        self.commands.append(_RouterFunction.TRANSFER.value)
+        self.arguments.append(
+            Web3.to_bytes(
+                hexstr=self._encode_transfer_sub_contract(
+                    token_address,
+                    recipient,
+                    value,
+                )
+            )
+        )
+        return self
+
     def build(self, deadline: Optional[int] = None) -> HexStr:
         """
         Build the encoded input for all the chained commands, ready to be sent to the UR
-        Currently default deadline is now + 180s
-        Todo: Support UR execution function without deadline
 
-        :param deadline: The unix timestamp after which the transaction won't be valid any more. Default to now + 180s.
+        :param deadline: The optional unix timestamp after which the transaction won't be valid any more.
         :return: The encoded data to add to the UR transaction dictionary parameters.
         """
-        execute_input = (
-            self._to_command(*self.commands),
-            self.arguments,
-            deadline or int(datetime.now().timestamp() + 180)  # Todo: support UR execution function without deadline
-        )
-        return self._encode_execution_function(execute_input)
+        if deadline:
+            execute_input = (bytes(self.commands), self.arguments, deadline)
+            return self._encode_execution_function(execute_input)
+        else:
+            execute_without_deadline_input = (bytes(self.commands), self.arguments)
+            return self._encode_execution_without_deadline_function(execute_without_deadline_input)

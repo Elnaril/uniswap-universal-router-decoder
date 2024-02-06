@@ -18,6 +18,7 @@ class _RouterFunction(Enum):
     V3_SWAP_EXACT_IN = 0
     V3_SWAP_EXACT_OUT = 1
     SWEEP = 4
+    TRANSFER = 5
     PAY_PORTION = 6
     V2_SWAP_EXACT_IN = 8
     V2_SWAP_EXACT_OUT = 9
@@ -44,3 +45,5 @@ class _RouterConstant(Enum):
     MSG_SENDER = Web3.to_checksum_address("0x0000000000000000000000000000000000000001")
     ADDRESS_THIS = Web3.to_checksum_address("0x0000000000000000000000000000000000000002")
     ROUTER_BALANCE = Wei(2**255)
+    FLAG_ALLOW_REVERT = 0x80
+    COMMAND_TYPE_MASK = 0x3f
