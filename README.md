@@ -388,3 +388,6 @@ Example where an USDC amount is sent to a recipient:
 
 ## Tutorials and Recipes:
 See the [SDK Wiki](https://github.com/Elnaril/uniswap-universal-router-decoder/wiki).
+
+## News and Q&A:
+See the [Discussions](https://github.com/Elnaril/uniswap-universal-router-decoder/discussions) and [𝕏](https://twitter.com/ElnarilDev)
