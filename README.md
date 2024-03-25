@@ -1,5 +1,9 @@
 # Uniswap Universal Router Decoder & Encoder
 
+> Many thanks to **everyone** who has ☕️ [offered some **coffees**!](https://github.com/Elnaril/uniswap-universal-router-decoder/discussions/11) ☕️
+> or ⭐ [**starred** this project!](https://github.com/Elnaril/uniswap-universal-router-decoder/stargazers) ⭐
+> It is **greatly** appreciated! :)
+
 ---
 
 #### Project Information
