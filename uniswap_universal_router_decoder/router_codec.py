@@ -75,7 +75,8 @@ class RouterCodec:
             nonce: int,
             spender: ChecksumAddress,
             deadline: int,
-            chain_id: int = 1) -> Tuple[Dict[str, Any], SignableMessage]:
+            chain_id: int = 1，
+            verifyingContract: str = "0x000000000022D473030F116dDEE9F6B43aC78BA3") -> Tuple[Dict[str, Any], SignableMessage]:
         """
         Create a eth_account.messages.SignableMessage that will be sent to the UR/Permit2 contracts
         to set token permissions through signature validation.
@@ -111,5 +112,6 @@ class RouterCodec:
         }
         structured_data = dict(_structured_data_permit)
         structured_data["domain"]["chainId"] = chain_id
+        structured_data["domain"]["verifyingContract"] = verifyingContract
         structured_data["message"] = permit_single
         return permit_single, encode_structured_data(primitive=structured_data)
