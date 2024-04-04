@@ -1,7 +1,7 @@
 # Uniswap Universal Router Decoder & Encoder
 
 > Many thanks to **everyone** who has ☕️ [offered some **coffees**!](https://github.com/Elnaril/uniswap-universal-router-decoder/discussions/11) ☕️
-> or ⭐ [**starred** this project!](https://github.com/Elnaril/uniswap-universal-router-decoder/stargazers) ⭐
+> or ⭐ [**starred** this project!](https://github.com/Elnaril/uniswap-universal-router-decoder/stargazers) ⭐  
 > It is **greatly** appreciated! :)
 
 ---
@@ -42,9 +42,12 @@
 
 The object of this library is to decode & encode the transaction input sent to the Uniswap universal router (UR)
 (address [`0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD`](https://etherscan.io/address/0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD) 
-on Ethereum Mainnet). It is based on, and is intended to be used with [web3.py](https://github.com/ethereum/web3.py)
+on Ethereum Mainnet). It is based on, and is intended to be used with [web3.py](https://github.com/ethereum/web3.py)  
+The target audience is Python developers who are familiar with the Ethereum blockchain concepts and web3.py, and how DEXes work. 
 
 ⚠ This library has not been audited, so use at your own risk !
+
+⚠ Before using this library, ensure you are familiar with general blockchain concepts and [web3.py](https://github.com/ethereum/web3.py) in particular.
 
 ⚠ This project is a work in progress so not all commands are decoded yet. Below the list of the already implemented ones.
 
