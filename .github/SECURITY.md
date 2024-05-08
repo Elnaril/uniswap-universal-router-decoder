@@ -9,7 +9,7 @@ Only [vulnerabilities](https://csrc.nist.gov/glossary/term/Software_Vulnerabilit
 For other bugs in this library, consider opening an issue [here](https://github.com/Elnaril/uniswap-universal-router-decoder/issues)
 
 ## Reporting a vulnerability
-Please click on the "Report a vulnerability" button.  
+Please click on the ["Report a vulnerability"](https://github.com/Elnaril/uniswap-universal-router-decoder/security) button.  
 In the report, please include all details necessary to reproduce it, such as:
  - dependency versions
  - OS name and version

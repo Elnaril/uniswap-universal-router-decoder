@@ -33,8 +33,6 @@ on:
       - 'LICENSE'
       - '.gitignore'
       - 'coverage.json'
-  schedule:
-    - cron: '17 18 * * 5'
 
 jobs:
   analyze:
