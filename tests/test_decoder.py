@@ -1,5 +1,3 @@
-import os
-
 import pytest
 from web3 import Web3
 from web3.types import HexStr
@@ -9,7 +7,7 @@ from uniswap_universal_router_decoder import RouterCodec
 
 # Test Decode Trx + Input
 
-rpc_endpoint_address = os.environ["WEB3_HTTP_PROVIDER_URL_ETHEREUM_MAINNET"]
+rpc_endpoint_address = "https://ethereum.blockpi.network/v1/rpc/public"
 w3_instance = Web3(Web3.HTTPProvider(rpc_endpoint_address))
 
 
