@@ -10,7 +10,11 @@ from web3.types import (
     Wei,
 )
 
-from uniswap_universal_router_decoder import FunctionRecipient
+from uniswap_universal_router_decoder import (
+    FunctionRecipient,
+    TransactionSpeed,
+)
+from uniswap_universal_router_decoder._constants import _ur_address  # noqa
 from uniswap_universal_router_decoder._encoder import _ChainedFunctionBuilder  # noqa
 from uniswap_universal_router_decoder._enums import _RouterFunction  # noqa
 
@@ -300,3 +304,104 @@ def test_pay_portion_argument_validity(function_recipient, token_address, bips, 
 def test_transfer(codec):
     encoded_input = codec.encode.chain().transfer(FunctionRecipient.CUSTOM, Web3.to_checksum_address("0x0000000000000000000000000000000000000000"), 4 * 10**15, Web3.to_checksum_address("0xaDFec019eE085a93A9e947CF3ECC5f29a36EfAc0")).build()  # noqa
     assert encoded_input == HexStr("0x24856bc300000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000000000000105000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000adfec019ee085a93a9e947cf3ecc5f29a36efac0000000000000000000000000000000000000000000000000000e35fa931a0000")  # noqa
+
+
+def test_build_transaction(codec_rpc):
+    sender = "0x52d7Bb619F6E37A038e522eDF755008d9EfdD695"
+    amount_in = Wei(2 * 10**18)
+    builder = (
+        codec_rpc
+        .encode
+        .chain()
+        .wrap_eth(FunctionRecipient.ROUTER, amount_in)
+        .v2_swap_exact_in_from_balance(
+            FunctionRecipient.SENDER,
+            Wei(0),
+            [
+                '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
+                '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+            ],
+        )
+    )
+
+    # transaction 1 - all defaults except value
+    trx_1 = builder.build_transaction(
+        sender=sender,
+        value=amount_in,
+        block_identifier=19876107
+    )
+    assert trx_1["from"] == sender
+    assert trx_1["value"] == amount_in
+    assert trx_1["to"] == _ur_address
+    assert trx_1["chainId"] == 1
+    assert trx_1["nonce"] == 94
+    assert trx_1["type"] == "0x2"
+    assert trx_1["maxPriorityFeePerGas"] == 2500000000
+    assert trx_1["maxFeePerGas"] == 20479961920
+    assert len(trx_1["data"]) > 100
+    assert abs(trx_1["gas"] - 192214) < 1000
+
+    # transaction 2 - same but with FASTER speed
+    trx_2 = builder.build_transaction(
+        sender=sender,
+        value=amount_in,
+        trx_speed=TransactionSpeed.FASTER,
+        block_identifier=19876107
+    )
+
+    assert trx_2["maxPriorityFeePerGas"] == 3000000000
+    assert trx_2["maxFeePerGas"] == 20979961920
+    assert abs(trx_2["gas"] - 192214) < 1000
+
+    # transaction 3 - no call to rpc and custom fields
+    trx_3 = builder.build_transaction(
+        sender=sender,
+        value=amount_in,
+        trx_speed=None,
+        priority_fee=Wei(1900000000),
+        max_fee_per_gas=Wei(22222222222),
+        gas_limit=500_000,
+        chain_id=2,
+        nonce=100,
+        block_identifier=19876107
+    )
+
+    assert trx_3["chainId"] == 2
+    assert trx_3["nonce"] == 100
+    assert trx_3["maxPriorityFeePerGas"] == 1900000000
+    assert trx_3["maxFeePerGas"] == 22222222222
+    assert trx_3["gas"] == 500_000
+
+    # transaction 4, 5, 6 - incompatible arguments
+    with pytest.raises(ValueError):
+        _ = builder.build_transaction(
+            sender=sender,
+            value=amount_in,
+            priority_fee=Wei(1900000000),
+            block_identifier=19876107
+        )
+
+    with pytest.raises(ValueError):
+        _ = builder.build_transaction(
+            sender=sender,
+            value=amount_in,
+            max_fee_per_gas=Wei(22222222222),
+            block_identifier=19876107
+        )
+
+    with pytest.raises(ValueError):
+        _ = builder.build_transaction(
+            sender=sender,
+            value=amount_in,
+            trx_speed=None,
+            block_identifier=19876107
+        )
+
+    # transaction 7 - computed gas too high
+    with pytest.raises(ValueError):
+        _ = builder.build_transaction(
+            sender=sender,
+            value=amount_in,
+            max_fee_per_gas_limit=Wei(1 * 10 ** 9),
+            block_identifier=19876107
+        )
