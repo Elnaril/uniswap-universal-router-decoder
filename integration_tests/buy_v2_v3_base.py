@@ -42,7 +42,7 @@ def launch_ganache():
         f"""ganache
         --logging.quiet='true'
         --fork.url='{web3_provider}'
-        --fork.blockNumber='{12668306}'        
+        --fork.blockNumber='{12668306}'
         --wallet.accounts='{account.key.hex()}','{init_amount}'
         """.replace("\n", " "),
         shell=True,

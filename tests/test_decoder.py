@@ -1,5 +1,3 @@
-import os
-
 import pytest
 from web3 import Web3
 from web3.types import HexStr
@@ -8,11 +6,6 @@ from uniswap_universal_router_decoder import RouterCodec
 
 
 # Test Decode Trx + Input
-
-rpc_endpoint_address = os.environ["WEB3_HTTP_PROVIDER_URL_ETHEREUM_MAINNET"]
-w3_instance = Web3(Web3.HTTPProvider(rpc_endpoint_address))
-
-
 trx_hash_01 = HexStr("0x52e63b75f41a352ad9182f9e0f923c8557064c3b1047d1778c1ea5b11b979dd9")
 expected_function_names_01 = ("PERMIT2_PERMIT", "V2_SWAP_EXACT_IN")
 
@@ -45,25 +38,25 @@ expected_function_names_10 = ("WRAP_ETH", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OU
 
 
 @pytest.mark.parametrize(
-    "trx_hash, w3, rpc_endpoint, expected_fct_names",
+    "trx_hash, use_w3, expected_fct_names",
     (
-        (trx_hash_01, None, rpc_endpoint_address, expected_function_names_01),
-        (trx_hash_02, w3_instance, None, expected_function_names_02),
-        (trx_hash_03, w3_instance, None, expected_function_names_03),
-        (trx_hash_04, w3_instance, None, expected_function_names_04),
-        (trx_hash_05, w3_instance, None, expected_function_names_05),
-        (trx_hash_06, w3_instance, None, expected_function_names_06),
-        (trx_hash_07, w3_instance, None, expected_function_names_07),
-        (trx_hash_08, w3_instance, None, expected_function_names_08),
-        (trx_hash_09, w3_instance, None, expected_function_names_09),
-        (trx_hash_10, w3_instance, None, expected_function_names_10),
+        (trx_hash_01, False, expected_function_names_01),
+        (trx_hash_02, True, expected_function_names_02),
+        (trx_hash_03, True, expected_function_names_03),
+        (trx_hash_04, True, expected_function_names_04),
+        (trx_hash_05, True, expected_function_names_05),
+        (trx_hash_06, True, expected_function_names_06),
+        (trx_hash_07, True, expected_function_names_07),
+        (trx_hash_08, True, expected_function_names_08),
+        (trx_hash_09, True, expected_function_names_09),
+        (trx_hash_10, True, expected_function_names_10),
     )
 )
-def test_decode_transaction(trx_hash, w3, rpc_endpoint, expected_fct_names):
-    if w3:
+def test_decode_transaction(trx_hash, use_w3, expected_fct_names, w3, rpc_url):
+    if use_w3:
         codec_w3 = RouterCodec(w3=w3)
     else:
-        codec_w3 = RouterCodec(rpc_endpoint=rpc_endpoint)
+        codec_w3 = RouterCodec(rpc_endpoint=rpc_url)
 
     decoded_trx = codec_w3.decode.transaction(trx_hash)
     command_inputs = decoded_trx["decoded_input"]["inputs"]
@@ -109,8 +102,6 @@ expected_parsed_path_07 = (
     Web3.to_checksum_address("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"),
 )
 
-codec_rpc = RouterCodec(rpc_endpoint=rpc_endpoint_address)
-
 
 @pytest.mark.parametrize(
     "trx_hash, fn_name, expected_parsed_path, expected_exception",
@@ -122,7 +113,7 @@ codec_rpc = RouterCodec(rpc_endpoint=rpc_endpoint_address)
         (trx_hash_07, "V3_SWAP_EXACT_IN", expected_parsed_path_07, None),
     )
 )
-def test_decode_v3_path(trx_hash, fn_name, expected_parsed_path, expected_exception):
+def test_decode_v3_path(trx_hash, fn_name, expected_parsed_path, expected_exception, codec_rpc):
     decoded_trx = codec_rpc.decode.transaction(trx_hash)
     command_inputs = decoded_trx["decoded_input"]["inputs"]
     for command_input in command_inputs:

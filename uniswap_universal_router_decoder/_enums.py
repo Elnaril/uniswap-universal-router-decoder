@@ -47,3 +47,10 @@ class _RouterConstant(Enum):
     ROUTER_BALANCE = Wei(2**255)
     FLAG_ALLOW_REVERT = 0x80
     COMMAND_TYPE_MASK = 0x3f
+
+
+class TransactionSpeed(Enum):
+    SLOW = 0
+    AVERAGE = 1
+    FAST = 2
+    FASTER = 3

@@ -25,8 +25,11 @@ from web3 import Web3
 from web3._utils.contracts import encode_abi  # noqa
 from web3.contract.contract import ContractFunction
 from web3.types import (
+    BlockIdentifier,
     ChecksumAddress,
     HexStr,
+    Nonce,
+    TxParams,
     Wei,
 )
 
@@ -37,12 +40,15 @@ from uniswap_universal_router_decoder._constants import (
     _execution_without_deadline_function_input_types,
     _execution_without_deadline_function_selector,
     _router_abi,
+    _ur_address,
 )
 from uniswap_universal_router_decoder._enums import (
     _RouterConstant,
     _RouterFunction,
     FunctionRecipient,
+    TransactionSpeed,
 )
+from uniswap_universal_router_decoder.utils import compute_gas_fees
 
 
 NO_REVERT_FLAG = _RouterConstant.FLAG_ALLOW_REVERT.value
@@ -593,3 +599,92 @@ class _ChainedFunctionBuilder:
         else:
             execute_without_deadline_input = (bytes(self.commands), self.arguments)
             return self._encode_execution_without_deadline_function(execute_without_deadline_input)
+
+    def build_transaction(
+            self,
+            sender: ChecksumAddress,
+            value: Wei = Wei(0),
+            trx_speed: Optional[TransactionSpeed] = TransactionSpeed.FAST,
+            *,
+            priority_fee: Optional[Wei] = None,
+            max_fee_per_gas: Optional[Wei] = None,
+            max_fee_per_gas_limit: Wei = Wei(100 * 10 ** 9),
+            gas_limit: Optional[int] = None,
+            chain_id: Optional[int] = None,
+            nonce: Optional[Union[int, Nonce]] = None,
+            ur_address: ChecksumAddress = _ur_address,
+            deadline: Optional[int] = None,
+            block_identifier: BlockIdentifier = "latest") -> TxParams:
+        """
+        Build the encoded data and the transaction dictionary, ready to be signed.
+
+        By default, compute the gas fees, chain_id, nonce, deadline, ... but custom values can be used instead.
+        Gas fees are computed with a given TransactionSpeed (default is FAST).
+        All speeds will compute gas fees in order to try to place the transaction in the next block
+        (without certainty, of course).
+        So, during strained conditions, the computed gas fees could be very high but can be controlled
+        thanks to 'max_fee_per_gas_limit'.
+
+        Either a transaction speed is provided or custom gas fees, otherwise a ValueError is raised.
+
+        The RouterCodec must be built with a Web3 instance or a rpc endpoint address except if custom values are used.
+
+        :param sender: The 'from' field - Mandatory
+        :param value: The quantity of ETH sent to the Universal Router - Default is 0
+        :param trx_speed: The indicative 'speed' of the transaction - Default is TransactionSpeed.FAST
+        :param priority_fee: custom 'maxPriorityFeePerGas' - Default is None
+        :param max_fee_per_gas: custom 'maxFeePerGas' - Default is None
+        :param max_fee_per_gas_limit: if the computed 'max_fee_per_gas' is greater than 'max_fee_per_gas_limit', raise a ValueError  # noqa
+        :param gas_limit: custom 'gas' - Default is None
+        :param chain_id: custom 'chainId'
+        :param nonce: custom 'nonce'
+        :param ur_address: custom Universal Router address
+        :param deadline: The optional unix timestamp after which the transaction won't be valid any more.
+        :param block_identifier: specify at what block the computing is done. Mostly for test purposes.
+        :return: a transaction (TxParams) ready to be signed
+        """
+        encoded_data = self.build(deadline)
+
+        if chain_id is None:
+            chain_id = self._w3.eth.chain_id
+
+        if nonce is None:
+            nonce = self._w3.eth.get_transaction_count(sender, block_identifier)
+
+        if not trx_speed:
+            if priority_fee is None or max_fee_per_gas is None:
+                raise ValueError("Either trx_speed or both priority_fee and max_fee_per_gas must be set.")
+            else:
+                _priority_fee = priority_fee
+                _max_fee_per_gas = max_fee_per_gas
+        else:
+            if priority_fee or max_fee_per_gas:
+                raise ValueError("priority_fee and max_fee_per_gas can't be set with trx_speed")
+            else:
+                _priority_fee, _max_fee_per_gas = compute_gas_fees(self._w3, trx_speed, block_identifier)
+                if _max_fee_per_gas > max_fee_per_gas_limit:
+                    raise ValueError(
+                        "Computed max_fee_per_gas is greater than max_fee_per_gas_limit. "
+                        "Either provide max_fee_per_gas, increase max_fee_per_gas_limit "
+                        "or wait for less strained conditions"
+                    )
+
+        tx_params: TxParams = {
+            "from": sender,
+            "value": value,
+            "to": ur_address,
+            "chainId": chain_id,
+            "nonce": Nonce(nonce),
+            "type": HexStr('0x2'),
+            "maxPriorityFeePerGas": _priority_fee,
+            "maxFeePerGas": _max_fee_per_gas,
+            "data": encoded_data,
+        }
+
+        if gas_limit is None:
+            estimated_gas = self._w3.eth.estimate_gas(tx_params, block_identifier)
+            gas_limit = int(estimated_gas * 1.15)
+
+        tx_params["gas"] = Wei(gas_limit)
+
+        return tx_params

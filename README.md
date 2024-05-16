@@ -392,6 +392,50 @@ Example where an USDC amount is sent to a recipient:
 .transfer(FunctionRecipient.CUSTOM, usdc_address, usdc_amount, recipient_address)
 ```
 
+### How to build directly a transaction
+The SDK provides a handy method to build very easily the full transaction in addition to the input data.
+It can compute most of the transaction parameters (if the codec has been instantiated with a valid w3 or rpc url) 
+or you can provide them. 
+
+Example where a swap is encoded and a transaction is built automatically:
+```python
+from uniswap_universal_router_decoder import FunctionRecipient, RouterCodec
+
+codec = RouterCodec()
+trx_params = (
+    codec.encode.chain().v2_swap_exact_in(
+        FunctionRecipient.SENDER,  # the output tokens are sent to the transaction sender
+        amount_in,  # in Wei
+        min_amount_out,  # in Wei
+        [
+            in_token_address,  # checksum address of the token sent to the UR 
+            out_token_address,  # checksum address of the received token
+        ],
+    ).build_transaction(
+        sender_address,  # 'from'
+        deadline=timestamp,  # the swap deadline
+    )
+)
+
+```
+And that's it! You can now sign and send this transaction.
+A few other important parameters:
+ - `value`: the quantity of ETH in wei you send to the Universal Router (for ex when you wrap them before a swap)
+ - `trx_speed`: an enum which influences the transaction rank in the block. Values are:
+    - `TransactionSpeed.SLOW`
+    - `TransactionSpeed.AVERAGE`
+    - `TransactionSpeed.FAST` (default)
+    - `TransactionSpeed.FASTER`
+ - `max_fee_per_gas_limit`: if the computed `max_fee_per_gas` is greater than `max_fee_per_gas_limit` a `ValueError` will be raised to allow you to stay in control. Default is 100 gwei.
+
+How to use the `trx_speed` parameter:
+```python
+from uniswap_universal_router_decoder import TransactionSpeed
+
+.build_transaction(sender_address, trx_speed=TransactionSpeed.FASTER)
+```
+
+
 
 ## Tutorials and Recipes:
 See the [SDK Wiki](https://github.com/Elnaril/uniswap-universal-router-decoder/wiki).

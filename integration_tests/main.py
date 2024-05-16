@@ -17,9 +17,8 @@ from uniswap_universal_router_decoder import (
 
 web3_provider = os.environ['WEB3_HTTP_PROVIDER_URL_ETHEREUM_MAINNET']
 w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:8545"))
-chain_id = 1337
+chain_id = 1
 block_number = 16853693
-gas_limit = 800_000
 
 account = Account.from_key(keccak(text="moo"))
 assert account.address == "0xcd7328a5D376D5530f054EAF0B9D235a4Fd36059"
@@ -32,7 +31,7 @@ weth_address = Web3.to_checksum_address("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756
 usdc_address = Web3.to_checksum_address("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48")
 usdc_contract = w3.eth.contract(address=usdc_address, abi=erc20_abi)
 
-ur_address = Web3.to_checksum_address("0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B")
+ur_address = Web3.to_checksum_address("0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B")  # old address
 
 codec = RouterCodec()
 
@@ -40,10 +39,11 @@ codec = RouterCodec()
 def launch_ganache():
     ganache_process = subprocess.Popen(
         f"""ganache
+        --chain.chainId='{chain_id}'
+        --chain.networkId='{chain_id}'
         --logging.quiet='true'
         --fork.url='{web3_provider}'
-        --fork.blockNumber='16853693'
-        --miner.defaultGasPrice='15000000000'
+        --fork.blockNumber='{block_number - 1}'
         --wallet.accounts='{account.key.hex()}','{init_amount}'
         """.replace("\n", " "),
         shell=True,
@@ -64,29 +64,11 @@ def kill_processes(parent_id):
 
 
 def check_initialization():
-    assert w3.eth.chain_id == chain_id  # 1337
-    assert w3.eth.block_number == block_number + 1
+    assert w3.eth.chain_id == chain_id  # 1
+    assert w3.eth.block_number == block_number
     assert w3.eth.get_balance(account.address) == init_amount
     assert usdc_contract.functions.balanceOf(account.address).call() == 0
     print(" => Initialization: OK")
-
-
-def send_transaction(value, encoded_data):
-    trx_params = {
-        "from": account.address,
-        "to": ur_address,
-        "gas": gas_limit,
-        "maxPriorityFeePerGas": w3.eth.max_priority_fee,
-        "maxFeePerGas": Wei(int(w3.eth.gas_price * 1.1)),
-        "type": '0x2',
-        "chainId": chain_id,
-        "value": value,
-        "nonce": w3.eth.get_transaction_count(account.address),
-        "data": encoded_data,
-    }
-    raw_transaction = w3.eth.account.sign_transaction(trx_params, account.key).rawTransaction
-    trx_hash = w3.eth.send_raw_transaction(raw_transaction)
-    return trx_hash
 
 
 def buy_usdc_from_v2_and_v3():
@@ -98,16 +80,23 @@ def buy_usdc_from_v2_and_v3():
     v3_in_amount = 7 * 10 ** 17
     v3_out_amount = 1252357999  # with slippage
     total_in_amount = Wei(v2_in_amount + v3_in_amount)
-    encoded_input = (
+    trx_params = (
         codec
         .encode
         .chain()
         .wrap_eth(FunctionRecipient.ROUTER, total_in_amount)
         .v2_swap_exact_in(FunctionRecipient.SENDER, v2_in_amount, v2_out_amount, v2_path, payer_is_sender=False)
         .v3_swap_exact_in(FunctionRecipient.SENDER, v3_in_amount, v3_out_amount, v3_path, payer_is_sender=False)
-        .build(codec.get_default_deadline())
+        .build_transaction(
+            account.address,
+            total_in_amount,
+            ur_address=ur_address,  # because test is on old UR address
+            block_identifier=block_number - 1  # because test is on local Ganache fork
+        )
     )
-    trx_hash = send_transaction(total_in_amount, encoded_input)
+
+    raw_transaction = w3.eth.account.sign_transaction(trx_params, account.key).rawTransaction
+    trx_hash = w3.eth.send_raw_transaction(raw_transaction)
 
     receipt = w3.eth.wait_for_transaction_receipt(trx_hash)
     assert receipt["status"] == 1  # trx success
