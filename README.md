@@ -313,7 +313,7 @@ data, signable_message = codec.create_permit2_signable_message(
     token_address,
     amount,  # max = 2**160 - 1
     expiration,
-    nonce,  # Permit2 nonce
+    nonce,  # Permit2 nonce, see below how to get it
     spender,  # The UR checksum address
     deadline,
     1,  # chain id
@@ -331,6 +331,12 @@ transaction["data"] = encoded_data
 # you can now sign and send the transaction to the UR
 ```
 After that, you can swap tokens using the Uniswap universal router.
+
+#### How to get the current permit2 allowance, expiration and nonce
+You can get the nonce you need to build the permit2 signable message like this:
+```python
+amount, expiration, nonce = codec.fetch_permit2_allowance(acc.address, token_address)  # where acc is your LocalAccount
+```
 
 ### How to chain a call to PERMIT2_PERMIT and V2_SWAP_EXACT_IN in the same transaction
 Don't forget to give a token allowance to the Permit2 contract as well.
