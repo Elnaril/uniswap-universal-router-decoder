@@ -27,8 +27,8 @@ from web3.types import (
 
 from uniswap_universal_router_decoder._abi_builder import _ABIBuilder
 from uniswap_universal_router_decoder._constants import (
-    _permit2_address,
     _permit2_abi,
+    _permit2_address,
     _structured_data_permit,
     _ur_address,
 )

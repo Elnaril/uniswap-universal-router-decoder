@@ -1,6 +1,5 @@
-from web3 import Web3
-
 import pytest
+from web3 import Web3
 
 
 def test_get_default_deadline(codec):
