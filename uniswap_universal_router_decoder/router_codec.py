@@ -19,14 +19,18 @@ from eth_account.messages import (
 )
 from web3 import Web3
 from web3.types import (
+    BlockIdentifier,
     ChecksumAddress,
+    Nonce,
     Wei,
 )
 
 from uniswap_universal_router_decoder._abi_builder import _ABIBuilder
 from uniswap_universal_router_decoder._constants import (
+    _permit2_abi,
     _permit2_address,
     _structured_data_permit,
+    _ur_address,
 )
 from uniswap_universal_router_decoder._decoder import _Decoder
 from uniswap_universal_router_decoder._encoder import _Encoder
@@ -119,3 +123,29 @@ class RouterCodec:
         structured_data["domain"]["verifyingContract"] = verifying_contract
         structured_data["message"] = permit_single
         return permit_single, encode_structured_data(primitive=structured_data)
+
+    def fetch_permit2_allowance(
+            self,
+            wallet: ChecksumAddress,
+            token: ChecksumAddress,
+            spender: ChecksumAddress = _ur_address,
+            permit2: ChecksumAddress = _permit2_address,
+            permit2_abi: str = _permit2_abi,
+            block_identifier: BlockIdentifier = "latest") -> Tuple[Wei, int, Nonce]:
+        """
+        Request the permit2 allowance function to know if the UR has enough valid allowance,
+        and to get the current permit2 nonce for a given wallet and token.
+
+        :param wallet: the account address to check
+        :param token: the address of the token to check
+        :param spender: the Universal Router address - Default is its address on Mainnet
+        :param permit2: the Permit2 address - Default is its address on Mainnet
+        :param permit2_abi: the Permit2 abi - Default is the one deployed on Mainnet
+        :param block_identifier: the request will be done for this block - Default is 'latest'
+        :return: The current allowed amount in Wei, the timestamp after which the allowance is not valid anymore and
+        the current nonce (to be used with the next permit2_permit() request)
+        """
+        permit2_contract = self._w3.eth.contract(address=permit2, abi=permit2_abi)
+        permit2_allowance_fct = permit2_contract.functions.allowance(wallet, token, spender)
+        amount, expiration, nonce = permit2_allowance_fct.call(block_identifier=block_identifier)
+        return Wei(amount), int(expiration), Nonce(nonce)
