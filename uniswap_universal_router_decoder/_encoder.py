@@ -27,6 +27,7 @@ from web3.contract.contract import ContractFunction
 from web3.types import (
     BlockIdentifier,
     ChecksumAddress,
+    HexBytes,
     HexStr,
     Nonce,
     TxParams,
@@ -581,6 +582,25 @@ class _ChainedFunctionBuilder:
                     token_address,
                     recipient,
                     value,
+                )
+            )
+        )
+        return self
+
+    def _encode_seaport_v1_5_sub_contract(self, value: int, call_data: HexBytes) -> HexStr:
+        abi_mapping = self._abi_map[_RouterFunction.SEAPORT_V1_5]
+        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
+        contract_function: ContractFunction = sub_contract.functions.SEAPORT_V1_5(value, call_data)
+        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, [value, call_data]))
+
+    def seaport_v1_5(self, value: Wei, call_data: Union[HexStr, HexBytes]) -> _ChainedFunctionBuilder:
+        self.commands.append(_RouterFunction.SEAPORT_V1_5.value)
+        _data = Web3.to_bytes(hexstr=HexStr(call_data)) if isinstance(call_data, str) else call_data
+        self.arguments.append(
+            Web3.to_bytes(
+                hexstr=self._encode_seaport_v1_5_sub_contract(
+                    value,
+                    HexBytes(_data),
                 )
             )
         )
