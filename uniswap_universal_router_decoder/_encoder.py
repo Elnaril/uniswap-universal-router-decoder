@@ -606,6 +606,35 @@ class _ChainedFunctionBuilder:
         )
         return self
 
+    def _encode_sweep_erc721_sub_contract(
+            self,
+            token: ChecksumAddress,
+            recipient: ChecksumAddress,
+            token_id: int) -> HexStr:
+        abi_mapping = self._abi_map[_RouterFunction.SWEEP_ERC721]
+        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
+        contract_function: ContractFunction = sub_contract.functions.SWEEP_ERC721(token, recipient, token_id)
+        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, [token, recipient, token_id]))
+
+    def sweep_erc721(
+            self,
+            function_recipient: FunctionRecipient,
+            token_address: ChecksumAddress,
+            token_id: int,
+            custom_recipient: Optional[ChecksumAddress] = None) -> _ChainedFunctionBuilder:
+        recipient = self._get_recipient(function_recipient, custom_recipient)
+        self.commands.append(_RouterFunction.SWEEP_ERC721.value)
+        self.arguments.append(
+            Web3.to_bytes(
+                hexstr=self._encode_sweep_erc721_sub_contract(
+                    token_address,
+                    recipient,
+                    token_id,
+                )
+            )
+        )
+        return self
+
     def build(self, deadline: Optional[int] = None) -> HexStr:
         """
         Build the encoded input for all the chained commands, ready to be sent to the UR

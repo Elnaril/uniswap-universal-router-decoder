@@ -26,6 +26,7 @@ class _RouterFunction(Enum):
     WRAP_ETH = 11
     UNWRAP_WETH = 12
     SEAPORT_V1_5 = 16
+    SWEEP_ERC721 = 23
 
 
 class FunctionRecipient(Enum):

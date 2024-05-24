@@ -109,6 +109,7 @@ class _ABIBuilder:
             _RouterFunction.PAY_PORTION: self._add_mapping(self._build_pay_portion),
             _RouterFunction.TRANSFER: self._add_mapping(self._build_transfer),
             _RouterFunction.SEAPORT_V1_5: self._add_mapping(self._build_seaport_v1_5),
+            _RouterFunction.SWEEP_ERC721: self._add_mapping(self._build_sweep_erc721),
         }
         return abi_map
 
@@ -180,3 +181,8 @@ class _ABIBuilder:
     def _build_seaport_v1_5() -> _FunctionABI:
         builder = _FunctionABIBuilder("SEAPORT_V1_5")
         return builder.add_uint256("value").add_bytes("calldata").build()
+
+    @staticmethod
+    def _build_sweep_erc721() -> _FunctionABI:
+        builder = _FunctionABIBuilder("SWEEP_ERC721")
+        return builder.add_address("token").add_address("recipient").add_uint256("id").build()
