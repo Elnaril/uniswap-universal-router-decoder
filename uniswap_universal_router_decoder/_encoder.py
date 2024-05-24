@@ -635,6 +635,33 @@ class _ChainedFunctionBuilder:
         )
         return self
 
+    def _encode_owner_check_721_sub_contract(
+            self,
+            owner: ChecksumAddress,
+            token: ChecksumAddress,
+            token_id: int) -> HexStr:
+        abi_mapping = self._abi_map[_RouterFunction.OWNER_CHECK_721]
+        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
+        contract_function: ContractFunction = sub_contract.functions.OWNER_CHECK_721(owner, token, token_id)
+        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, [owner, token, token_id]))
+
+    def owner_check_721(
+            self,
+            owner_address: ChecksumAddress,
+            token_address: ChecksumAddress,
+            token_id: int) -> _ChainedFunctionBuilder:
+        self.commands.append(_RouterFunction.OWNER_CHECK_721.value)
+        self.arguments.append(
+            Web3.to_bytes(
+                hexstr=self._encode_owner_check_721_sub_contract(
+                    owner_address,
+                    token_address,
+                    token_id,
+                )
+            )
+        )
+        return self
+
     def build(self, deadline: Optional[int] = None) -> HexStr:
         """
         Build the encoded input for all the chained commands, ready to be sent to the UR

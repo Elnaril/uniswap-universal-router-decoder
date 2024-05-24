@@ -110,6 +110,7 @@ class _ABIBuilder:
             _RouterFunction.TRANSFER: self._add_mapping(self._build_transfer),
             _RouterFunction.SEAPORT_V1_5: self._add_mapping(self._build_seaport_v1_5),
             _RouterFunction.SWEEP_ERC721: self._add_mapping(self._build_sweep_erc721),
+            _RouterFunction.OWNER_CHECK_721: self._add_mapping(self._build_owner_check_721),
         }
         return abi_map
 
@@ -186,3 +187,8 @@ class _ABIBuilder:
     def _build_sweep_erc721() -> _FunctionABI:
         builder = _FunctionABIBuilder("SWEEP_ERC721")
         return builder.add_address("token").add_address("recipient").add_uint256("id").build()
+
+    @staticmethod
+    def _build_owner_check_721() -> _FunctionABI:
+        builder = _FunctionABIBuilder("OWNER_CHECK_721")
+        return builder.add_address("owner").add_address("token").add_uint256("id").build()
