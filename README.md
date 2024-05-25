@@ -45,11 +45,11 @@ The object of this library is to decode & encode the transaction input sent to t
 on Ethereum Mainnet). It is based on, and is intended to be used with [web3.py](https://github.com/ethereum/web3.py)  
 The target audience is Python developers who are familiar with the Ethereum blockchain concepts and web3.py, and how DEXes work. 
 
-⚠ This library has not been audited, so use at your own risk !
+⚠️ This library has not been audited, so use at your own risk !
 
-⚠ Before using this library, ensure you are familiar with general blockchain concepts and [web3.py](https://github.com/ethereum/web3.py) in particular.
+⚠️ Before using this library, ensure you are familiar with general blockchain concepts and [web3.py](https://github.com/ethereum/web3.py) in particular.
 
-⚠ This project is a work in progress so not all commands are decoded yet. Below the list of the already implemented ones.
+⚠️ This project is a work in progress so not all commands are decoded yet. Below the list of the already implemented ones.
 
 | Command Id | Function Name | Decode | Encode
 | ---------- | ------------- |:------:|:------:
@@ -67,7 +67,12 @@ The target audience is Python developers who are familiar with the Ethereum bloc
 | 0x0c | UNWRAP_WETH | ✅ | ✅
 | 0x0d | PERMIT2_TRANSFER_FROM_BATCH | ❌ | ❌
 | 0x0e - 0x0f | placeholders | N/A | N/A
-| 0x10 - 0x1d |  | ❌ | ❌
+| 0x10 | SEAPORT_V1_5 | ✅ | ✅
+| 0x11 - 0x14 |  | ❌ | ❌
+| 0x15 | OWNER_CHECK_721 | ✅ | ✅
+| 0x16 | OWNER_CHECK_1155 | ❌ | ❌
+| 0x17 | SWEEP_ERC721 | ✅ | ✅
+| 0x18 - 0x1d | | ❌ | ❌
 | 0x1e - 0x3f | placeholders | N/A | N/A
 
 ---
@@ -396,6 +401,27 @@ Example where the sender gets back all remaining USDC:
 Example where an USDC amount is sent to a recipient:
 ```python
 .transfer(FunctionRecipient.CUSTOM, usdc_address, usdc_amount, recipient_address)
+```
+
+#### SEAPORT_V1_5, OWNER_CHECK_721 and SWEEP_ERC721
+`SEAPORT_V1_5` encodes the call to the function SEAPORT_V1_5 which allows interacting with the OpenSea protocol, 
+ie: buy, sell, ... NFTs.  
+As the Universal Router is, in this case, mostly a gateway for Seaport, 
+building the `call_data` is not managed by this SDK and thus left to the users.
+
+⚠️ Important when buying a NFT:
+1. chain `sweep_erc721()` after `seaport_v1_5()` to get the NFT.
+2. chain `owner_check_721()` after `sweep_erc721()` to confirm the new owner.
+```python
+encoded_input = (
+        codec
+        .encode
+        .chain()
+        .seaport_v1_5(value, call_data)  # buy nft for value ETH (in Wei) with the call_data for Seaport
+        .sweep_erc721(FunctionRecipient.SENDER, nft_address, nft_id)  # get nft
+        .owner_check_721(sender_address, nft_address, nft_id)  # you want to be sure you're the new owner otherwise revert the trx 
+        .build()
+    )
 ```
 
 ### How to build directly a transaction
