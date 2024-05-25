@@ -76,7 +76,7 @@ def buy_tor_nft_from_opensea_1_5():
         .owner_check_721(initial_owner, tor_address, tor_token_id)  # check nft initial owner
         .seaport_v1_5(value, call_data)  # buy nft
         .owner_check_721(ur_address, tor_address, tor_token_id)  # confirm owner is the ur after the buy
-        .sweep_erc721(FunctionRecipient.CUSTOM, tor_address, tor_token_id, wallet)  # get nft
+        .sweep_erc721(FunctionRecipient.SENDER, tor_address, tor_token_id)  # get nft
         .owner_check_721(wallet, tor_address, tor_token_id)  # confirm owner is the wallet
         .build_transaction(wallet, value, block_identifier=block_number - 1)
     )
