@@ -27,6 +27,7 @@ from web3.contract.contract import ContractFunction
 from web3.types import (
     BlockIdentifier,
     ChecksumAddress,
+    HexBytes,
     HexStr,
     Nonce,
     TxParams,
@@ -581,6 +582,117 @@ class _ChainedFunctionBuilder:
                     token_address,
                     recipient,
                     value,
+                )
+            )
+        )
+        return self
+
+    def _encode_seaport_v1_5_sub_contract(self, value: int, call_data: HexBytes) -> HexStr:
+        abi_mapping = self._abi_map[_RouterFunction.SEAPORT_V1_5]
+        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
+        contract_function: ContractFunction = sub_contract.functions.SEAPORT_V1_5(value, call_data)
+        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, [value, call_data]))
+
+    def seaport_v1_5(self, value: Wei, call_data: Union[HexStr, HexBytes]) -> _ChainedFunctionBuilder:
+        """
+        Encode the call to the function SEAPORT_V1_5 which allows interacting with the OpenSea protocol,
+        ie: buy, sell, ... NFTs
+
+        As the Universal Router is, in this case, mostly a gateway for Seaport,
+        building the call_data is not managed by this SDK and thus left to the users.
+
+        ⚠️ Important when buying a NFT:
+          - chain `sweep_erc721()` after `seaport_v1_5()` to get the NFT.
+          - chain `owner_check_721()` after `sweep_erc721()` to confirm the new owner.
+
+        :param value: the ETH value (in Wei) to send to OpenSea/Seaport
+        :param call_data: encoded data containing the instructions for OpenSea/Seaport
+
+        :return: The chain link corresponding to this function call.
+        """
+        self.commands.append(_RouterFunction.SEAPORT_V1_5.value)
+        _data = Web3.to_bytes(hexstr=HexStr(call_data)) if isinstance(call_data, str) else call_data
+        self.arguments.append(
+            Web3.to_bytes(
+                hexstr=self._encode_seaport_v1_5_sub_contract(
+                    value,
+                    HexBytes(_data),
+                )
+            )
+        )
+        return self
+
+    def _encode_sweep_erc721_sub_contract(
+            self,
+            token: ChecksumAddress,
+            recipient: ChecksumAddress,
+            token_id: int) -> HexStr:
+        abi_mapping = self._abi_map[_RouterFunction.SWEEP_ERC721]
+        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
+        contract_function: ContractFunction = sub_contract.functions.SWEEP_ERC721(token, recipient, token_id)
+        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, [token, recipient, token_id]))
+
+    def sweep_erc721(
+            self,
+            function_recipient: FunctionRecipient,
+            token_address: ChecksumAddress,
+            token_id: int,
+            custom_recipient: Optional[ChecksumAddress] = None) -> _ChainedFunctionBuilder:
+        """
+        Encode the call to the function SWEEP_ERC721 which sweeps an ERC-721 NFT to an address
+
+        :param function_recipient: A FunctionRecipient which defines the recipient of this function output.
+        :param token_address: The address of the ERC-721 NFT to sweep
+        :param token_id: The ERC-721 NFT id
+        :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
+
+        :return: The chain link corresponding to this function call.
+        """
+        recipient = self._get_recipient(function_recipient, custom_recipient)
+        self.commands.append(_RouterFunction.SWEEP_ERC721.value)
+        self.arguments.append(
+            Web3.to_bytes(
+                hexstr=self._encode_sweep_erc721_sub_contract(
+                    token_address,
+                    recipient,
+                    token_id,
+                )
+            )
+        )
+        return self
+
+    def _encode_owner_check_721_sub_contract(
+            self,
+            owner: ChecksumAddress,
+            token: ChecksumAddress,
+            token_id: int) -> HexStr:
+        abi_mapping = self._abi_map[_RouterFunction.OWNER_CHECK_721]
+        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
+        contract_function: ContractFunction = sub_contract.functions.OWNER_CHECK_721(owner, token, token_id)
+        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, [owner, token, token_id]))
+
+    def owner_check_721(
+            self,
+            owner_address: ChecksumAddress,
+            token_address: ChecksumAddress,
+            token_id: int) -> _ChainedFunctionBuilder:
+        """
+        Encode the call to the OWNER_CHECK_721 function which confirms the ERC-721 NFT owner at the current point
+        in the chained functions. Revert the transaction if the actual owner is not owner_address.
+
+        :param owner_address: The UR will check whether this address owns the ERC-721 NFT or not.
+        :param token_address: The ERC-721 NFT address
+        :param token_id: The ERC-721 NFT id
+
+        :return: The chain link corresponding to this function call.
+        """
+        self.commands.append(_RouterFunction.OWNER_CHECK_721.value)
+        self.arguments.append(
+            Web3.to_bytes(
+                hexstr=self._encode_owner_check_721_sub_contract(
+                    owner_address,
+                    token_address,
+                    token_id,
                 )
             )
         )
