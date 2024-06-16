@@ -25,9 +25,6 @@ class _RouterFunction(Enum):
     PERMIT2_PERMIT = 10
     WRAP_ETH = 11
     UNWRAP_WETH = 12
-    SEAPORT_V1_5 = 16
-    OWNER_CHECK_721 = 21
-    SWEEP_ERC721 = 23
 
 
 class FunctionRecipient(Enum):
