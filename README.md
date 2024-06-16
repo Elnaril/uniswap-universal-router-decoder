@@ -23,6 +23,12 @@
 ---
 
 ## Release Notes
+### v1.2.0.dev
+ - Add NFT related Universal Router functions: `SEAPORT_V1_5`, `SWEEP_ERC721`, `OWNER_CHECK_721`
+ - Add `compute_gas_fees()`: utility function to compute gas fees
+ - Add `build_transaction()` method: It's now possible to build the full transaction i/o just the input data.
+ - Add `fetch_permit2_allowance()`: Easy way to check the current Permit2 allowed amount, expiration and nonce. 
+ - Make verifying contract (Permit2) configurable (Thanks to @speedssr and @freereaper)
 ### v1.1.0
  - Add support for the TRANSFER function
  - Add support for decoding the "revert on fail" flag and prepare for encoding on UR functions that support it.
@@ -467,7 +473,14 @@ from uniswap_universal_router_decoder import TransactionSpeed
 .build_transaction(sender_address, trx_speed=TransactionSpeed.FASTER)
 ```
 
+### Utility functions
 
+#### How to compute the gas fees
+The SDK provides a handy method to compute the current "priority fee" and "max fee per gas":
+```python
+from uniswap_universal_router_decoder.utils import compute_gas_fees
+priority_fee, max_fee_per_gas = compute_gas_fees(w3)  # w3 is a valid Web3 instance
+```
 
 ## Tutorials and Recipes:
 See the [SDK Wiki](https://github.com/Elnaril/uniswap-universal-router-decoder/wiki).
