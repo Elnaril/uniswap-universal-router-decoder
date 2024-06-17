@@ -85,6 +85,29 @@ class RouterCodec:
             deadline: int,
             chain_id: int = 1,
             verifying_contract: ChecksumAddress = _permit2_address) -> Tuple[Dict[str, Any], SignableMessage]:
+        """
+        Create a eth_account.messages.SignableMessage that will be sent to the UR/Permit2 contracts
+        to set token permissions through signature validation.
+
+        See https://docs.uniswap.org/contracts/permit2/reference/allowance-transfer#single-permit
+
+        See https://eips.ethereum.org/EIPS/eip-712 for EIP712 structured data signing.
+
+        In addition to this step, the Permit2 contract has to be approved through the token contract.
+
+        :param token_address: The address of the token for which an allowance will be given to the UR
+        :param amount: The allowance amount in Wei. Max = 2 ** 160 - 1
+        :param expiration: The Unix timestamp at which a spender's token allowances become invalid
+        :param nonce: An incrementing value indexed per owner,token,and spender for each signature
+        :param spender: The spender (ie: the UR) address
+        :param deadline: The deadline, as a Unix timestamp, on the permit signature
+        :param chain_id: What it says on the box. Default to 1.
+        :param verifying_contract: the permit2 contract address. Default to uniswap permit2 address.
+        :return: A tuple: (PermitSingle, SignableMessage).
+            The first element is the first parameter of permit2_permit().
+            The second element must be signed with eth_account.signers.local.LocalAccount.sign_message() in your code
+            and the resulting SignedMessage is the 2nd parameter of permit2_permit().
+        """
         permit_details = {
             "token": token_address,
             "amount": amount,
