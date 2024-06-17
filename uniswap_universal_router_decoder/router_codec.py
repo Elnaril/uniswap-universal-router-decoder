@@ -14,7 +14,7 @@ from typing import (
 )
 
 from eth_account.messages import (
-    encode_structured_data,
+    encode_typed_data,
     SignableMessage,
 )
 from web3 import Web3
@@ -29,7 +29,8 @@ from uniswap_universal_router_decoder._abi_builder import _ABIBuilder
 from uniswap_universal_router_decoder._constants import (
     _permit2_abi,
     _permit2_address,
-    _structured_data_permit,
+    _permit2_domain_data,
+    _permit2_types,
     _ur_address,
 )
 from uniswap_universal_router_decoder._decoder import _Decoder
@@ -118,11 +119,15 @@ class RouterCodec:
             "spender": spender,
             "sigDeadline": deadline,
         }
-        structured_data = dict(_structured_data_permit)
-        structured_data["domain"]["chainId"] = chain_id
-        structured_data["domain"]["verifyingContract"] = verifying_contract
-        structured_data["message"] = permit_single
-        return permit_single, encode_structured_data(primitive=structured_data)
+        domain_data = dict(_permit2_domain_data)
+        domain_data["chainId"] = chain_id
+        domain_data["verifyingContract"] = verifying_contract
+        signable_message = encode_typed_data(
+            domain_data=domain_data,
+            message_types=_permit2_types,
+            message_data=permit_single,
+        )
+        return permit_single, signable_message
 
     def fetch_permit2_allowance(
             self,

@@ -5,11 +5,6 @@ Constants used by the Uniswap Universal Router Codec
 * License: MIT.
 * Doc: https://github.com/Elnaril/uniswap-universal-router-decoder
 """
-from typing import (
-    Any,
-    Dict,
-)
-
 from web3 import Web3
 from web3.types import HexStr
 
@@ -25,29 +20,17 @@ _permit2_abi = '[{"inputs":[{"internalType":"uint256","name":"deadline","type":"
 _permit2_address = Web3.to_checksum_address("0x000000000022D473030F116dDEE9F6B43aC78BA3")
 _ur_address = Web3.to_checksum_address("0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD")
 
-_structured_data_permit: Dict[str, Any] = {
-    'types': {
-        'EIP712Domain': [
-            {'name': 'name', 'type': 'string'},
-            {'name': 'chainId', 'type': 'uint256'},
-            {'name': 'verifyingContract', 'type': 'address'}
-        ],
-        'PermitDetails': [
-            {'name': 'token', 'type': 'address'},
-            {'name': 'amount', 'type': 'uint160'},
-            {'name': 'expiration', 'type': 'uint48'},
-            {'name': 'nonce', 'type': 'uint48'},
-        ],
-        'PermitSingle': [
-            {'name': 'details', 'type': 'PermitDetails'},
-            {'name': 'spender', 'type': 'address'},
-            {'name': 'sigDeadline', 'type': 'uint256'},
-        ],
-    },
-    'primaryType': 'PermitSingle',
-    'domain': {
-        'name': 'Permit2',
-        'chainId': 1,
-        'verifyingContract': _permit2_address,
-    },
+_permit2_domain_data = {'name': 'Permit2', 'chainId': 1, 'verifyingContract': _permit2_address}
+_permit2_types = {
+    'PermitDetails': [
+        {'name': 'token', 'type': 'address'},
+        {'name': 'amount', 'type': 'uint160'},
+        {'name': 'expiration', 'type': 'uint48'},
+        {'name': 'nonce', 'type': 'uint48'},
+    ],
+    'PermitSingle': [
+        {'name': 'details', 'type': 'PermitDetails'},
+        {'name': 'spender', 'type': 'address'},
+        {'name': 'sigDeadline', 'type': 'uint256'},
+    ],
 }
