@@ -4,7 +4,7 @@ from web3 import Web3
 from uniswap_universal_router_decoder import RouterCodec
 
 
-rpc_endpoint_address = "https://rpc.ankr.com/eth"
+rpc_endpoint_address = "https://rpc.flashbots.net/"
 
 
 @pytest.fixture
