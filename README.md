@@ -28,6 +28,7 @@
  - Add `build_transaction()` method: It's now possible to build the full transaction i/o just the input data.
  - Add `fetch_permit2_allowance()`: Easy way to check the current Permit2 allowed amount, expiration and nonce. 
  - Make verifying contract (Permit2) configurable (Thanks to @speedssr and @freereaper)
+ - Replace deprecated `eth_account.encode_structured_data()` with `eth_account.messages.encode_typed_data()`
 ### v1.1.0
  - Add support for the TRANSFER function
  - Add support for decoding the "revert on fail" flag and prepare for encoding on UR functions that support it.
