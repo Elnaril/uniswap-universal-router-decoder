@@ -23,7 +23,7 @@
 ---
 
 ## Release Notes
-### v1.2.0.dev
+### v1.2.0
  - Add `compute_gas_fees()`: utility function to compute gas fees
  - Add `build_transaction()` method: It's now possible to build the full transaction i/o just the input data.
  - Add `fetch_permit2_allowance()`: Easy way to check the current Permit2 allowed amount, expiration and nonce. 
