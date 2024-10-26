@@ -30,9 +30,11 @@ class _FunctionABI:
     type: str
 
     def get_abi(self) -> Dict[str, Any]:
+        return asdict(self)
+
+    def get_struct_abi(self) -> Dict[str, Any]:
         result = asdict(self)
-        if self.type == "tuple":
-            result["components"] = result.pop("inputs")
+        result["components"] = result.pop("inputs")
         return result
 
     def get_full_abi(self) -> List[Dict[str, Any]]:
@@ -86,7 +88,7 @@ class _FunctionABIBuilder:
         return _FunctionABIBuilder(arg_name, "tuple")
 
     def add_struct(self, struct: _FunctionABIBuilder) -> _FunctionABIBuilder:
-        self.abi.inputs.append(struct.abi.get_abi())
+        self.abi.inputs.append(struct.abi.get_struct_abi())
         return self
 
     def add_bytes(self, arg_name: str) -> _FunctionABIBuilder:
@@ -114,7 +116,7 @@ class _ABIBuilder:
     @staticmethod
     def _add_mapping(build_abi_method: Callable[[], _FunctionABI]) -> _FunctionDesc:
         fct_abi = build_abi_method()
-        selector = function_abi_to_4byte_selector(fct_abi.get_abi())
+        selector = function_abi_to_4byte_selector(fct_abi.get_abi())  # type: ignore[arg-type, unused-ignore]
         return _FunctionDesc(fct_abi=fct_abi, selector=selector)
 
     @staticmethod
