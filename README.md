@@ -23,6 +23,9 @@
 ---
 
 ## Release Notes
+### v1.2.1
+ - Add support for web3 v7
+ - Add support for Python 3.12 & 3.13 
 ### v1.2.0
  - Add `compute_gas_fees()`: utility function to compute gas fees
  - Add `build_transaction()` method: It's now possible to build the full transaction i/o just the input data.
@@ -33,14 +36,6 @@
  - Add support for the TRANSFER function
  - Add support for decoding the "revert on fail" flag and prepare for encoding on UR functions that support it.
  - Add support for encoding the `execute()` function without deadline
-### v1.0.1
- - Fix issue #35 - fails to decode input data when there is too many commands
-### v1.0.0
- - Add support for SWEEP and PAY_PORTION
- - Fix decoding issues
- - Remove useless parameter `payer_is_sender` from `v*_swap_exact_in_from_balance()` methods
- - Update Router ABI
- - Add uint48 and uint160 in ABI builder
 
 ---
 
