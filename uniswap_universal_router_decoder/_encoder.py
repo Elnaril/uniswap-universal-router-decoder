@@ -62,6 +62,9 @@ NO_REVERT_FLAG = _RouterConstant.FLAG_ALLOW_REVERT.value
 
 
 class PoolKey(TypedDict):
+    """
+    Use v4_pool_key() to make sure currency_0 < currency_1
+    """
     currency_0: ChecksumAddress
     currency_1: ChecksumAddress
     fee: int
@@ -100,6 +103,17 @@ class _Encoder:
             fee: int,
             tick_spacing: int,
             hooks: Union[str, HexStr, ChecksumAddress] = "0x0000000000000000000000000000000000000000") -> PoolKey:
+        """
+        Make sure currency_0 < currency_1 and returns the v4 pool key
+        :param currency_0:
+        :param currency_1:
+        :param fee: pool fee in basis points
+        :param tick_spacing: granularity of the pool. Lower values are more precise but more expensive to trade
+        :param hooks: hook address
+        :return: the v4 pool key
+        """
+        if int(currency_0, 16) > int(currency_1, 16):
+            currency_0, currency_1 = currency_1, currency_0
         return PoolKey(
             currency_0=Web3.to_checksum_address(currency_0),
             currency_1=Web3.to_checksum_address(currency_1),
