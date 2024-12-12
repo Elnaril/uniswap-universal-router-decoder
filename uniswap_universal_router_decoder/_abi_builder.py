@@ -16,11 +16,15 @@ from typing import (
     Callable,
     Dict,
     List,
+    Union,
 )
 
 from eth_utils import function_abi_to_4byte_selector
 
-from uniswap_universal_router_decoder._enums import _RouterFunction
+from uniswap_universal_router_decoder._enums import (
+    _RouterFunction,
+    _V4Actions,
+)
 
 
 @dataclass(frozen=True)
@@ -47,7 +51,7 @@ class _FunctionDesc:
     selector: bytes
 
 
-_ABIMap = Dict[_RouterFunction, _FunctionDesc]
+_ABIMap = Dict[Union[_RouterFunction, _V4Actions], _FunctionDesc]
 
 
 class _FunctionABIBuilder:
@@ -72,6 +76,18 @@ class _FunctionABIBuilder:
         self.abi.inputs.append({"name": arg_name, "type": "uint48"})
         return self
 
+    def add_uint24(self, arg_name: str) -> _FunctionABIBuilder:
+        self.abi.inputs.append({"name": arg_name, "type": "uint24"})
+        return self
+
+    def add_int24(self, arg_name: str) -> _FunctionABIBuilder:
+        self.abi.inputs.append({"name": arg_name, "type": "int24"})
+        return self
+
+    def add_uint128(self, arg_name: str) -> _FunctionABIBuilder:
+        self.abi.inputs.append({"name": arg_name, "type": "uint128"})
+        return self
+
     def add_address_array(self, arg_name: str) -> _FunctionABIBuilder:
         self.abi.inputs.append({"name": arg_name, "type": "address[]"})
         return self
@@ -84,6 +100,10 @@ class _FunctionABIBuilder:
         return self.abi
 
     @staticmethod
+    def create_struct_array(arg_name: str) -> _FunctionABIBuilder:
+        return _FunctionABIBuilder(arg_name, "tuple[]")
+
+    @staticmethod
     def create_struct(arg_name: str) -> _FunctionABIBuilder:
         return _FunctionABIBuilder(arg_name, "tuple")
 
@@ -91,8 +111,16 @@ class _FunctionABIBuilder:
         self.abi.inputs.append(struct.abi.get_struct_abi())
         return self
 
+    def add_struct_array(self, struct_array: _FunctionABIBuilder) -> _FunctionABIBuilder:
+        self.abi.inputs.append(struct_array.abi.get_struct_abi())
+        return self
+
     def add_bytes(self, arg_name: str) -> _FunctionABIBuilder:
         self.abi.inputs.append({"name": arg_name, "type": "bytes"})
+        return self
+
+    def add_bytes_array(self, arg_name: str) -> _FunctionABIBuilder:
+        self.abi.inputs.append({"name": arg_name, "type": "bytes[]"})
         return self
 
 
@@ -109,7 +137,11 @@ class _ABIBuilder:
             _RouterFunction.UNWRAP_WETH: self._add_mapping(self._build_unwrap_weth),
             _RouterFunction.SWEEP: self._add_mapping(self._build_sweep),
             _RouterFunction.PAY_PORTION: self._add_mapping(self._build_pay_portion),
-            _RouterFunction.TRANSFER: self._add_mapping(self._build_transfer)
+            _RouterFunction.TRANSFER: self._add_mapping(self._build_transfer),
+            _RouterFunction.V4_SWAP: self._add_mapping(self._build_v4_swap),
+
+            _V4Actions.SWAP_EXACT_IN_SINGLE: self._add_mapping(self._build_v4_swap_exact_in_single),
+            _V4Actions.UNWRAP: self._add_mapping(self._build_unwrap_weth),
         }
         return abi_map
 
@@ -176,3 +208,24 @@ class _ABIBuilder:
     def _build_transfer() -> _FunctionABI:
         builder = _FunctionABIBuilder("TRANSFER")
         return builder.add_address("token").add_address("recipient").add_uint256("value").build()
+
+    @staticmethod
+    def _build_v4_swap() -> _FunctionABI:
+        builder = _FunctionABIBuilder(_RouterFunction.V4_SWAP.name)
+        return builder.add_bytes("actions").add_bytes_array("params").build()
+
+    @staticmethod
+    def _v4_pool_key_struct_builder() -> _FunctionABIBuilder:
+        builder = _FunctionABIBuilder("PoolKey", "tuple")
+        builder.create_struct("PoolKey")
+        builder.add_address("currency0").add_address("currency1").add_uint24("fee").add_int24("tickSpacing")
+        return builder.add_address("hooks")
+
+    @staticmethod
+    def _build_v4_swap_exact_in_single() -> _FunctionABI:
+        builder = _FunctionABIBuilder(_V4Actions.SWAP_EXACT_IN_SINGLE.name)
+        pool_key = _ABIBuilder._v4_pool_key_struct_builder()
+        outer_struct = builder.create_struct("exact_in_single_params")
+        outer_struct.add_struct(pool_key).add_bool("zeroForOne").add_uint128("amountIn").add_uint128("amountOutMinimum")
+        outer_struct.add_bytes("hookData")
+        return builder.add_struct(outer_struct).build()

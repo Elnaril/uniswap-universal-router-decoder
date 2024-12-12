@@ -15,12 +15,16 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
+    TypedDict,
     Union,
 )
 
 from eth_abi import encode
 from eth_account.account import SignedMessage
-from eth_utils import remove_0x_prefix
+from eth_utils import (
+    keccak,
+    remove_0x_prefix,
+)
 from web3 import Web3
 from web3._utils.contracts import encode_abi  # noqa
 from web3.contract.contract import ContractFunction
@@ -39,12 +43,15 @@ from uniswap_universal_router_decoder._constants import (
     _execution_function_selector,
     _execution_without_deadline_function_input_types,
     _execution_without_deadline_function_selector,
+    _path_key_types,
     _router_abi,
     _ur_address,
+    _v4_swap_input_types,
 )
 from uniswap_universal_router_decoder._enums import (
     _RouterConstant,
     _RouterFunction,
+    _V4Actions,
     FunctionRecipient,
     TransactionSpeed,
 )
@@ -52,6 +59,14 @@ from uniswap_universal_router_decoder.utils import compute_gas_fees
 
 
 NO_REVERT_FLAG = _RouterConstant.FLAG_ALLOW_REVERT.value
+
+
+class PoolKey(TypedDict):
+    currency_0: ChecksumAddress
+    currency_1: ChecksumAddress
+    fee: int
+    tick_spacing: int
+    hooks: ChecksumAddress
 
 
 class _Encoder:
@@ -78,11 +93,94 @@ class _Encoder:
             path += _item
         return Web3.to_bytes(hexstr=HexStr(path))
 
+    @staticmethod
+    def v4_pool_key(
+            currency_0: Union[str, HexStr, ChecksumAddress],
+            currency_1: Union[str, HexStr, ChecksumAddress],
+            fee: int,
+            tick_spacing: int,
+            hooks: Union[str, HexStr, ChecksumAddress] = "0x0000000000000000000000000000000000000000") -> PoolKey:
+        return PoolKey(
+            currency_0=Web3.to_checksum_address(currency_0),
+            currency_1=Web3.to_checksum_address(currency_1),
+            fee=int(fee),
+            tick_spacing=int(tick_spacing),
+            hooks=Web3.to_checksum_address(hooks),
+        )
+
+    @staticmethod
+    def v4_pool_id(pool_key: PoolKey) -> bytes:
+        path_key_values = tuple(pool_key.values())
+        encoded_path_key = encode(_path_key_types, (path_key_values, ))
+        return keccak(encoded_path_key)
+
     def chain(self) -> _ChainedFunctionBuilder:
         """
         :return: Initialize the chain of encoded functions
         """
         return _ChainedFunctionBuilder(self._w3, self._abi_map)
+
+
+class _V4ChainedFunctionBuilder:
+    def __init__(self, builder: _ChainedFunctionBuilder, w3: Web3, abi_map: _ABIMap):
+        self.builder = builder
+        self._w3 = w3
+        _v4_swap_abi = abi_map[_RouterFunction.V4_SWAP]
+        self._v4_router_contract = self._w3.eth.contract(abi=_v4_swap_abi.fct_abi.get_full_abi())
+        self._abi_map = abi_map
+        self.actions: bytearray = bytearray()
+        self.arguments: List[bytes] = []
+
+    def _encode_swap_exact_in_single_sub_contract(
+            self,
+            pool_key: PoolKey,
+            zero_for_one: bool,
+            amount_in: Wei,
+            amount_out_min: Wei,
+            hook_data: bytes = b'') -> HexStr:
+        args = (tuple(pool_key.values()), zero_for_one, amount_in, amount_out_min, hook_data)
+        abi_mapping = self._abi_map[_V4Actions.SWAP_EXACT_IN_SINGLE]
+        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
+        contract_function: ContractFunction = sub_contract.functions.SWAP_EXACT_IN_SINGLE(args)
+        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, (args, )))
+
+    def swap_exact_in_single(
+            self,
+            pool_key: PoolKey,
+            zero_for_one: bool,
+            amount_in: Wei,
+            amount_out_min: Wei,
+            hook_data: bytes = b'') -> _V4ChainedFunctionBuilder:
+        """
+        Encode the call to the V4_SWAP function SWAP_EXACT_IN_SINGLE.
+
+        :param pool_key: the target pool key returned by encode.v4_pool_key()
+        :param zero_for_one: the swap direction, true for currency_0 to currency_1, false for currency_1 to currency_0
+        :param amount_in: the exact amount of the sold currency in Wei
+        :param amount_out_min: the minimum accepted bought currency
+        :param hook_data: encoded data sent to the pool's hook, if any.
+        :return:
+        """
+        self.actions.append(_V4Actions.SWAP_EXACT_IN_SINGLE.value)
+        self.arguments.append(
+            Web3.to_bytes(
+                hexstr=self._encode_swap_exact_in_single_sub_contract(
+                    pool_key,
+                    zero_for_one,
+                    amount_in,
+                    amount_out_min,
+                    hook_data,
+                )
+            )
+        )
+        return self
+
+    def build_v4(self) -> _ChainedFunctionBuilder:
+        action_values = (bytes(self.actions), self.arguments)
+        encoded_data = encode(_v4_swap_input_types, action_values)
+        self.builder.commands.append(_RouterFunction.V4_SWAP.value)
+        self.builder.arguments.append(encoded_data)
+        return self.builder
 
 
 class _ChainedFunctionBuilder:
@@ -585,6 +683,9 @@ class _ChainedFunctionBuilder:
             )
         )
         return self
+
+    def v4_swap(self) -> _V4ChainedFunctionBuilder:
+        return _V4ChainedFunctionBuilder(self, self._w3, self._abi_map)
 
     def build(self, deadline: Optional[int] = None) -> HexStr:
         """

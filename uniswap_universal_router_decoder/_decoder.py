@@ -14,8 +14,9 @@ from typing import (
     Union,
 )
 
+from eth_abi.exceptions import DecodingError
 from web3 import Web3
-from web3.contract.contract import ContractFunction
+from web3.contract.contract import BaseContractFunction
 from web3.types import (
     ChecksumAddress,
     HexBytes,
@@ -28,7 +29,29 @@ from uniswap_universal_router_decoder._constants import _router_abi
 from uniswap_universal_router_decoder._enums import (
     _RouterConstant,
     _RouterFunction,
+    _V4Actions,
 )
+
+
+class _V4Decoder:
+    def __init__(self, w3: Web3, abi_map: _ABIMap) -> None:
+        self._w3 = w3
+        self._abi_map = abi_map
+
+    def decode_v4_swap(self, actions: bytes, params: List[bytes]) -> List[Tuple[BaseContractFunction, Dict[str, Any]]]:
+        if len(actions) != len(params):
+            raise ValueError(f"Number of actions {len(actions)} is different from number of params: {len(params)}")
+
+        decoded_params = []
+        for i, action in enumerate(actions):
+            try:
+                abi_mapping = self._abi_map[_V4Actions(action)]
+                data = abi_mapping.selector + params[i]
+                sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
+                decoded_params.append(sub_contract.decode_function_input(data))
+            except (ValueError, KeyError, DecodingError):
+                decoded_params.append(params[i].hex())
+        return decoded_params
 
 
 class _Decoder:
@@ -36,8 +59,9 @@ class _Decoder:
         self._w3 = w3
         self._router_contract = self._w3.eth.contract(abi=_router_abi)
         self._abi_map = abi_map
+        self._v4_decoder = _V4Decoder(w3, abi_map)
 
-    def function_input(self, input_data: Union[HexStr, HexBytes]) -> Tuple[ContractFunction, Dict[str, Any]]:
+    def function_input(self, input_data: Union[HexStr, HexBytes]) -> Tuple[BaseContractFunction, Dict[str, Any]]:
         """
         Decode the data sent to an UR function
 
@@ -45,6 +69,7 @@ class _Decoder:
         :return: The decoded data if the function has been implemented.
         """
         fct_name, decoded_input = self._router_contract.decode_function_input(input_data)
+        # returns (execute as basecontractfunction, {commands as bytes, inputs as seq of bytes, deadline as int})
         command = decoded_input["commands"]
         command_input = decoded_input["inputs"]
         decoded_command_input = []
@@ -56,10 +81,32 @@ class _Decoder:
                 data = abi_mapping.selector + command_input[i]
                 sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
                 revert_on_fail = not bool(b & _RouterConstant.FLAG_ALLOW_REVERT.value)
-                decoded_command_input.append(
-                    sub_contract.decode_function_input(data) + ({"revert_on_fail": revert_on_fail}, )
-                )
-            except (ValueError, KeyError):
+
+                decoded_fct_name, decoded_fct_params = sub_contract.decode_function_input(data)
+                if b == _RouterFunction.V4_SWAP.value:
+                    decoded_command_input.append(
+                        (
+                            decoded_fct_name,
+                            {
+                                "actions": decoded_fct_params["actions"],
+                                "params": self._v4_decoder.decode_v4_swap(
+                                    decoded_fct_params["actions"],
+                                    decoded_fct_params["params"],
+                                ),
+                            },
+                            {"revert_on_fail": revert_on_fail},
+                        )
+                    )
+                else:
+                    decoded_command_input.append(
+                        (
+                            decoded_fct_name,
+                            decoded_fct_params,
+                            {"revert_on_fail": revert_on_fail}
+                        )
+                    )
+
+            except (ValueError, KeyError, DecodingError):
                 decoded_command_input.append(command_input[i].hex())
         decoded_input["inputs"] = decoded_command_input
         return fct_name, decoded_input

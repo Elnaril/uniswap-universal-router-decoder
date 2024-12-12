@@ -25,6 +25,7 @@ class _RouterFunction(Enum):
     PERMIT2_PERMIT = 10
     WRAP_ETH = 11
     UNWRAP_WETH = 12
+    V4_SWAP = 16
 
 
 class FunctionRecipient(Enum):
@@ -54,3 +55,9 @@ class TransactionSpeed(Enum):
     AVERAGE = 1
     FAST = 2
     FASTER = 3
+
+
+class _V4Actions(Enum):
+    # https://github.com/Uniswap/v4-periphery/blob/main/src/libraries/Actions.sol
+    SWAP_EXACT_IN_SINGLE = 0x06
+    UNWRAP = 0x16
