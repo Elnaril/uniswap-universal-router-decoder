@@ -55,7 +55,10 @@ from uniswap_universal_router_decoder._enums import (
     FunctionRecipient,
     TransactionSpeed,
 )
-from uniswap_universal_router_decoder.utils import compute_gas_fees
+from uniswap_universal_router_decoder.utils import (
+    compute_gas_fees,
+    compute_sqrt_price_x96,
+)
 
 
 NO_REVERT_FLAG = _RouterConstant.FLAG_ALLOW_REVERT.value
@@ -700,6 +703,26 @@ class _ChainedFunctionBuilder:
 
     def v4_swap(self) -> _V4ChainedFunctionBuilder:
         return _V4ChainedFunctionBuilder(self, self._w3, self._abi_map)
+
+    def _encode_v4_initialize_pool_sub_contract(self, pool_key: PoolKey, sqrt_price_x96: int) -> HexStr:
+        args = (tuple(pool_key.values()), sqrt_price_x96)
+        abi_mapping = self._abi_map[_RouterFunction.V4_INITIALIZE_POOL]
+        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
+        contract_function: ContractFunction = sub_contract.functions.V4_INITIALIZE_POOL(*args)
+        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, args))
+
+    def v4_initialize_pool(self, pool_key: PoolKey, amount_0: Wei, amount_1: Wei) -> _ChainedFunctionBuilder:
+        sqrt_price_x96 = compute_sqrt_price_x96(amount_0, amount_1)
+        self.commands.append(_RouterFunction.V4_INITIALIZE_POOL.value)
+        self.arguments.append(
+            Web3.to_bytes(
+                hexstr=self._encode_v4_initialize_pool_sub_contract(
+                    pool_key,
+                    sqrt_price_x96,
+                )
+            )
+        )
+        return self
 
     def build(self, deadline: Optional[int] = None) -> HexStr:
         """

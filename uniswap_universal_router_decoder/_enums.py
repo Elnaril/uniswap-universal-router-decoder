@@ -26,6 +26,7 @@ class _RouterFunction(Enum):
     WRAP_ETH = 11
     UNWRAP_WETH = 12
     V4_SWAP = 16
+    V4_INITIALIZE_POOL = 19
 
 
 class FunctionRecipient(Enum):

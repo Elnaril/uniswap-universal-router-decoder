@@ -139,6 +139,7 @@ class _ABIBuilder:
             _RouterFunction.PAY_PORTION: self._add_mapping(self._build_pay_portion),
             _RouterFunction.TRANSFER: self._add_mapping(self._build_transfer),
             _RouterFunction.V4_SWAP: self._add_mapping(self._build_v4_swap),
+            _RouterFunction.V4_INITIALIZE_POOL: self._add_mapping(self._build_v4_initialize_pool),
 
             _V4Actions.SWAP_EXACT_IN_SINGLE: self._add_mapping(self._build_v4_swap_exact_in_single),
             _V4Actions.UNWRAP: self._add_mapping(self._build_unwrap_weth),
@@ -229,3 +230,9 @@ class _ABIBuilder:
         outer_struct.add_struct(pool_key).add_bool("zeroForOne").add_uint128("amountIn").add_uint128("amountOutMinimum")
         outer_struct.add_bytes("hookData")
         return builder.add_struct(outer_struct).build()
+
+    @staticmethod
+    def _build_v4_initialize_pool() -> _FunctionABI:
+        builder = _FunctionABIBuilder("V4_INITIALIZE_POOL")
+        pool_key = _ABIBuilder._v4_pool_key_struct_builder()
+        return builder.add_struct(pool_key).add_int("sqrtPriceX96").build()

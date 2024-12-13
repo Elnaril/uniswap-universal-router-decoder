@@ -58,3 +58,21 @@ def compute_gas_fees(
     max_fee_per_gas = int(base_fee * 1.5 + priority_fee)
 
     return Wei(priority_fee), Wei(max_fee_per_gas)
+
+
+def compute_sqrt_price_x96(amount_0: Wei, amount_1: Wei) -> int:
+    """
+    Compute the sqrtPriceX96
+    :param amount_0: amount of PoolKey.currency_0
+    :param amount_1: amount of PoolKey.currency_1
+    :return: floor(sqrt(amount_1 / amount_0) * 2^96)
+    """
+    return int(pow(amount_1 / amount_0, 1/2) * 2**96)
+
+def convert_sqrt_price_x96(sqrt_price_x96: int) -> float:
+    """
+    Return the price
+    :param sqrt_price_x96: the sqrtPriceX96
+    :return: amount_1 / amount_0
+    """
+    return (sqrt_price_x96 / 2**96)**2
