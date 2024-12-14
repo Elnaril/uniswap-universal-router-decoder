@@ -308,6 +308,9 @@ def test_transfer(codec):
 
 def test_build_transaction(codec_rpc):
     sender = "0x52d7Bb619F6E37A038e522eDF755008d9EfdD695"
+    balance = codec_rpc._w3.eth.get_balance("0x52d7Bb619F6E37A038e522eDF755008d9EfdD695", block_identifier=19876107)
+    assert balance > Web3.to_wei(4, "ether")
+
     amount_in = Wei(2 * 10**18)
     builder = (
         codec_rpc
