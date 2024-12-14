@@ -69,6 +69,7 @@ def compute_sqrt_price_x96(amount_0: Wei, amount_1: Wei) -> int:
     """
     return int(pow(amount_1 / amount_0, 1/2) * 2**96)
 
+
 def convert_sqrt_price_x96(sqrt_price_x96: int) -> float:
     """
     Return the price
