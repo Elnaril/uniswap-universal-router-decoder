@@ -25,6 +25,7 @@ def test_pool_key():
     assert pool_key_1 == pool_key_2
     # assert pool_key_1
 
+
 def test_pool_id():
     pool_key = codec.encode.v4_pool_key(
         "0x0000000000000000000000000000000000000000",
@@ -34,6 +35,7 @@ def test_pool_id():
     )
     expected_pool_id = HexStr("426f60e2b0ac279b6cf8b3806d23e1d15d21aba4d6973e30d36299e81e3f01a1")
     assert codec.encode.v4_pool_id(pool_key) == Web3.to_bytes(hexstr=expected_pool_id)
+
 
 def test_v4_swap():
     pool_key = codec.encode.v4_pool_key(
@@ -55,6 +57,7 @@ def test_v4_swap():
     fct_name, decoded_input = codec.decode.function_input(encoded_input)
     print(fct_name)
     pp(decoded_input, indent=4, width=120)
+
 
 def test_v4_initialize_pool():
     pool_key = codec.encode.v4_pool_key(
