@@ -6,15 +6,22 @@ Decoding part of the Uniswap Universal Router Codec
 * Doc: https://github.com/Elnaril/uniswap-universal-router-decoder
 """
 from itertools import chain
+import json
 from typing import (
     Any,
     Dict,
     List,
+    Sequence,
     Tuple,
     Union,
 )
 
+from eth_abi import decode
 from eth_abi.exceptions import DecodingError
+from eth_utils import (
+    keccak,
+    remove_0x_prefix,
+)
 from web3 import Web3
 from web3.contract.contract import BaseContractFunction
 from web3.types import (
@@ -25,7 +32,11 @@ from web3.types import (
 )
 
 from uniswap_universal_router_decoder._abi_builder import _ABIMap
-from uniswap_universal_router_decoder._constants import _router_abi
+from uniswap_universal_router_decoder._constants import (
+    _pool_manager_abi,
+    _position_manager_abi,
+    _router_abi,
+)
 from uniswap_universal_router_decoder._enums import (
     _RouterConstant,
     _RouterFunction,
@@ -37,8 +48,12 @@ class _V4Decoder:
     def __init__(self, w3: Web3, abi_map: _ABIMap) -> None:
         self._w3 = w3
         self._abi_map = abi_map
+        self._pm_contract = w3.eth.contract(abi=_position_manager_abi)
 
-    def decode_v4_swap(self, actions: bytes, params: List[bytes]) -> List[Tuple[BaseContractFunction, Dict[str, Any]]]:
+    def _decode_v4_actions(
+            self,
+            actions: bytes,
+            params: List[bytes]) -> List[Tuple[BaseContractFunction, Dict[str, Any]]]:
         if len(actions) != len(params):
             raise ValueError(f"Number of actions {len(actions)} is different from number of params: {len(params)}")
 
@@ -52,6 +67,13 @@ class _V4Decoder:
             except (ValueError, KeyError, DecodingError):
                 decoded_params.append(params[i].hex())
         return decoded_params
+
+    def decode_v4_swap(self, actions: bytes, params: List[bytes]) -> List[Tuple[BaseContractFunction, Dict[str, Any]]]:
+        return self._decode_v4_actions(actions, params)
+
+    def decode_v4_pm_call(self, encoded_input: bytes) -> Dict[str, Any]:
+        actions, params = decode(["bytes", "bytes[]"], encoded_input)
+        return {"actions": actions, "params": self._decode_v4_actions(actions, params)}
 
 
 class _Decoder:
@@ -78,10 +100,12 @@ class _Decoder:
             command_function = b & _RouterConstant.COMMAND_TYPE_MASK.value
             try:
                 abi_mapping = self._abi_map[_RouterFunction(command_function)]
-                data = abi_mapping.selector + command_input[i]
+                if b == _RouterFunction.V4_POSITION_MANAGER_CALL.value:
+                    data = command_input[i]
+                else:
+                    data = abi_mapping.selector + command_input[i]
                 sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
                 revert_on_fail = not bool(b & _RouterConstant.FLAG_ALLOW_REVERT.value)
-
                 decoded_fct_name, decoded_fct_params = sub_contract.decode_function_input(data)
                 if b == _RouterFunction.V4_SWAP.value:
                     decoded_command_input.append(
@@ -93,6 +117,17 @@ class _Decoder:
                                     decoded_fct_params["actions"],
                                     decoded_fct_params["params"],
                                 ),
+                            },
+                            {"revert_on_fail": revert_on_fail},
+                        )
+                    )
+                elif b == _RouterFunction.V4_POSITION_MANAGER_CALL.value:
+                    decoded_command_input.append(
+                        (
+                            decoded_fct_name,
+                            {
+                                "unlockData": self._v4_decoder.decode_v4_pm_call(decoded_fct_params["unlockData"]),
+                                "deadline": decoded_fct_params["deadline"]
                             },
                             {"revert_on_fail": revert_on_fail},
                         )
@@ -158,3 +193,24 @@ class _Decoder:
             path_list.reverse()
 
         return tuple(path_list)
+
+    @staticmethod
+    def _get_input_types(inputs: Sequence[Dict[str, Any]]) -> Tuple[str, ...]:
+        input_types = []
+        for item in inputs:
+            input_types.append(item["type"])
+        return tuple(input_types)
+
+    @staticmethod
+    def contract_error(
+            selector: str,
+            abis: Sequence[str] = (_pool_manager_abi, _position_manager_abi, _router_abi)) -> str:
+        for abi in abis:
+            json_abi = json.loads(abi)
+            for item in json_abi:
+                if item["type"].lower() == "error":
+                    types = _Decoder._get_input_types(item["inputs"])
+                    signature = f'{item["name"]}({",".join(types)})'
+                    if keccak(text=signature)[:4].hex() == remove_0x_prefix(HexStr(selector)):
+                        return signature
+        return "Unknown contract error"

@@ -43,6 +43,8 @@ from uniswap_universal_router_decoder._constants import (
     _execution_function_selector,
     _execution_without_deadline_function_input_types,
     _execution_without_deadline_function_selector,
+    _modify_liquidities_function_input_types,
+    _modify_liquidities_function_selector,
     _path_key_types,
     _router_abi,
     _ur_address,
@@ -110,7 +112,7 @@ class _Encoder:
         Make sure currency_0 < currency_1 and returns the v4 pool key
         :param currency_0:
         :param currency_1:
-        :param fee: pool fee in basis points
+        :param fee: pool fee in percentage * 10000 (ex: 3000 for 0.3%)
         :param tick_spacing: granularity of the pool. Lower values are more precise but more expensive to trade
         :param hooks: hook address
         :return: the v4 pool key
@@ -138,12 +140,106 @@ class _Encoder:
         return _ChainedFunctionBuilder(self._w3, self._abi_map)
 
 
-class _V4ChainedFunctionBuilder:
+class _V4ChainedPositionFunctionBuilder:
     def __init__(self, builder: _ChainedFunctionBuilder, w3: Web3, abi_map: _ABIMap):
         self.builder = builder
         self._w3 = w3
-        _v4_swap_abi = abi_map[_RouterFunction.V4_SWAP]
-        self._v4_router_contract = self._w3.eth.contract(abi=_v4_swap_abi.fct_abi.get_full_abi())
+        self._abi_map = abi_map
+        self.actions: bytearray = bytearray()
+        self.arguments: List[bytes] = []
+
+    def _encode_mint_position_sub_contract(
+            self,
+            pool_key: PoolKey,
+            tick_lower: int,
+            tick_upper: int,
+            liquidity: int,
+            amount_0_max: int,
+            amount_1_max: int,
+            recipient: ChecksumAddress,
+            hook_data: bytes) -> HexStr:
+        args = (
+            tuple(pool_key.values()),
+            tick_lower,
+            tick_upper,
+            liquidity,
+            amount_0_max,
+            amount_1_max,
+            recipient,
+            hook_data
+        )
+        abi_mapping = self._abi_map[_V4Actions.MINT_POSITION]
+        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
+        contract_function: ContractFunction = sub_contract.functions.MINT_POSITION(*args)
+        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, (*args,)))
+
+    def mint_position(
+            self,
+            pool_key: PoolKey,
+            tick_lower: int,
+            tick_upper: int,
+            liquidity: int,
+            amount_0_max: int,
+            amount_1_max: int,
+            recipient: ChecksumAddress,
+            hook_data: bytes) -> _V4ChainedPositionFunctionBuilder:
+        self.actions.append(_V4Actions.MINT_POSITION.value)
+        self.arguments.append(
+            Web3.to_bytes(
+                hexstr=self._encode_mint_position_sub_contract(
+                    pool_key,
+                    tick_lower,
+                    tick_upper,
+                    liquidity,
+                    amount_0_max,
+                    amount_1_max,
+                    Web3.to_checksum_address(recipient),
+                    hook_data,
+                )
+            )
+        )
+        return self
+
+    def _encode_settle_pair_sub_contract(self, currency_0: ChecksumAddress, currency_1: ChecksumAddress) -> HexStr:
+        args = (currency_0, currency_1)
+        abi_mapping = self._abi_map[_V4Actions.SETTLE_PAIR]
+        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
+        contract_function: ContractFunction = sub_contract.functions.SETTLE_PAIR(*args)
+        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, (*args,)))
+
+    def settle_pair(
+            self,
+            currency_0: ChecksumAddress,
+            currency_1: ChecksumAddress) -> _V4ChainedPositionFunctionBuilder:
+        self.actions.append(_V4Actions.SETTLE_PAIR.value)
+        self.arguments.append(
+            Web3.to_bytes(
+                hexstr=self._encode_settle_pair_sub_contract(
+                    Web3.to_checksum_address(currency_0),
+                    Web3.to_checksum_address(currency_1),
+                )
+            )
+        )
+        return self
+
+    @staticmethod
+    def _encode_modify_liquidities_function(arguments: Tuple[bytes, int]) -> bytes:
+        encoded_data = encode(_modify_liquidities_function_input_types, arguments)
+        return Web3.to_bytes(hexstr=_modify_liquidities_function_selector) + encoded_data
+
+    def build_v4_pm_call(self, deadline: int) -> _ChainedFunctionBuilder:
+        action_values = (bytes(self.actions), self.arguments)
+        encoded_data = encode(["bytes", "bytes[]"], action_values)
+        encoded_modify_liquidities_data = self._encode_modify_liquidities_function((encoded_data, deadline))
+        self.builder.commands.append(_RouterFunction.V4_POSITION_MANAGER_CALL.value)
+        self.builder.arguments.append(encoded_modify_liquidities_data)
+        return self.builder
+
+
+class _V4ChainedSwapFunctionBuilder:
+    def __init__(self, builder: _ChainedFunctionBuilder, w3: Web3, abi_map: _ABIMap):
+        self.builder = builder
+        self._w3 = w3
         self._abi_map = abi_map
         self.actions: bytearray = bytearray()
         self.arguments: List[bytes] = []
@@ -161,13 +257,14 @@ class _V4ChainedFunctionBuilder:
         contract_function: ContractFunction = sub_contract.functions.SWAP_EXACT_IN_SINGLE(args)
         return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, (args, )))
 
+
     def swap_exact_in_single(
             self,
             pool_key: PoolKey,
             zero_for_one: bool,
             amount_in: Wei,
             amount_out_min: Wei,
-            hook_data: bytes = b'') -> _V4ChainedFunctionBuilder:
+            hook_data: bytes = b'') -> _V4ChainedSwapFunctionBuilder:
         """
         Encode the call to the V4_SWAP function SWAP_EXACT_IN_SINGLE.
 
@@ -192,7 +289,7 @@ class _V4ChainedFunctionBuilder:
         )
         return self
 
-    def build_v4(self) -> _ChainedFunctionBuilder:
+    def build_v4_swap(self) -> _ChainedFunctionBuilder:
         action_values = (bytes(self.actions), self.arguments)
         encoded_data = encode(_v4_swap_input_types, action_values)
         self.builder.commands.append(_RouterFunction.V4_SWAP.value)
@@ -446,7 +543,7 @@ class _ChainedFunctionBuilder:
         :param amount_in: The exact amount of the sold (token_in) token in Wei
         :param amount_out_min: The minimum accepted bought token (token_out) in Wei
         :param path: The V3 path: a list of tokens where the first is the token_in, the last one is the token_out, and
-        with the pool fee between each token in basis points (ex: 3000 for 0.3%)
+        with the pool fee between each token in percentage * 10000 (ex: 3000 for 0.3%)
         :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
         :param payer_is_sender: True if the in tokens come from the sender, False if they already are in the router
 
@@ -482,7 +579,7 @@ class _ChainedFunctionBuilder:
         :param function_recipient: A FunctionRecipient which defines the recipient of this function output.
         :param amount_out_min: The minimum accepted bought token (token_out) in Wei
         :param path: The V3 path: a list of tokens where the first is the token_in, the last one is the token_out, and
-        with the pool fee between each token in basis points (ex: 3000 for 0.3%)
+        with the pool fee between each token in percentage * 10000 (ex: 3000 for 0.3%)
         :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
 
         :return: The chain link corresponding to this function call.
@@ -526,7 +623,7 @@ class _ChainedFunctionBuilder:
         :param amount_out: The exact amount of the bought (token_out) token in Wei
         :param amount_in_max: The maximum accepted sold token (token_in) in Wei
         :param path: The V3 path: a list of tokens where the first is the token_in, the last one is the token_out, and
-        with the pool fee between each token in basis points (ex: 3000 for 0.3%)
+        with the pool fee between each token in percentage * 10000 (ex: 3000 for 0.3%)
         :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
         :param payer_is_sender: True if the in tokens come from the sender, False if they already are in the router
 
@@ -701,8 +798,8 @@ class _ChainedFunctionBuilder:
         )
         return self
 
-    def v4_swap(self) -> _V4ChainedFunctionBuilder:
-        return _V4ChainedFunctionBuilder(self, self._w3, self._abi_map)
+    def v4_swap(self) -> _V4ChainedSwapFunctionBuilder:
+        return _V4ChainedSwapFunctionBuilder(self, self._w3, self._abi_map)
 
     def _encode_v4_initialize_pool_sub_contract(self, pool_key: PoolKey, sqrt_price_x96: int) -> HexStr:
         args = (tuple(pool_key.values()), sqrt_price_x96)
@@ -723,6 +820,9 @@ class _ChainedFunctionBuilder:
             )
         )
         return self
+
+    def v4_pm_call(self) -> _V4ChainedPositionFunctionBuilder:
+        return _V4ChainedPositionFunctionBuilder(self, self._w3, self._abi_map)
 
     def build(self, deadline: Optional[int] = None) -> HexStr:
         """

@@ -140,9 +140,12 @@ class _ABIBuilder:
             _RouterFunction.TRANSFER: self._add_mapping(self._build_transfer),
             _RouterFunction.V4_SWAP: self._add_mapping(self._build_v4_swap),
             _RouterFunction.V4_INITIALIZE_POOL: self._add_mapping(self._build_v4_initialize_pool),
+            _RouterFunction.V4_POSITION_MANAGER_CALL: self._add_mapping(self._build_modify_liquidities),
 
             _V4Actions.SWAP_EXACT_IN_SINGLE: self._add_mapping(self._build_v4_swap_exact_in_single),
             _V4Actions.UNWRAP: self._add_mapping(self._build_unwrap_weth),
+            _V4Actions.MINT_POSITION: self._add_mapping(self._build_v4_mint_position),
+            _V4Actions.SETTLE_PAIR: self._add_mapping(self._build_v4_settle_pair),
         }
         return abi_map
 
@@ -236,3 +239,21 @@ class _ABIBuilder:
         builder = _FunctionABIBuilder("V4_INITIALIZE_POOL")
         pool_key = _ABIBuilder._v4_pool_key_struct_builder()
         return builder.add_struct(pool_key).add_int("sqrtPriceX96").build()
+
+    @staticmethod
+    def _build_modify_liquidities() -> _FunctionABI:
+        builder = _FunctionABIBuilder("modifyLiquidities")
+        return builder.add_bytes("unlockData").add_uint256("deadline").build()
+
+    @staticmethod
+    def _build_v4_mint_position() -> _FunctionABI:
+        builder = _FunctionABIBuilder(_V4Actions.MINT_POSITION.name)
+        pool_key = _ABIBuilder._v4_pool_key_struct_builder()
+        builder.add_struct(pool_key).add_int24("tickLower").add_int24("tickUpper").add_uint256("liquidity")
+        builder.add_uint128("amount0Max").add_uint128("amount1Max").add_address("recipient").add_bytes("hookData")
+        return builder.build()
+
+    @staticmethod
+    def _build_v4_settle_pair() -> _FunctionABI:
+        builder = _FunctionABIBuilder(_V4Actions.SETTLE_PAIR.name)
+        return builder.add_address("currency0").add_address("currency1").build()

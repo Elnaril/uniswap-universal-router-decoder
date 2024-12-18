@@ -27,6 +27,7 @@ class _RouterFunction(Enum):
     UNWRAP_WETH = 12
     V4_SWAP = 16
     V4_INITIALIZE_POOL = 19
+    V4_POSITION_MANAGER_CALL = 20
 
 
 class FunctionRecipient(Enum):
@@ -60,5 +61,7 @@ class TransactionSpeed(Enum):
 
 class _V4Actions(Enum):
     # https://github.com/Uniswap/v4-periphery/blob/main/src/libraries/Actions.sol
+    MINT_POSITION = 0x02
     SWAP_EXACT_IN_SINGLE = 0x06
+    SETTLE_PAIR = 0x0d
     UNWRAP = 0x16
