@@ -50,7 +50,7 @@ def test_v4_swap():
         amount_in=100000000000000,
         amount_out_min=798750268136655870501951828,
         hook_data=b'',
-    ).build_v4().build(deadline=1732612928)
+    ).build_v4_swap().build(deadline=1732612928)
 
     print(encoded_input)
 
@@ -88,3 +88,93 @@ def test_v4_initialize_pool():
     }
     assert decoded_input["inputs"][0][1] == expected_params
     assert decoded_input["inputs"][0][2] == {'revert_on_fail': True}
+
+
+MIN_TICK = -887272
+MAX_TICK = 887272
+
+
+def test_v4_position_manager_call():
+    pool_key = codec.encode.v4_pool_key(
+        "0x0000000000000000000000000000000000000000",
+        "0xBf5617af623f1863c4abc900c5bebD5415a694e8",
+        3000,
+        50,
+    )
+    encoded_input = (
+        codec.
+        encode.
+        chain().
+        v4_pm_call().
+        mint_position(
+            pool_key,
+            MIN_TICK,
+            MAX_TICK,
+            10860507277202,
+            10**18,
+            10**18,
+            Web3.to_checksum_address("0x29F08a27911bbCd0E01E8B1D97ec3cA187B6351D"),
+            b"",
+        ).
+        settle_pair(
+            Web3.to_checksum_address("0x0000000000000000000000000000000000000000"),
+            Web3.to_checksum_address("0xBf5617af623f1863c4abc900c5bebD5415a694e8"),
+        ).
+        build_v4_pm_call(codec.get_default_deadline()).
+        build()
+    )
+    print(encoded_input)
+
+    fct_name, decoded_input = codec.decode.function_input(encoded_input)
+    print(fct_name)
+    pp(decoded_input, indent=4, width=120)
+
+
+"""
+<Function execute(bytes,bytes[])>
+{
+    'commands': b'\x14',
+    'inputs': [
+        (
+            <Function modifyLiquidities(bytes,uint256)>,
+            {
+                'unlockData': {
+                    'actions': b'\x02\r',
+                    'params': [
+                        (
+                            <Function MINT_POSITION((address,address,uint24,int24,address),int24,int24,uint256,uint128,uint128,address,bytes)>,  # noqa
+                            {
+                                'PoolKey': {
+                                    'currency0': '0x0000000000000000000000000000000000000000',
+                                    'currency1': '0xBf5617af623f1863c4abc900c5bebD5415a694e8',
+                                    'fee': 3000,
+                                    'tickSpacing': 50,
+                                    'hooks': '0x0000000000000000000000000000000000000000'
+                                },
+                                'tickLower': -887272,
+                                'tickUpper': 887272,
+                                'liquidity': 10860507277202,
+                                'amount0Max': 1000000000000000000,
+                                'amount1Max': 1000000000000000000,
+                                'recipient': '0x29F08a27911bbCd0E01E8B1D97ec3cA187B6351D',
+                                'hookData': b''
+                            }
+                        ),
+                        (
+                            <Function SETTLE_PAIR(address,address)>,
+                            {
+                                'currency0': '0x0000000000000000000000000000000000000000',
+                                'currency1': '0xBf5617af623f1863c4abc900c5bebD5415a694e8'
+                            }
+                        )
+                    ]
+                },
+                'deadline': 1734454667
+            },
+            {'revert_on_fail': True}
+        )
+    ]
+}
+
+
+"""
