@@ -21,13 +21,8 @@ from typing import (
 
 from eth_abi import encode
 from eth_account.account import SignedMessage
-from eth_utils import (
-    keccak,
-    remove_0x_prefix,
-)
+from eth_utils import keccak
 from web3 import Web3
-from web3._utils.contracts import encode_abi  # noqa
-from web3.contract.contract import ContractFunction
 from web3.types import (
     BlockIdentifier,
     ChecksumAddress,
@@ -157,7 +152,7 @@ class _V4ChainedPositionFunctionBuilder:
             amount_0_max: int,
             amount_1_max: int,
             recipient: ChecksumAddress,
-            hook_data: bytes) -> HexStr:
+            hook_data: bytes) -> bytes:
         args = (
             tuple(pool_key.values()),
             tick_lower,
@@ -169,9 +164,7 @@ class _V4ChainedPositionFunctionBuilder:
             hook_data
         )
         abi_mapping = self._abi_map[_V4Actions.MINT_POSITION]
-        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
-        contract_function: ContractFunction = sub_contract.functions.MINT_POSITION(*args)
-        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, (*args,)))
+        return encode(abi_mapping.fct_abi.get_abi_types(), args)
 
     def mint_position(
             self,
@@ -185,27 +178,23 @@ class _V4ChainedPositionFunctionBuilder:
             hook_data: bytes) -> _V4ChainedPositionFunctionBuilder:
         self.actions.append(_V4Actions.MINT_POSITION.value)
         self.arguments.append(
-            Web3.to_bytes(
-                hexstr=self._encode_mint_position_sub_contract(
-                    pool_key,
-                    tick_lower,
-                    tick_upper,
-                    liquidity,
-                    amount_0_max,
-                    amount_1_max,
-                    Web3.to_checksum_address(recipient),
-                    hook_data,
-                )
+            self._encode_mint_position_sub_contract(
+                pool_key,
+                tick_lower,
+                tick_upper,
+                liquidity,
+                amount_0_max,
+                amount_1_max,
+                Web3.to_checksum_address(recipient),
+                hook_data,
             )
         )
         return self
 
-    def _encode_settle_pair_sub_contract(self, currency_0: ChecksumAddress, currency_1: ChecksumAddress) -> HexStr:
+    def _encode_settle_pair_sub_contract(self, currency_0: ChecksumAddress, currency_1: ChecksumAddress) -> bytes:
         args = (currency_0, currency_1)
         abi_mapping = self._abi_map[_V4Actions.SETTLE_PAIR]
-        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
-        contract_function: ContractFunction = sub_contract.functions.SETTLE_PAIR(*args)
-        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, (*args,)))
+        return encode(abi_mapping.fct_abi.get_abi_types(), args)
 
     def settle_pair(
             self,
@@ -213,11 +202,9 @@ class _V4ChainedPositionFunctionBuilder:
             currency_1: ChecksumAddress) -> _V4ChainedPositionFunctionBuilder:
         self.actions.append(_V4Actions.SETTLE_PAIR.value)
         self.arguments.append(
-            Web3.to_bytes(
-                hexstr=self._encode_settle_pair_sub_contract(
-                    Web3.to_checksum_address(currency_0),
-                    Web3.to_checksum_address(currency_1),
-                )
+            self._encode_settle_pair_sub_contract(
+                Web3.to_checksum_address(currency_0),
+                Web3.to_checksum_address(currency_1),
             )
         )
         return self
@@ -233,6 +220,7 @@ class _V4ChainedPositionFunctionBuilder:
         encoded_modify_liquidities_data = self._encode_modify_liquidities_function((encoded_data, deadline))
         self.builder.commands.append(_RouterFunction.V4_POSITION_MANAGER_CALL.value)
         self.builder.arguments.append(encoded_modify_liquidities_data)
+        print(f"{encoded_modify_liquidities_data.hex()}")
         return self.builder
 
 
@@ -250,13 +238,10 @@ class _V4ChainedSwapFunctionBuilder:
             zero_for_one: bool,
             amount_in: Wei,
             amount_out_min: Wei,
-            hook_data: bytes = b'') -> HexStr:
-        args = (tuple(pool_key.values()), zero_for_one, amount_in, amount_out_min, hook_data)
+            hook_data: bytes = b'') -> bytes:
+        args = ((tuple(pool_key.values()), zero_for_one, amount_in, amount_out_min, hook_data),)
         abi_mapping = self._abi_map[_V4Actions.SWAP_EXACT_IN_SINGLE]
-        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
-        contract_function: ContractFunction = sub_contract.functions.SWAP_EXACT_IN_SINGLE(args)
-        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, (args, )))
-
+        return encode(abi_mapping.fct_abi.get_abi_types(), args)
 
     def swap_exact_in_single(
             self,
@@ -277,14 +262,12 @@ class _V4ChainedSwapFunctionBuilder:
         """
         self.actions.append(_V4Actions.SWAP_EXACT_IN_SINGLE.value)
         self.arguments.append(
-            Web3.to_bytes(
-                hexstr=self._encode_swap_exact_in_single_sub_contract(
-                    pool_key,
-                    zero_for_one,
-                    amount_in,
-                    amount_out_min,
-                    hook_data,
-                )
+            self._encode_swap_exact_in_single_sub_contract(
+                pool_key,
+                zero_for_one,
+                amount_in,
+                amount_out_min,
+                hook_data,
             )
         )
         return self
@@ -337,11 +320,9 @@ class _ChainedFunctionBuilder:
         encoded_data = encode(_execution_without_deadline_function_input_types, arguments)
         return Web3.to_hex(Web3.to_bytes(hexstr=_execution_without_deadline_function_selector) + encoded_data)
 
-    def _encode_wrap_eth_sub_contract(self, recipient: ChecksumAddress, amount_min: Wei) -> HexStr:
+    def _encode_wrap_eth_sub_contract(self, recipient: ChecksumAddress, amount_min: Wei) -> bytes:
         abi_mapping = self._abi_map[_RouterFunction.WRAP_ETH]
-        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
-        contract_function: ContractFunction = sub_contract.functions.WRAP_ETH(recipient, amount_min)
-        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, [recipient, amount_min]))
+        return encode(abi_mapping.fct_abi.get_abi_types(), [recipient, amount_min])
 
     def wrap_eth(
             self,
@@ -359,14 +340,12 @@ class _ChainedFunctionBuilder:
         """
         recipient = self._get_recipient(function_recipient, custom_recipient)
         self.commands.append(_RouterFunction.WRAP_ETH.value)
-        self.arguments.append(Web3.to_bytes(hexstr=self._encode_wrap_eth_sub_contract(recipient, amount)))
+        self.arguments.append(self._encode_wrap_eth_sub_contract(recipient, amount))
         return self
 
-    def _encode_unwrap_weth_sub_contract(self, recipient: ChecksumAddress, amount_min: Wei) -> HexStr:
+    def _encode_unwrap_weth_sub_contract(self, recipient: ChecksumAddress, amount_min: Wei) -> bytes:
         abi_mapping = self._abi_map[_RouterFunction.UNWRAP_WETH]
-        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
-        contract_function: ContractFunction = sub_contract.functions.UNWRAP_WETH(recipient, amount_min)
-        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, [recipient, amount_min]))
+        return encode(abi_mapping.fct_abi.get_abi_types(), [recipient, amount_min])
 
     def unwrap_weth(
             self,
@@ -384,7 +363,7 @@ class _ChainedFunctionBuilder:
         """
         recipient = self._get_recipient(function_recipient, custom_recipient)
         self.commands.append(_RouterFunction.UNWRAP_WETH.value)
-        self.arguments.append(Web3.to_bytes(hexstr=self._encode_unwrap_weth_sub_contract(recipient, amount)))
+        self.arguments.append(self._encode_unwrap_weth_sub_contract(recipient, amount))
         return self
 
     def _encode_v2_swap_exact_in_sub_contract(
@@ -393,12 +372,10 @@ class _ChainedFunctionBuilder:
             amount_in: Wei,
             amount_out_min: Wei,
             path: Sequence[ChecksumAddress],
-            payer_is_user: bool) -> HexStr:
+            payer_is_user: bool) -> bytes:
         args = (recipient, amount_in, amount_out_min, path, payer_is_user)
         abi_mapping = self._abi_map[_RouterFunction.V2_SWAP_EXACT_IN]
-        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
-        contract_function: ContractFunction = sub_contract.functions.V2_SWAP_EXACT_IN(*args)
-        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, args))
+        return encode(abi_mapping.fct_abi.get_abi_types(), args)
 
     def v2_swap_exact_in(
             self,
@@ -424,14 +401,12 @@ class _ChainedFunctionBuilder:
         recipient = self._get_recipient(function_recipient, custom_recipient)
         self.commands.append(_RouterFunction.V2_SWAP_EXACT_IN.value)
         self.arguments.append(
-            Web3.to_bytes(
-                hexstr=self._encode_v2_swap_exact_in_sub_contract(
-                    recipient,
-                    amount_in,
-                    amount_out_min,
-                    path,
-                    payer_is_sender,
-                )
+            self._encode_v2_swap_exact_in_sub_contract(
+                recipient,
+                amount_in,
+                amount_out_min,
+                path,
+                payer_is_sender,
             )
         )
         return self
@@ -470,12 +445,10 @@ class _ChainedFunctionBuilder:
             amount_out: Wei,
             amount_in_max: Wei,
             path: Sequence[ChecksumAddress],
-            payer_is_user: bool) -> HexStr:
+            payer_is_user: bool) -> bytes:
         args = (recipient, amount_out, amount_in_max, path, payer_is_user)
         abi_mapping = self._abi_map[_RouterFunction.V2_SWAP_EXACT_OUT]
-        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
-        contract_function: ContractFunction = sub_contract.functions.V2_SWAP_EXACT_OUT(*args)
-        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, args))
+        return encode(abi_mapping.fct_abi.get_abi_types(), args)
 
     def v2_swap_exact_out(
             self,
@@ -501,14 +474,12 @@ class _ChainedFunctionBuilder:
         recipient = self._get_recipient(function_recipient, custom_recipient)
         self.commands.append(_RouterFunction.V2_SWAP_EXACT_OUT.value)
         self.arguments.append(
-            Web3.to_bytes(
-                hexstr=self._encode_v2_swap_exact_out_sub_contract(
-                    recipient,
-                    amount_out,
-                    amount_in_max,
-                    path,
-                    payer_is_sender,
-                )
+            self._encode_v2_swap_exact_out_sub_contract(
+                recipient,
+                amount_out,
+                amount_in_max,
+                path,
+                payer_is_sender,
             )
         )
         return self
@@ -519,13 +490,11 @@ class _ChainedFunctionBuilder:
             amount_in: Wei,
             amount_out_min: Wei,
             path: Sequence[Union[int, ChecksumAddress]],
-            payer_is_user: bool) -> HexStr:
+            payer_is_user: bool) -> bytes:
         encoded_v3_path = _Encoder.v3_path(_RouterFunction.V3_SWAP_EXACT_IN.name, path)
         args = (recipient, amount_in, amount_out_min, encoded_v3_path, payer_is_user)
         abi_mapping = self._abi_map[_RouterFunction.V3_SWAP_EXACT_IN]
-        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
-        contract_function: ContractFunction = sub_contract.functions.V3_SWAP_EXACT_IN(*args)
-        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, args))
+        return encode(abi_mapping.fct_abi.get_abi_types(), args)
 
     def v3_swap_exact_in(
             self,
@@ -552,14 +521,12 @@ class _ChainedFunctionBuilder:
         recipient = self._get_recipient(function_recipient, custom_recipient)
         self.commands.append(_RouterFunction.V3_SWAP_EXACT_IN.value)
         self.arguments.append(
-            Web3.to_bytes(
-                hexstr=self._encode_v3_swap_exact_in_sub_contract(
-                    recipient,
-                    amount_in,
-                    amount_out_min,
-                    path,
-                    payer_is_sender,
-                )
+            self._encode_v3_swap_exact_in_sub_contract(
+                recipient,
+                amount_in,
+                amount_out_min,
+                path,
+                payer_is_sender,
             )
         )
         return self
@@ -599,13 +566,11 @@ class _ChainedFunctionBuilder:
             amount_out: Wei,
             amount_in_max: Wei,
             path: Sequence[Union[int, ChecksumAddress]],
-            payer_is_user: bool) -> HexStr:
+            payer_is_user: bool) -> bytes:
         encoded_v3_path = _Encoder.v3_path(_RouterFunction.V3_SWAP_EXACT_OUT.name, path)
         args = (recipient, amount_out, amount_in_max, encoded_v3_path, payer_is_user)
         abi_mapping = self._abi_map[_RouterFunction.V3_SWAP_EXACT_OUT]
-        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
-        contract_function: ContractFunction = sub_contract.functions.V3_SWAP_EXACT_OUT(*args)
-        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, args))
+        return encode(abi_mapping.fct_abi.get_abi_types(), args)
 
     def v3_swap_exact_out(
             self,
@@ -632,14 +597,12 @@ class _ChainedFunctionBuilder:
         recipient = self._get_recipient(function_recipient, custom_recipient)
         self.commands.append(_RouterFunction.V3_SWAP_EXACT_OUT.value)
         self.arguments.append(
-            Web3.to_bytes(
-                hexstr=self._encode_v3_swap_exact_out_sub_contract(
-                    recipient,
-                    amount_out,
-                    amount_in_max,
-                    path,
-                    payer_is_sender,
-                )
+            self._encode_v3_swap_exact_out_sub_contract(
+                recipient,
+                amount_out,
+                amount_in_max,
+                path,
+                payer_is_sender,
             )
         )
         return self
@@ -647,7 +610,7 @@ class _ChainedFunctionBuilder:
     def _encode_permit2_permit_sub_contract(
             self,
             permit_single: Dict[str, Any],
-            signed_permit_single: SignedMessage) -> HexStr:
+            signed_permit_single: SignedMessage) -> bytes:
         struct = (
             tuple(permit_single["details"].values()),
             permit_single["spender"],
@@ -655,9 +618,7 @@ class _ChainedFunctionBuilder:
         )
         args = (struct, signed_permit_single.signature)
         abi_mapping = self._abi_map[_RouterFunction.PERMIT2_PERMIT]
-        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
-        contract_function: ContractFunction = sub_contract.functions.PERMIT2_PERMIT(*args)
-        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, args))
+        return encode(abi_mapping.fct_abi.get_abi_types(), args)
 
     def permit2_permit(
             self,
@@ -674,20 +635,16 @@ class _ChainedFunctionBuilder:
         """
         self.commands.append(_RouterFunction.PERMIT2_PERMIT.value)
         self.arguments.append(
-            Web3.to_bytes(
-                hexstr=self._encode_permit2_permit_sub_contract(
-                    permit_single,
-                    signed_permit_single,
-                )
+            self._encode_permit2_permit_sub_contract(
+                permit_single,
+                signed_permit_single,
             )
         )
         return self
 
-    def _encode_sweep_sub_contract(self, token: ChecksumAddress, recipient: ChecksumAddress, amount_min: Wei) -> HexStr:
+    def _encode_sweep_sub_contract(self, token: ChecksumAddress, recipient: ChecksumAddress, amount_min: Wei) -> bytes:
         abi_mapping = self._abi_map[_RouterFunction.SWEEP]
-        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
-        contract_function: ContractFunction = sub_contract.functions.SWEEP(token, recipient, amount_min)
-        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, [token, recipient, amount_min]))
+        return encode(abi_mapping.fct_abi.get_abi_types(), [token, recipient, amount_min])
 
     def sweep(
             self,
@@ -708,21 +665,17 @@ class _ChainedFunctionBuilder:
         recipient = self._get_recipient(function_recipient, custom_recipient)
         self.commands.append(_RouterFunction.SWEEP.value)
         self.arguments.append(
-            Web3.to_bytes(
-                hexstr=self._encode_sweep_sub_contract(
-                    token_address,
-                    recipient,
-                    amount_min,
-                )
+            self._encode_sweep_sub_contract(
+                token_address,
+                recipient,
+                amount_min,
             )
         )
         return self
 
-    def _encode_pay_portion_sub_contract(self, token: ChecksumAddress, recipient: ChecksumAddress, bips: int) -> HexStr:
+    def _encode_pay_portion_sub_contract(self, token: ChecksumAddress, recipient: ChecksumAddress, bips: int) -> bytes:
         abi_mapping = self._abi_map[_RouterFunction.PAY_PORTION]
-        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
-        contract_function: ContractFunction = sub_contract.functions.PAY_PORTION(token, recipient, bips)
-        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, [token, recipient, bips]))
+        return encode(abi_mapping.fct_abi.get_abi_types(), [token, recipient, bips])
 
     def pay_portion(
             self,
@@ -751,21 +704,17 @@ class _ChainedFunctionBuilder:
         recipient = self._get_recipient(function_recipient, custom_recipient)
         self.commands.append(_RouterFunction.PAY_PORTION.value)
         self.arguments.append(
-            Web3.to_bytes(
-                hexstr=self._encode_pay_portion_sub_contract(
-                    token_address,
-                    recipient,
-                    bips,
-                )
+            self._encode_pay_portion_sub_contract(
+                token_address,
+                recipient,
+                bips,
             )
         )
         return self
 
-    def _encode_transfer_sub_contract(self, token: ChecksumAddress, recipient: ChecksumAddress, value: int) -> HexStr:
+    def _encode_transfer_sub_contract(self, token: ChecksumAddress, recipient: ChecksumAddress, value: int) -> bytes:
         abi_mapping = self._abi_map[_RouterFunction.TRANSFER]
-        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
-        contract_function: ContractFunction = sub_contract.functions.TRANSFER(token, recipient, value)
-        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, [token, recipient, value]))
+        return encode(abi_mapping.fct_abi.get_abi_types(), [token, recipient, value])
 
     def transfer(
             self,
@@ -788,12 +737,10 @@ class _ChainedFunctionBuilder:
         recipient = self._get_recipient(function_recipient, custom_recipient)
         self.commands.append(_RouterFunction.TRANSFER.value)
         self.arguments.append(
-            Web3.to_bytes(
-                hexstr=self._encode_transfer_sub_contract(
-                    token_address,
-                    recipient,
-                    value,
-                )
+            self._encode_transfer_sub_contract(
+                token_address,
+                recipient,
+                value,
             )
         )
         return self
@@ -801,22 +748,18 @@ class _ChainedFunctionBuilder:
     def v4_swap(self) -> _V4ChainedSwapFunctionBuilder:
         return _V4ChainedSwapFunctionBuilder(self, self._w3, self._abi_map)
 
-    def _encode_v4_initialize_pool_sub_contract(self, pool_key: PoolKey, sqrt_price_x96: int) -> HexStr:
+    def _encode_v4_initialize_pool_sub_contract(self, pool_key: PoolKey, sqrt_price_x96: int) -> bytes:
         args = (tuple(pool_key.values()), sqrt_price_x96)
         abi_mapping = self._abi_map[_RouterFunction.V4_INITIALIZE_POOL]
-        sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
-        contract_function: ContractFunction = sub_contract.functions.V4_INITIALIZE_POOL(*args)
-        return remove_0x_prefix(encode_abi(self._w3, contract_function.abi, args))
+        return encode(abi_mapping.fct_abi.get_abi_types(), args)
 
     def v4_initialize_pool(self, pool_key: PoolKey, amount_0: Wei, amount_1: Wei) -> _ChainedFunctionBuilder:
         sqrt_price_x96 = compute_sqrt_price_x96(amount_0, amount_1)
         self.commands.append(_RouterFunction.V4_INITIALIZE_POOL.value)
         self.arguments.append(
-            Web3.to_bytes(
-                hexstr=self._encode_v4_initialize_pool_sub_contract(
-                    pool_key,
-                    sqrt_price_x96,
-                )
+            self._encode_v4_initialize_pool_sub_contract(
+                pool_key,
+                sqrt_price_x96,
             )
         )
         return self

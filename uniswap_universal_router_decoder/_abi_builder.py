@@ -27,6 +27,20 @@ from uniswap_universal_router_decoder._enums import (
 )
 
 
+def _get_types_from_list(type_list: List[Any]) -> List[str]:
+    types = []
+    for item in type_list:
+        if item["type"] == "tuple":
+            types.append(f"({','.join(_get_types_from_list(item['components']))})")
+        else:
+            types.append(item["type"])
+    return types
+
+
+def build_abi_type_list(abi_dict: Dict[str, Any]) -> List[str]:
+    return _get_types_from_list(abi_dict["inputs"])
+
+
 @dataclass(frozen=True)
 class _FunctionABI:
     inputs: List[Any]
@@ -43,6 +57,9 @@ class _FunctionABI:
 
     def get_full_abi(self) -> List[Dict[str, Any]]:
         return [self.get_abi()]
+
+    def get_abi_types(self) -> List[str]:
+        return build_abi_type_list(self.get_abi())
 
 
 @dataclass(frozen=True)
