@@ -220,7 +220,6 @@ class _V4ChainedPositionFunctionBuilder:
         encoded_modify_liquidities_data = self._encode_modify_liquidities_function((encoded_data, deadline))
         self.builder.commands.append(_RouterFunction.V4_POSITION_MANAGER_CALL.value)
         self.builder.arguments.append(encoded_modify_liquidities_data)
-        print(f"{encoded_modify_liquidities_data.hex()}")
         return self.builder
 
 

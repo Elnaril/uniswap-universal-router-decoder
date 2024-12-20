@@ -18,12 +18,9 @@ from typing import (
 
 from eth_abi import decode
 from eth_abi.exceptions import DecodingError
-from eth_utils import (
-    keccak,
-    remove_0x_prefix,
-)
 from web3 import Web3
 from web3.contract.contract import BaseContractFunction
+from web3.exceptions import Web3ValueError
 from web3.types import (
     ChecksumAddress,
     HexBytes,
@@ -194,23 +191,22 @@ class _Decoder:
 
         return tuple(path_list)
 
-    @staticmethod
-    def _get_input_types(inputs: Sequence[Dict[str, Any]]) -> Tuple[str, ...]:
-        input_types = []
-        for item in inputs:
-            input_types.append(item["type"])
-        return tuple(input_types)
-
-    @staticmethod
     def contract_error(
-            selector: str,
-            abis: Sequence[str] = (_pool_manager_abi, _position_manager_abi, _router_abi)) -> str:
+            self,
+            contract_error: Union[str, HexStr],
+            abis: Sequence[str] = (_pool_manager_abi, _position_manager_abi, _router_abi),
+    ) -> Tuple[str, Dict[str, Any]]:
         for abi in abis:
-            json_abi = json.loads(abi)
-            for item in json_abi:
-                if item["type"].lower() == "error":
-                    types = _Decoder._get_input_types(item["inputs"])
-                    signature = f'{item["name"]}({",".join(types)})'
-                    if keccak(text=signature)[:4].hex() == remove_0x_prefix(HexStr(selector)):
-                        return signature
-        return "Unknown contract error"
+            try:
+                json_abi = json.loads(abi)
+                error_abi = []
+                for item in json_abi:
+                    if item["type"].lower() == "error":
+                        item["type"] = "function"
+                        error_abi.append(item)
+                contract = self._w3.eth.contract(abi=error_abi)
+                error, params = contract.decode_function_input(contract_error)
+                return error.name, params
+            except Web3ValueError:
+                """The error is not defined in this ABI"""
+        return "Unknown error", {}
