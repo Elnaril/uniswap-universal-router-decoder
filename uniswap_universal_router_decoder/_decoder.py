@@ -20,7 +20,7 @@ from eth_abi import decode
 from eth_abi.exceptions import DecodingError
 from web3 import Web3
 from web3.contract.contract import BaseContractFunction
-from web3.exceptions import Web3ValueError
+from web3.exceptions import Web3Exception
 from web3.types import (
     ChecksumAddress,
     HexBytes,
@@ -28,7 +28,10 @@ from web3.types import (
     TxData,
 )
 
-from uniswap_universal_router_decoder._abi_builder import _ABIMap
+from uniswap_universal_router_decoder._abi_builder import (
+    _ABIMap,
+    build_abi_type_list,
+)
 from uniswap_universal_router_decoder._constants import (
     _pool_manager_abi,
     _position_manager_abi,
@@ -206,7 +209,7 @@ class _Decoder:
                         error_abi.append(item)
                 contract = self._w3.eth.contract(abi=error_abi)
                 error, params = contract.decode_function_input(contract_error)
-                return error.name, params
-            except Web3ValueError:
+                return f"{error.fn_name}({','.join(build_abi_type_list(error.abi))})", params
+            except (ValueError, Web3Exception):
                 """The error is not defined in this ABI"""
         return "Unknown error", {}
