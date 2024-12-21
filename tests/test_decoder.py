@@ -135,8 +135,7 @@ contract_error_1 = "0x2c4029e900000000000000000000000000000000000000000000000000
 contract_error_2 = "0x5d1d0f9f"
 contract_error_3 = "0x2c4029e9000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000024bfb22adf000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"  # noqa
 contract_sub_error_3 = b'\xbf\xb2*\xdf\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'.hex()  # noqa
-# contract_error_4 = "0xf801e525"
-
+contract_error_4 = "0xf801e5250000000000000000000000000000000000000000000000000000000000000000"
 
 @pytest.mark.parametrize(
     "contract_error, expected",
@@ -146,7 +145,7 @@ contract_sub_error_3 = b'\xbf\xb2*\xdf\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x
         (contract_error_2, ("OnlyMintAllowed()", {})),
         (contract_error_3, ("ExecutionFailed(uint256,bytes)", {'commandIndex': 0, 'message': b'\xbf\xb2*\xdf\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'})),  # noqa
         (contract_sub_error_3, ("DeadlinePassed(uint256)", {'deadline': 0})),
-        # (contract_error_4, ("InvalidAction(bytes4)", {...})),
+        (contract_error_4, ("InvalidAction(bytes4)", {'action': b'\x00\x00\x00\x00'})),
     )
 )
 def test_contract_error(contract_error, expected):
