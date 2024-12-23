@@ -63,5 +63,13 @@ class _V4Actions(Enum):
     # https://github.com/Uniswap/v4-periphery/blob/main/src/libraries/Actions.sol
     MINT_POSITION = 0x02
     SWAP_EXACT_IN_SINGLE = 0x06
+    SETTLE = 0x0b
     SETTLE_PAIR = 0x0d
+    CLOSE_CURRENCY = 0x12
+    SWEEP = 0x14
     UNWRAP = 0x16
+
+
+class V4Constants(Enum):
+    OPEN_DELTA = 0
+    CONTRACT_BALANCE = 0x8000000000000000000000000000000000000000000000000000000000000000

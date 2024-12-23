@@ -209,6 +209,27 @@ class _V4ChainedPositionFunctionBuilder:
         )
         return self
 
+    def settle(self, currency: ChecksumAddress, amount: int, payer_is_user: bool) -> _V4ChainedPositionFunctionBuilder:
+        args = (currency, amount, payer_is_user)
+        abi_mapping = self._abi_map[_V4Actions.SETTLE]
+        self.actions.append(_V4Actions.SETTLE.value)
+        self.arguments.append(encode(abi_mapping.fct_abi.get_abi_types(), args))
+        return self
+
+    def close_currency(self, currency: ChecksumAddress) -> _V4ChainedPositionFunctionBuilder:
+        args = (currency, )
+        abi_mapping = self._abi_map[_V4Actions.CLOSE_CURRENCY]
+        self.actions.append(_V4Actions.CLOSE_CURRENCY.value)
+        self.arguments.append(encode(abi_mapping.fct_abi.get_abi_types(), args))
+        return self
+
+    def sweep(self, currency: ChecksumAddress, to: ChecksumAddress) -> _V4ChainedPositionFunctionBuilder:
+        args = (currency, to)
+        abi_mapping = self._abi_map[_V4Actions.SWEEP]
+        self.actions.append(_V4Actions.SWEEP.value)
+        self.arguments.append(encode(abi_mapping.fct_abi.get_abi_types(), args))
+        return self
+
     @staticmethod
     def _encode_modify_liquidities_function(arguments: Tuple[bytes, int]) -> bytes:
         encoded_data = encode(_modify_liquidities_function_input_types, arguments)

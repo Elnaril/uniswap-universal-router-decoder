@@ -163,6 +163,9 @@ class _ABIBuilder:
             _V4Actions.UNWRAP: self._add_mapping(self._build_unwrap_weth),
             _V4Actions.MINT_POSITION: self._add_mapping(self._build_v4_mint_position),
             _V4Actions.SETTLE_PAIR: self._add_mapping(self._build_v4_settle_pair),
+            _V4Actions.SETTLE: self._add_mapping(self._build_v4_settle),
+            _V4Actions.CLOSE_CURRENCY: self._add_mapping(self._build_v4_close_currency),
+            _V4Actions.SWEEP: self._add_mapping(self._build_v4_sweep),
         }
         return abi_map
 
@@ -274,3 +277,18 @@ class _ABIBuilder:
     def _build_v4_settle_pair() -> _FunctionABI:
         builder = _FunctionABIBuilder(_V4Actions.SETTLE_PAIR.name)
         return builder.add_address("currency0").add_address("currency1").build()
+
+    @staticmethod
+    def _build_v4_settle() -> _FunctionABI:
+        builder = _FunctionABIBuilder(_V4Actions.SETTLE.name)
+        return builder.add_address("currency").add_uint256("amount").add_bool("payerIsUser").build()
+
+    @staticmethod
+    def _build_v4_close_currency() -> _FunctionABI:
+        builder = _FunctionABIBuilder(_V4Actions.CLOSE_CURRENCY.name)
+        return builder.add_address("currency").build()
+
+    @staticmethod
+    def _build_v4_sweep() -> _FunctionABI:
+        builder = _FunctionABIBuilder(_V4Actions.SWEEP.name)
+        return builder.add_address("currency").add_address("to").build()
