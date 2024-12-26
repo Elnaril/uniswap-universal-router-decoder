@@ -33,6 +33,7 @@ from uniswap_universal_router_decoder._abi_builder import (
     build_abi_type_list,
 )
 from uniswap_universal_router_decoder._constants import (
+    _permit2_abi,
     _pool_manager_abi,
     _position_manager_abi,
     _router_abi,
@@ -197,7 +198,7 @@ class _Decoder:
     def contract_error(
             self,
             contract_error: Union[str, HexStr],
-            abis: Sequence[str] = (_pool_manager_abi, _position_manager_abi, _router_abi),
+            abis: Sequence[str] = (_permit2_abi, _pool_manager_abi, _position_manager_abi, _router_abi),
     ) -> Tuple[str, Dict[str, Any]]:
         for abi in abis:
             try:
