@@ -765,6 +765,20 @@ class _ChainedFunctionBuilder:
         )
         return self
 
+    def permit2_transfer_from(
+            self,
+            function_recipient: FunctionRecipient,
+            token_address: ChecksumAddress,
+            amount: Wei,
+            custom_recipient: Optional[ChecksumAddress] = None) -> _ChainedFunctionBuilder:
+        recipient = self._get_recipient(function_recipient, custom_recipient)
+        abi_mapping = self._abi_map[_RouterFunction.PERMIT2_TRANSFER_FROM]
+        self.commands.append(_RouterFunction.PERMIT2_TRANSFER_FROM.value)
+        self.arguments.append(
+            encode(abi_mapping.fct_abi.get_abi_types(), [token_address, recipient, amount])
+        )
+        return self
+
     def v4_swap(self) -> _V4ChainedSwapFunctionBuilder:
         return _V4ChainedSwapFunctionBuilder(self, self._w3, self._abi_map)
 

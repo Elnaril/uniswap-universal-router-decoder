@@ -158,6 +158,7 @@ class _ABIBuilder:
             _RouterFunction.V4_SWAP: self._add_mapping(self._build_v4_swap),
             _RouterFunction.V4_INITIALIZE_POOL: self._add_mapping(self._build_v4_initialize_pool),
             _RouterFunction.V4_POSITION_MANAGER_CALL: self._add_mapping(self._build_modify_liquidities),
+            _RouterFunction.PERMIT2_TRANSFER_FROM: self._add_mapping(self._build_permit2_transfer_from),
 
             _V4Actions.SWAP_EXACT_IN_SINGLE: self._add_mapping(self._build_v4_swap_exact_in_single),
             _V4Actions.UNWRAP: self._add_mapping(self._build_unwrap_weth),
@@ -292,3 +293,8 @@ class _ABIBuilder:
     def _build_v4_sweep() -> _FunctionABI:
         builder = _FunctionABIBuilder(_V4Actions.SWEEP.name)
         return builder.add_address("currency").add_address("to").build()
+
+    @staticmethod
+    def _build_permit2_transfer_from() -> _FunctionABI:
+        builder = _FunctionABIBuilder(_RouterFunction.PERMIT2_TRANSFER_FROM.name)
+        return builder.add_address("token").add_address("recipient").add_uint256("amount").build()
