@@ -2,25 +2,23 @@ name: Tests & Lint
 
 on:
   push:
-    paths-ignore:
-      - '.github/**'
+    paths:
+      - '.github/workflows/tests.yml'
       - 'integration_tests/**'
-      - 'tutorials/**'
-      - 'README.md'
-      - 'LICENSE'
-      - '.gitignore'
-      - 'coverage.json'
-      - 'media'
+      - 'tests/**'
+      - 'uniswap_universal_router_decoder/**'
+      - 'mypy.ini'
+      - 'pytest.ini'
+      - 'tox.ini'
   pull_request:
-    paths-ignore:
-      - '.github/**'
+    paths:
+      - '.github/workflows/tests.yml'
       - 'integration_tests/**'
-      - 'tutorials/**'
-      - 'README.md'
-      - 'LICENSE'
-      - '.gitignore'
-      - 'coverage.json'
-      - 'media'
+      - 'tests/**'
+      - 'uniswap_universal_router_decoder/**'
+      - 'mypy.ini'
+      - 'pytest.ini'
+      - 'tox.ini'
 
 jobs:
   build:
