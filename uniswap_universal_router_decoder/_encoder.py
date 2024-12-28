@@ -7,6 +7,7 @@ Encoding part of the Uniswap Universal Router Codec
 """
 from __future__ import annotations
 
+from abc import ABC
 from typing import (
     Any,
     cast,
@@ -16,6 +17,7 @@ from typing import (
     Sequence,
     Tuple,
     TypedDict,
+    TypeVar,
     Union,
 )
 
@@ -135,13 +137,30 @@ class _Encoder:
         return _ChainedFunctionBuilder(self._w3, self._abi_map)
 
 
-class _V4ChainedPositionFunctionBuilder:
+TV4ChainedCommonFunctionBuilder = TypeVar("TV4ChainedCommonFunctionBuilder", bound="_V4ChainedCommonFunctionBuilder")
+
+
+class _V4ChainedCommonFunctionBuilder(ABC):
     def __init__(self, builder: _ChainedFunctionBuilder, w3: Web3, abi_map: _ABIMap):
         self.builder = builder
         self._w3 = w3
         self._abi_map = abi_map
         self.actions: bytearray = bytearray()
         self.arguments: List[bytes] = []
+
+    def settle(
+            self: TV4ChainedCommonFunctionBuilder,
+            currency: ChecksumAddress,
+            amount: int,
+            payer_is_user: bool) -> TV4ChainedCommonFunctionBuilder:
+        args = (currency, amount, payer_is_user)
+        abi_mapping = self._abi_map[_V4Actions.SETTLE]
+        self.actions.append(_V4Actions.SETTLE.value)
+        self.arguments.append(encode(abi_mapping.fct_abi.get_abi_types(), args))
+        return self
+
+
+class _V4ChainedPositionFunctionBuilder(_V4ChainedCommonFunctionBuilder):
 
     def _encode_mint_position_sub_contract(
             self,
@@ -209,13 +228,6 @@ class _V4ChainedPositionFunctionBuilder:
         )
         return self
 
-    def settle(self, currency: ChecksumAddress, amount: int, payer_is_user: bool) -> _V4ChainedPositionFunctionBuilder:
-        args = (currency, amount, payer_is_user)
-        abi_mapping = self._abi_map[_V4Actions.SETTLE]
-        self.actions.append(_V4Actions.SETTLE.value)
-        self.arguments.append(encode(abi_mapping.fct_abi.get_abi_types(), args))
-        return self
-
     def close_currency(self, currency: ChecksumAddress) -> _V4ChainedPositionFunctionBuilder:
         args = (currency, )
         abi_mapping = self._abi_map[_V4Actions.CLOSE_CURRENCY]
@@ -244,13 +256,7 @@ class _V4ChainedPositionFunctionBuilder:
         return self.builder
 
 
-class _V4ChainedSwapFunctionBuilder:
-    def __init__(self, builder: _ChainedFunctionBuilder, w3: Web3, abi_map: _ABIMap):
-        self.builder = builder
-        self._w3 = w3
-        self._abi_map = abi_map
-        self.actions: bytearray = bytearray()
-        self.arguments: List[bytes] = []
+class _V4ChainedSwapFunctionBuilder(_V4ChainedCommonFunctionBuilder):
 
     def _encode_swap_exact_in_single_sub_contract(
             self,
@@ -290,6 +296,20 @@ class _V4ChainedSwapFunctionBuilder:
                 hook_data,
             )
         )
+        return self
+
+    def take_all(self, currency: ChecksumAddress, min_amount: Wei) -> _V4ChainedSwapFunctionBuilder:
+        args = (currency, min_amount)
+        abi_mapping = self._abi_map[_V4Actions.TAKE_ALL]
+        self.actions.append(_V4Actions.TAKE_ALL.value)
+        self.arguments.append(encode(abi_mapping.fct_abi.get_abi_types(), args))
+        return self
+
+    def settle_all(self, currency: ChecksumAddress, max_amount: Wei) -> _V4ChainedSwapFunctionBuilder:
+        args = (currency, max_amount)
+        abi_mapping = self._abi_map[_V4Actions.SETTLE_ALL]
+        self.actions.append(_V4Actions.SETTLE_ALL.value)
+        self.arguments.append(encode(abi_mapping.fct_abi.get_abi_types(), args))
         return self
 
     def build_v4_swap(self) -> _ChainedFunctionBuilder:

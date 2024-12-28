@@ -62,13 +62,20 @@ class TransactionSpeed(Enum):
 
 class _V4Actions(Enum):
     # https://github.com/Uniswap/v4-periphery/blob/main/src/libraries/Actions.sol
+    # Positions
     MINT_POSITION = 0x02
-    SWAP_EXACT_IN_SINGLE = 0x06
-    SETTLE = 0x0b
     SETTLE_PAIR = 0x0d
     CLOSE_CURRENCY = 0x12
     SWEEP = 0x14
     UNWRAP = 0x16
+
+    # Swaps
+    SWAP_EXACT_IN_SINGLE = 0x06
+    SETTLE_ALL = 0x0c
+    TAKE_ALL = 0x0f
+
+    # Common
+    SETTLE = 0x0b
 
 
 class V4Constants(Enum):

@@ -1,9 +1,15 @@
 from pprint import pp
 
 from web3 import Web3
-from web3.types import HexStr
+from web3.types import (
+    HexStr,
+    Wei,
+)
 
-from uniswap_universal_router_decoder import RouterCodec
+from uniswap_universal_router_decoder import (
+    RouterCodec,
+    V4Constants,
+)
 
 
 codec = RouterCodec()
@@ -23,7 +29,6 @@ def test_pool_key():
         50,
     )
     assert pool_key_1 == pool_key_2
-    # assert pool_key_1
 
 
 def test_pool_id():
@@ -44,19 +49,83 @@ def test_v4_swap():
         3000,
         50,
     )
-    encoded_input = codec.encode.chain().v4_swap().swap_exact_in_single(
-        pool_key=pool_key,
-        zero_for_one=False,
-        amount_in=100000000000000,
-        amount_out_min=798750268136655870501951828,
-        hook_data=b'',
-    ).build_v4_swap().build(deadline=1732612928)
+    encoded_input = (
+        codec.
+        encode.
+        chain().
+        v4_swap().
+        swap_exact_in_single(
+            pool_key=pool_key,
+            zero_for_one=False,
+            amount_in=100000000000000,
+            amount_out_min=798750268136655870501951828,
+            hook_data=b'',
+        ).
+        take_all("0x0000000000000000000000000000000000000000", Wei(0)).
+        settle_all("0xBf5617af623f1863c4abc900c5bebD5415a694e8", 100000000000000).
+        build_v4_swap().
+        build(deadline=1732612928)
+    )
 
     print(encoded_input)
 
     fct_name, decoded_input = codec.decode.function_input(encoded_input)
     print(fct_name)
-    pp(decoded_input, indent=4, width=120)
+    pp(decoded_input, width=120)
+
+
+"""
+<Function execute(bytes,bytes[],uint256)>
+{
+    'commands': b'\x10',
+    'inputs': [
+        (
+            <Function V4_SWAP(bytes,bytes[])>,
+            {
+                'actions': b'\x06\x0f\x0c',
+                'params': [
+                    (
+                        <Function SWAP_EXACT_IN_SINGLE(((address,address,uint24,int24,address),bool,uint128,uint128,bytes))>,  # noqa
+                        {
+                            'exact_in_single_params': {
+                                'PoolKey': {
+                                    'currency0': '0x0000000000000000000000000000000000000000',
+                                    'currency1': '0xBf5617af623f1863c4abc900c5bebD5415a694e8',
+                                    'fee': 3000,
+                                    'tickSpacing': 50,
+                                    'hooks': '0x0000000000000000000000000000000000000000'
+                                },
+                                'zeroForOne': False,
+                                'amountIn': 100000000000000,
+                                'amountOutMinimum': 798750268136655870501951828,
+                                'hookData': b''
+                            }
+                        }
+                    ),
+                    (
+                        <Function TAKE_ALL(address,uint256)>,
+                        {
+                            'currency': '0x0000000000000000000000000000000000000000',
+                            'minAmount': 0
+                        }
+                    ),
+                    (
+                        <Function SETTLE_ALL(address,uint256)>,
+                        {
+                            'currency': '0xBf5617af623f1863c4abc900c5bebD5415a694e8',
+                            'maxAmount': 100000000000000
+                        }
+                    )
+                ]
+            },
+            {
+                'revert_on_fail': True
+            }
+        )
+    ],
+    'deadline': 1732612928
+}
+"""
 
 
 def test_v4_initialize_pool():
@@ -72,7 +141,7 @@ def test_v4_initialize_pool():
 
     fct_name, decoded_input = codec.decode.function_input(encoded_input)
     print(fct_name)
-    pp(decoded_input, indent=4, width=120)
+    pp(decoded_input, width=120)
 
     assert decoded_input["commands"] == b'\x13'
     assert decoded_input["inputs"][0][0].fn_name == "V4_INITIALIZE_POOL"
@@ -116,10 +185,10 @@ def test_v4_position_manager_call():
             Web3.to_checksum_address("0x29F08a27911bbCd0E01E8B1D97ec3cA187B6351D"),
             b"",
         ).
-        settle_pair(
-            Web3.to_checksum_address("0x0000000000000000000000000000000000000000"),
-            Web3.to_checksum_address("0xBf5617af623f1863c4abc900c5bebD5415a694e8"),
-        ).
+        settle("0xBf5617af623f1863c4abc900c5bebD5415a694e8", V4Constants.OPEN_DELTA.value, False).
+        close_currency("0x0000000000000000000000000000000000000000").
+        sweep("0xBf5617af623f1863c4abc900c5bebD5415a694e8", "0x29F08a27911bbCd0E01E8B1D97ec3cA187B6351D").
+        sweep("0x0000000000000000000000000000000000000000", "0x29F08a27911bbCd0E01E8B1D97ec3cA187B6351D").
         build_v4_pm_call(codec.get_default_deadline()).
         build()
     )
@@ -127,7 +196,17 @@ def test_v4_position_manager_call():
 
     fct_name, decoded_input = codec.decode.function_input(encoded_input)
     print(fct_name)
-    pp(decoded_input, indent=4, width=120)
+    pp(decoded_input, indent=1, width=120)
+
+    assert repr(fct_name) == "<Function execute(bytes,bytes[])>"
+    assert int(decoded_input['commands'].hex(), 16) == 20
+    assert repr(decoded_input['inputs'][0][0]) == "<Function modifyLiquidities(bytes,uint256)>"
+    assert decoded_input['inputs'][0][1]['unlockData']['actions'] == b'\x02\x0b\x12\x14\x14'
+    assert repr(decoded_input['inputs'][0][1]['unlockData']['params'][0][0]) == "<Function MINT_POSITION((address,address,uint24,int24,address),int24,int24,uint256,uint128,uint128,address,bytes)>"  # noqa
+    assert repr(decoded_input['inputs'][0][1]['unlockData']['params'][1][0]) == "<Function SETTLE(address,uint256,bool)>"  # noqa
+    assert repr(decoded_input['inputs'][0][1]['unlockData']['params'][2][0]) == "<Function CLOSE_CURRENCY(address)>"
+    assert repr(decoded_input['inputs'][0][1]['unlockData']['params'][3][0]) == "<Function SWEEP(address,address)>"
+    assert repr(decoded_input['inputs'][0][1]['unlockData']['params'][4][0]) == "<Function SWEEP(address,address)>"
 
 
 """
@@ -139,7 +218,7 @@ def test_v4_position_manager_call():
             <Function modifyLiquidities(bytes,uint256)>,
             {
                 'unlockData': {
-                    'actions': b'\x02\r',
+                    'actions': b'\x02\x0b\x12\x14\x14',
                     'params': [
                         (
                             <Function MINT_POSITION((address,address,uint24,int24,address),int24,int24,uint256,uint128,uint128,address,bytes)>,  # noqa
@@ -161,20 +240,41 @@ def test_v4_position_manager_call():
                             }
                         ),
                         (
-                            <Function SETTLE_PAIR(address,address)>,
+                            <Function SETTLE(address,uint256,bool)>,
                             {
-                                'currency0': '0x0000000000000000000000000000000000000000',
-                                'currency1': '0xBf5617af623f1863c4abc900c5bebD5415a694e8'
+                                'currency': '0xBf5617af623f1863c4abc900c5bebD5415a694e8',
+                                'amount': 0,
+                                'payerIsUser': False
+                            }
+                        ),
+                        (
+                            <Function CLOSE_CURRENCY(address)>,
+                            {
+                                'currency': '0x0000000000000000000000000000000000000000'
+                            }
+                        ),
+                        (
+                            <Function SWEEP(address,address)>,
+                            {
+                                'currency': '0xBf5617af623f1863c4abc900c5bebD5415a694e8',
+                                'to': '0x29F08a27911bbCd0E01E8B1D97ec3cA187B6351D'
+                            }
+                        ),
+                        (
+                            <Function SWEEP(address,address)>,
+                            {
+                                'currency': '0x0000000000000000000000000000000000000000',
+                                'to': '0x29F08a27911bbCd0E01E8B1D97ec3cA187B6351D'
                             }
                         )
                     ]
                 },
-                'deadline': 1734454667
+                'deadline': 1735382780
             },
-            {'revert_on_fail': True}
+            {
+                'revert_on_fail': True
+            }
         )
     ]
 }
-
-
 """

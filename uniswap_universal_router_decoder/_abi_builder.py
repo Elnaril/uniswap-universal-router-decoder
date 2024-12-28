@@ -167,6 +167,8 @@ class _ABIBuilder:
             _V4Actions.SETTLE: self._add_mapping(self._build_v4_settle),
             _V4Actions.CLOSE_CURRENCY: self._add_mapping(self._build_v4_close_currency),
             _V4Actions.SWEEP: self._add_mapping(self._build_v4_sweep),
+            _V4Actions.TAKE_ALL: self._add_mapping(self._build_v4_take_all),
+            _V4Actions.SETTLE_ALL: self._add_mapping(self._build_v4_settle_all),
         }
         return abi_map
 
@@ -298,3 +300,13 @@ class _ABIBuilder:
     def _build_permit2_transfer_from() -> _FunctionABI:
         builder = _FunctionABIBuilder(_RouterFunction.PERMIT2_TRANSFER_FROM.name)
         return builder.add_address("token").add_address("recipient").add_uint256("amount").build()
+
+    @staticmethod
+    def _build_v4_take_all() -> _FunctionABI:
+        builder = _FunctionABIBuilder(_V4Actions.TAKE_ALL.name)
+        return builder.add_address("currency").add_uint256("minAmount").build()
+
+    @staticmethod
+    def _build_v4_settle_all() -> _FunctionABI:
+        builder = _FunctionABIBuilder(_V4Actions.SETTLE_ALL.name)
+        return builder.add_address("currency").add_uint256("maxAmount").build()
