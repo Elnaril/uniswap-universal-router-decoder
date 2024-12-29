@@ -23,6 +23,25 @@
 ---
 
 ## Release Notes
+### v2.0.0a1
+ - Add support for some V4 functions and features:
+   - `V4_INITIALIZE_POOL`
+   - `V4_POSITION_MANAGER_CALL`
+     - `MINT_POSITION`
+     - `SETTLE`
+     - `SETTLE_PAIR`
+     - `CLOSE_CURRENCY`
+     - `UNWRAP`
+   - `V4_SWAP`
+     - `SWAP_EXACT_IN_SINGLE`
+     - `SETTLE`
+     - `SETTLE_ALL`
+     - `TAKE_ALL`
+   - Pool Key and Pool Id encoding
+ - Add support for `PERMIT2_TRANSFER_FROM`
+ - Custom contract error decoding
+ - Encoding refactoring
+
 ### v1.2.1
  - Add support for web3 v7
  - Add support for Python 3.12 & 3.13 
@@ -32,16 +51,12 @@
  - Add `fetch_permit2_allowance()`: Easy way to check the current Permit2 allowed amount, expiration and nonce. 
  - Make verifying contract (Permit2) configurable (Thanks to @speedssr and @freereaper)
  - Replace deprecated `eth_account.encode_structured_data()` with `eth_account.messages.encode_typed_data()`
-### v1.1.0
- - Add support for the TRANSFER function
- - Add support for decoding the "revert on fail" flag and prepare for encoding on UR functions that support it.
- - Add support for encoding the `execute()` function without deadline
 
 ---
 
 ## Overview and Points of Attention
 
-The object of this library is to decode & encode the transaction input sent to the Uniswap universal router (UR)
+The object of this library is to decode & encode transactions sent to the Uniswap universal router (UR)
 (address [`0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD`](https://etherscan.io/address/0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD) 
 on Ethereum Mainnet). It is based on, and is intended to be used with [web3.py](https://github.com/ethereum/web3.py)  
 The target audience is Python developers who are familiar with the Ethereum blockchain concepts and web3.py, and how DEXes work. 
@@ -50,26 +65,43 @@ The target audience is Python developers who are familiar with the Ethereum bloc
 
 ⚠ Before using this library, ensure you are familiar with general blockchain concepts and [web3.py](https://github.com/ethereum/web3.py) in particular.
 
-⚠ This project is a work in progress so not all commands are decoded yet. Below the list of the already implemented ones.
+⚠ This project is a work in progress so not all UR commands are supported yet. Below is the list of the already implemented ones.
 
-| Command Id | Function Name | Decode | Encode
-| ---------- | ------------- |:------:|:------:
-| 0x00 | V3_SWAP_EXACT_IN | ✅ | ✅
-| 0x01 | V3_SWAP_EXACT_OUT | ✅ | ✅
-| 0x02 - 0x03 |  | ❌ | ❌
-| 0x04 | SWEEP | ✅ | ✅
-| 0x05 | TRANSFER | ✅ | ✅
-| 0x06 | PAY_PORTION | ✅ | ✅
-| 0x07 | placeholder  | N/A | N/A
-| 0x08 | V2_SWAP_EXACT_IN | ✅ | ✅
-| 0x09 | V2_SWAP_EXACT_OUT | ✅ | ✅
-| 0x0a | PERMIT2_PERMIT | ✅ | ✅
-| 0x0b | WRAP_ETH | ✅ | ✅
-| 0x0c | UNWRAP_WETH | ✅ | ✅
-| 0x0d | PERMIT2_TRANSFER_FROM_BATCH | ❌ | ❌
-| 0x0e - 0x0f | placeholders | N/A | N/A
-| 0x10 - 0x1d |  | ❌ | ❌
-| 0x1e - 0x3f | placeholders | N/A | N/A
+### List of supported Uniswap Universal Router Functions
+
+| Command Id  | Universal Router Function   | Underlying Action - Function  | Supported  |
+|-------------|-----------------------------|-------------------------------|:----------:|
+| 0x00        | V3_SWAP_EXACT_IN            |                               |     ✅      |
+| 0x01        | V3_SWAP_EXACT_OUT           |                               |     ✅      |
+| 0x02        | PERMIT2_TRANSFER_FROM       |                               |     ✅      |
+| 0x03        | PERMIT2_PERMIT_BATCH        |                               |     ❌      |
+| 0x04        | SWEEP                       |                               |     ✅      |
+| 0x05        | TRANSFER                    |                               |     ✅      |
+| 0x06        | PAY_PORTION                 |                               |     ✅      |
+| 0x07        | placeholder                 |                               |    N/A     |
+| 0x08        | V2_SWAP_EXACT_IN            |                               |     ✅      |
+| 0x09        | V2_SWAP_EXACT_OUT           |                               |     ✅      |
+| 0x0a        | PERMIT2_PERMIT              |                               |     ✅      |
+| 0x0b        | WRAP_ETH                    |                               |     ✅      |
+| 0x0c        | UNWRAP_WETH                 |                               |     ✅      |
+| 0x0d        | PERMIT2_TRANSFER_FROM_BATCH |                               |     ❌      |
+| 0x0e - 0x0f | placeholders                |                               |    N/A     |
+| 0x10        | V4_SWAP                     |                               | Partially  |
+|             |                             | 0x06 - SWAP_EXACT_IN_SINGLE   |     ✅      |
+|             |                             | 0x0b - SETTLE                 |     ✅      |
+|             |                             | 0x0c - SETTLE_ALL             |     ✅      |
+|             |                             | 0x0f - TAKE_ALL               |     ✅      |
+| 0x11 - 0x12 |                             |                               |     ❌      |
+| 0x13        | V4_INITIALIZE_POOL          |                               |     ✅      |
+| 0x14        | V4_POSITION_MANAGER_CALL    |                               | Partially  |
+|             |                             | 0x02 - MINT_POSITION          |     ✅      |
+|             |                             | 0x0b - SETTLE                 |     ✅      |
+|             |                             | 0x0d - SETTLE_PAIR            |     ✅      |
+|             |                             | 0x12 - CLOSE_CURRENCY         |     ✅      |
+|             |                             | 0x14 - SWEEP                  |     ✅      |
+|             |                             | 0x16 - UNWRAP                 |     ✅      |
+| 0x15 - 0x1d |                             |                               |     ❌      |
+| 0x1e - 0x3f | placeholders                |                               |    N/A     |
 
 ---
 
@@ -92,7 +124,7 @@ pip install uniswap-universal-router-decoder
 
 The library exposes a class, `RouterCodec` with several public methods that can be used to decode or encode UR data.
 
-### How to decode a transaction input
+### How to decode an Uniswap Universal Router transaction input
 To decode a transaction input, use the `decode.function_input()` method as follows:
 
 ```python
@@ -141,7 +173,7 @@ Example of decoded input returned by `decode.function_input()`:
 )
 ```
 
-### How to decode a transaction
+### How to decode an Uniswap Universal Router transaction
 It's also possible to decode the whole transaction, given its hash 
 and providing the codec has been built with either a valid `Web3` instance or the link to a rpc endpoint:
 
@@ -182,7 +214,7 @@ The result is a tuple, starting with the "in-token" and ending with the "out-tok
 
 
 ### How to encode
-The Universal Router allows the chaining of several functions in the same transaction.
+The Uniswap Universal Router allows the chaining of several functions in the same transaction.
 This codec supports it (at least for supported functions) and exposes public methods that can be chained.
 
 The chaining starts with the `encode.chain()` method and ends with the `build()` one which returns the full encoded data to be included in the transaction.
@@ -199,7 +231,7 @@ default_expiration = RouterCodec.get_default_expiration()
 These 2 functions accept a custom duration in seconds as argument.
 
 
-### How to encode a call to the function WRAP_ETH
+### How to encode a call to the Uniswap Universal Router function WRAP_ETH
 This function can be used to convert eth to weth using the UR.
 ```python
 from uniswap_universal_router_decoder import FunctionRecipient, RouterCodec
@@ -213,7 +245,7 @@ transaction["data"] = encoded_data
 # you can now sign and send the transaction to the UR
 ```
 
-### How to encode a call to the function V2_SWAP_EXACT_IN
+### How to encode a call to the Uniswap V2 function V2_SWAP_EXACT_IN
 This function can be used to swap tokens on a V2 pool. Correct allowances must have been set before sending such transaction.
 ```python
 from uniswap_universal_router_decoder import FunctionRecipient, RouterCodec
@@ -236,7 +268,7 @@ transaction["data"] = encoded_data
 ```
 For more details, see this [tutorial](https://hackernoon.com/how-to-buy-a-token-on-the-uniswap-universal-router-with-python)
 
-### How to encode a call to the function V2_SWAP_EXACT_OUT
+### How to encode a call to the Uniswap V2 function V2_SWAP_EXACT_OUT
 This function can be used to swap tokens on a V2 pool. Correct allowances must have been set before sending such transaction.
 ```python
 from uniswap_universal_router_decoder import FunctionRecipient, RouterCodec
@@ -257,7 +289,7 @@ transaction["data"] = encoded_data
 # you can now sign and send the transaction to the UR
 ```
 
-### How to encode a call to the function V3_SWAP_EXACT_IN
+### How to encode a call to the Uniswap V3 function V3_SWAP_EXACT_IN
 This function can be used to swap tokens on a V3 pool. Correct allowances must have been set before using sending such transaction.
 ```python
 from uniswap_universal_router_decoder import FunctionRecipient, RouterCodec
@@ -280,7 +312,7 @@ transaction["data"] = encoded_data
 # you can now sign and send the transaction to the UR
 ```
 
-### How to encode a call to the function V3_SWAP_EXACT_OUT
+### How to encode a call to the Uniswap V3 function V3_SWAP_EXACT_OUT
 This function can be used to swap tokens on a V3 pool. Correct allowances must have been set before sending such transaction.
 ```python
 from uniswap_universal_router_decoder import FunctionRecipient, RouterCodec
@@ -302,7 +334,7 @@ transaction["data"] = encoded_data
 # you can now sign and send the transaction to the UR
 ```
 
-### How to encode a call to the function PERMIT2_PERMIT
+### How to encode a call to the Uniswap Universal Router function PERMIT2_PERMIT
 This function is used to give an allowance to the universal router thanks to the Permit2 contract ([`0x000000000022D473030F116dDEE9F6B43aC78BA3`](https://etherscan.io/address/0x000000000022D473030F116dDEE9F6B43aC78BA3)).
 It is also necessary to approve the Permit2 contract using the token approve function.
 See this [tutorial](https://hackernoon.com/python-how-to-use-permit2-with-the-uniswap-universal-router)
@@ -378,6 +410,73 @@ transaction["data"] = encoded_data
 # you can now sign and send the transaction to the UR
 ```
 
+### Uniswap V4 Functions
+#### How to build an Uniswap V4 pool key
+```python
+from uniswap_universal_router_decoder import RouterCodec
+codec = RouterCodec()
+
+pool_key = codec.encode.v4_pool_key(
+    token_0_address,  # or "0x0000000000000000000000000000000000000000" for ETH
+    token_1_address,
+    fee,  # ex: 3000
+    tick_spacing,  # ex: 60
+)
+```
+
+#### How to initialize an Uniswap V4 pool with the Universal Router function V4_INITIALIZE_POOL
+```python
+trx_params = (
+        codec
+        .encode
+        .chain()
+        .v4_initialize_pool(pool_key, 1, 1)
+        .build_transaction(sender_address, ur_address=ur_address)
+    )
+```
+
+#### How to mint an Uniswap V4 position with the Universal Router function V4_POSITION_MANAGER_CALL
+Example where a position on a ETH/TOKEN pool is minted between tick_0 and tick_1
+
+```python
+from uniswap_universal_router_decoder import V4Constants
+
+trx_params = (
+    codec.
+    encode.
+    chain().
+    permit2_transfer_from(  # send tokens to the V4 position manager. UR needs to be permit2'ed
+        FunctionRecipient.CUSTOM,
+        token_address,
+        token_amount,
+        posm_address
+    ).
+    v4_pm_call().  # start encoding the V4 position manager call
+        mint_position(
+            pool_key,  # a PoolKey object
+            tick_0,
+            tick_1,
+            liquidity,  # the provided liquidity
+            amount_0_max,  # slippage protection
+            amount_1_max,  # slippage protection
+            sender_address,
+            hook_data,  # or b"" if no hook data
+        ).
+        settle(token_address, V4Constants.OPEN_DELTA.value, False).
+        close_currency(eth_address).  # eth address is "0x0000000000000000000000000000000000000000"
+        sweep(eth_address, sender_address).  # get back unused ETH
+        sweep(token_address, sender_address).    # get back unused tokens
+        build_v4_pm_call(codec.get_default_deadline()).  # build the V4 position manager call
+    build_transaction(  # build the UR transaction (see "How to build directly a transaction")
+        sender_address,
+        eth_amount,
+        ur_address=ur_address,
+    )
+)
+```
+
+#### How to perform an Uniswap V4 swap with the Universal Router function V4_SWAP
+
 ### Other chainable functions
 (See integration tests for full examples) 
 
@@ -399,7 +498,14 @@ Example where an USDC amount is sent to a recipient:
 .transfer(FunctionRecipient.CUSTOM, usdc_address, usdc_amount, recipient_address)
 ```
 
-### How to build directly a transaction
+#### PERMIT2_TRANSFER_FROM
+To use this function, the Universal Router needs to be `PERMIT2`'ed.  
+Example where 1 `WETH` is transferred from the caller address to the v4 position manager
+```python
+.permit2_transfer_from(FunctionRecipient.CUSTOM, weth_address, Wei(1 * 10 ** 18), v4_posm_address)
+```
+
+### How to build directly a transaction to the Uniswap Universal Router
 The SDK provides a handy method to build very easily the full transaction in addition to the input data.
 It can compute most of the transaction parameters (if the codec has been instantiated with a valid w3 or rpc url) 
 or you can provide them. 
@@ -451,7 +557,7 @@ from uniswap_universal_router_decoder.utils import compute_gas_fees
 priority_fee, max_fee_per_gas = compute_gas_fees(w3)  # w3 is a valid Web3 instance
 ```
 
-## Tutorials and Recipes:
+## Tutorials and Recipes on the Uniswap Universal Router:
 See the [SDK Wiki](https://github.com/Elnaril/uniswap-universal-router-decoder/wiki).
 
 ## News and Q&A:

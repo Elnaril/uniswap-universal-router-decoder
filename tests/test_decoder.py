@@ -128,3 +128,28 @@ def test_decode_v3_path(trx_hash, fn_name, expected_parsed_path, expected_except
             break
     else:
         raise ValueError(f"No fn_name {fn_name} found in the decoded command inputs for trx {trx_hash}")
+
+
+contract_error_0 = "0x00000000"
+contract_error_1 = "0x2c4029e9000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000"  # noqa
+contract_error_2 = "0x5d1d0f9f"
+contract_error_3 = "0x2c4029e9000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000024bfb22adf000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"  # noqa
+contract_sub_error_3 = b'\xbf\xb2*\xdf\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'.hex()  # noqa
+contract_error_4 = "0xf801e5250000000000000000000000000000000000000000000000000000000000000000"
+
+
+@pytest.mark.parametrize(
+    "contract_error, expected",
+    (
+        (contract_error_0, ("Unknown error", {})),
+        (contract_error_1, ("ExecutionFailed(uint256,bytes)", {'commandIndex': 0, 'message': b''})),
+        (contract_error_2, ("OnlyMintAllowed()", {})),
+        (contract_error_3, ("ExecutionFailed(uint256,bytes)", {'commandIndex': 0, 'message': b'\xbf\xb2*\xdf\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'})),  # noqa
+        (contract_sub_error_3, ("DeadlinePassed(uint256)", {'deadline': 0})),
+        (contract_error_4, ("InvalidAction(bytes4)", {'action': b'\x00\x00\x00\x00'})),
+    )
+)
+def test_contract_error(contract_error, expected):
+    codec = RouterCodec()
+    decoded_error = codec.decode.contract_error(contract_error)
+    assert decoded_error == expected
