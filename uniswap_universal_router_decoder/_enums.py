@@ -74,6 +74,7 @@ class V4Actions(Enum):
 
     # Swaps
     SWAP_EXACT_IN_SINGLE = 0x06
+    SWAP_EXACT_IN = 0x07
     SETTLE_ALL = 0x0c
     TAKE_ALL = 0x0f
 

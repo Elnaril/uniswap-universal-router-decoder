@@ -28,8 +28,9 @@ from uniswap_universal_router_decoder._enums import (
 def _get_types_from_list(type_list: List[Any]) -> List[str]:
     types = []
     for item in type_list:
-        if item["type"] == "tuple":
-            types.append(f"({','.join(_get_types_from_list(item['components']))})")
+        if item["type"][:5] == "tuple":
+            brackets = item["type"][5:]
+            types.append(f"({','.join(_get_types_from_list(item['components']))}){brackets}")
         else:
             types.append(item["type"])
     return types
@@ -143,7 +144,7 @@ class FunctionABIBuilder:
 class _ABIBuilder:
     def build_abi_map(self) -> ABIMap:
         abi_map: ABIMap = {
-            # mapping between command identifier and fct descriptor (fct abi + selector)
+            # mapping between command identifier and function abi
             RouterFunction.V3_SWAP_EXACT_IN: self._build_v3_swap_exact_in(),
             RouterFunction.V3_SWAP_EXACT_OUT: self._build_v3_swap_exact_out(),
             RouterFunction.V2_SWAP_EXACT_IN: self._build_v2_swap_exact_in(),
@@ -168,6 +169,7 @@ class _ABIBuilder:
             V4Actions.SWEEP: self._build_v4_sweep(),
             V4Actions.TAKE_ALL: self._build_v4_take_all(),
             V4Actions.SETTLE_ALL: self._build_v4_settle_all(),
+            V4Actions.SWAP_EXACT_IN: self._build_v4_swap_exact_in(),
 
             MiscFunctions.EXECUTE: self._build_execute(),
             MiscFunctions.EXECUTE_WITH_DEADLINE: self._build_execute_with_deadline(),
@@ -241,8 +243,7 @@ class _ABIBuilder:
 
     @staticmethod
     def _v4_pool_key_struct_builder() -> FunctionABIBuilder:
-        builder = FunctionABIBuilder("PoolKey", "tuple")
-        builder.create_struct("PoolKey")
+        builder = FunctionABIBuilder.create_struct("PoolKey")
         builder.add_address("currency0").add_address("currency1").add_uint24("fee").add_int24("tickSpacing")
         return builder.add_address("hooks")
 
@@ -329,3 +330,33 @@ class _ABIBuilder:
         builder = FunctionABIBuilder("v4_pool_id")
         pool_key = _ABIBuilder._v4_pool_key_struct_builder()
         return builder.add_struct(pool_key).build()
+
+    @staticmethod
+    def _v4_path_key_struct_array_builder() -> FunctionABIBuilder:
+        builder = FunctionABIBuilder.create_struct_array("PathKeys")
+        builder.add_address("intermediateCurrency").add_uint24("fee").add_int24("tickSpacing")
+        return builder.add_address("hooks").add_bytes("hookData")
+
+    """
+    struct PathKey {
+        Currency intermediateCurrency;
+        uint24 fee;
+        int24 tickSpacing;
+        IHooks hooks;
+        bytes hookData;
+    }
+    """
+    @staticmethod
+    def _build_v4_swap_exact_in() -> FunctionABI:
+        builder = FunctionABIBuilder(V4Actions.SWAP_EXACT_IN.name)
+        builder.add_address("currencyIn")
+        builder.add_struct_array(_ABIBuilder._v4_path_key_struct_array_builder())
+        return builder.add_uint128("amountIn").add_uint128("amountOutMinimum").build()
+    """
+        struct ExactInputParams {
+            Currency currencyIn;
+            PathKey[] path;
+            uint128 amountIn;
+            uint128 amountOutMinimum;
+        }
+    """

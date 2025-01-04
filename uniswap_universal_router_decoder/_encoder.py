@@ -65,6 +65,14 @@ class PoolKey(TypedDict):
     hooks: ChecksumAddress
 
 
+class PathKey(TypedDict):
+    intermediate_currency: ChecksumAddress
+    fee: int
+    tick_spacing: int
+    hooks: ChecksumAddress
+    hook_data: bytes
+
+
 class _Encoder:
     def __init__(self, w3: Web3, abi_map: ABIMap) -> None:
         self._w3 = w3
@@ -119,6 +127,21 @@ class _Encoder:
         args = (tuple(pool_key.values()), )
         abi = self._abi_map[MiscFunctions.V4_POOL_ID]
         return keccak(abi.encode(args))
+
+    @staticmethod
+    def v4_path_key(
+            intermediate_currency: ChecksumAddress,
+            fee: int,
+            tick_spacing: int,
+            hooks: Union[str, HexStr, ChecksumAddress] = "0x0000000000000000000000000000000000000000",
+            hook_data: bytes = b"") -> PathKey:
+        return PathKey(
+            intermediate_currency=Web3.to_checksum_address(intermediate_currency),
+            fee=int(fee),
+            tick_spacing=int(tick_spacing),
+            hooks=Web3.to_checksum_address(hooks),
+            hook_data=hook_data,
+        )
 
     def chain(self) -> _ChainedFunctionBuilder:
         """
@@ -236,6 +259,16 @@ class _V4ChainedSwapFunctionBuilder(_V4ChainedCommonFunctionBuilder):
     def settle_all(self, currency: ChecksumAddress, max_amount: Wei) -> _V4ChainedSwapFunctionBuilder:
         args = (currency, max_amount)
         self._add_action(V4Actions.SETTLE_ALL, args)
+        return self
+
+    def swap_exact_in(
+            self,
+            currency_in: ChecksumAddress,
+            path_keys: Sequence[PathKey],
+            amount_in: int,
+            amount_out_min: int) -> _V4ChainedSwapFunctionBuilder:
+        args = (currency_in, [tuple(path_key.values()) for path_key in path_keys], amount_in, amount_out_min)
+        self._add_action(V4Actions.SWAP_EXACT_IN, args)
         return self
 
     def build_v4_swap(self) -> _ChainedFunctionBuilder:
