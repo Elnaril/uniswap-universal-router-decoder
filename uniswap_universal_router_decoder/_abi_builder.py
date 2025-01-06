@@ -339,14 +339,12 @@ class _ABIBuilder:
         builder.add_address("intermediateCurrency").add_uint24("fee").add_int24("tickSpacing")
         return builder.add_address("hooks").add_bytes("hookData")
 
-
     @staticmethod
     def _build_v4_swap_exact_in() -> FunctionABI:
         builder = FunctionABIBuilder(V4Actions.SWAP_EXACT_IN.name)
         builder.add_address("currencyIn")
         builder.add_struct_array(_ABIBuilder._v4_path_key_struct_array_builder())
         return builder.add_uint128("amountIn").add_uint128("amountOutMinimum").build()
-
 
     @staticmethod
     def _build_v4_mint_position_from_deltas() -> FunctionABI:
