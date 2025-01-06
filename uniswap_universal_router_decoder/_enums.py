@@ -67,9 +67,11 @@ class V4Actions(Enum):
     # https://github.com/Uniswap/v4-periphery/blob/main/src/libraries/Actions.sol
     # Positions
     MINT_POSITION = 0x02
+    MINT_POSITION_FROM_DELTAS = 0x05
     SETTLE_PAIR = 0x0d
     CLOSE_CURRENCY = 0x12
     SWEEP = 0x14
+    WRAP = 0x15
     UNWRAP = 0x16
 
     # Swaps

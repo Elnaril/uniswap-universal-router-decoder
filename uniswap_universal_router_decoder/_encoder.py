@@ -219,7 +219,50 @@ class _V4ChainedPositionFunctionBuilder(_V4ChainedCommonFunctionBuilder):
         self._add_action(V4Actions.SWEEP, args)
         return self
 
-    def build_v4_pm_call(self, deadline: int) -> _ChainedFunctionBuilder:
+    # def mint_position_from_deltas(
+    #         self,
+    #         pool_key: PoolKey,
+    #         tick_lower: int,
+    #         tick_upper: int,
+    #         amount_0_max: int,
+    #         amount_1_max: int,
+    #         recipient: ChecksumAddress,
+    #         hook_data: bytes) -> _V4ChainedPositionFunctionBuilder:
+    #     args = (
+    #         tuple(pool_key.values()),
+    #         tick_lower,
+    #         tick_upper,
+    #         amount_0_max,
+    #         amount_1_max,
+    #         recipient,
+    #         hook_data
+    #     )
+    #     self._add_action(V4Actions.MINT_POSITION_FROM_DELTAS, args)
+    #     return self
+
+    def wrap_eth(self, amount: Wei) -> _V4ChainedPositionFunctionBuilder:
+        """
+        Encode the call to the function WRAP which convert ETH to WETH in the position manager contract
+
+        :param amount: The amount of ETH in Wei.
+        :return: The chain link corresponding to this function call.
+        """
+        args = (amount, )
+        self._add_action(V4Actions.WRAP, args)
+        return self
+
+    def unwrap_weth(self, amount: Wei) -> _V4ChainedPositionFunctionBuilder:
+        """
+        Encode the call to the function UNWRAP which convert WETH to ETH in the position manager contract
+
+        :param amount: The amount of WETH in Wei.
+        :return: The chain link corresponding to this function call.
+        """
+        args = (amount, )
+        self._add_action(V4Actions.UNWRAP, args)
+        return self
+
+    def build_v4_posm_call(self, deadline: int) -> _ChainedFunctionBuilder:
         action_values = (bytes(self.actions), self.arguments)
         abi = self._abi_map[MiscFunctions.UNLOCK_DATA]
         encoded_data = abi.encode(action_values)
@@ -595,8 +638,8 @@ class _ChainedFunctionBuilder:
             value: Wei,
             custom_recipient: Optional[ChecksumAddress] = None) -> _ChainedFunctionBuilder:
         """
-        Encode the call to the function TRANSFER which transfers a part of the router's ERC20 or ETH to an address.
-        Transferred amount = balance * bips / 10_000
+        Encode the call to the function TRANSFER which transfers an amount of ERC20 or ETH from the router's balance
+        to an address.
 
         :param function_recipient: A FunctionRecipient which defines the recipient of this function output.
         :param token_address: The address of token to pay or "0x0000000000000000000000000000000000000000" for ETH.
@@ -631,7 +674,7 @@ class _ChainedFunctionBuilder:
         self._add_command(RouterFunction.V4_INITIALIZE_POOL, args)
         return self
 
-    def v4_pm_call(self) -> _V4ChainedPositionFunctionBuilder:
+    def v4_posm_call(self) -> _V4ChainedPositionFunctionBuilder:
         return _V4ChainedPositionFunctionBuilder(self, self._w3, self._abi_map)
 
     def build(self, deadline: Optional[int] = None) -> HexStr:

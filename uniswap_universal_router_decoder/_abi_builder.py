@@ -161,7 +161,6 @@ class _ABIBuilder:
             RouterFunction.PERMIT2_TRANSFER_FROM: self._build_permit2_transfer_from(),
 
             V4Actions.SWAP_EXACT_IN_SINGLE: self._build_v4_swap_exact_in_single(),
-            V4Actions.UNWRAP: self._build_unwrap_weth(),
             V4Actions.MINT_POSITION: self._build_v4_mint_position(),
             V4Actions.SETTLE_PAIR: self._build_v4_settle_pair(),
             V4Actions.SETTLE: self._build_v4_settle(),
@@ -170,6 +169,9 @@ class _ABIBuilder:
             V4Actions.TAKE_ALL: self._build_v4_take_all(),
             V4Actions.SETTLE_ALL: self._build_v4_settle_all(),
             V4Actions.SWAP_EXACT_IN: self._build_v4_swap_exact_in(),
+            V4Actions.MINT_POSITION_FROM_DELTAS: self._build_v4_mint_position_from_deltas(),
+            V4Actions.WRAP: self._build_v4_wrap_eth(),
+            V4Actions.UNWRAP: self._build_v4_unwrap_weth(),
 
             MiscFunctions.EXECUTE: self._build_execute(),
             MiscFunctions.EXECUTE_WITH_DEADLINE: self._build_execute_with_deadline(),
@@ -337,26 +339,29 @@ class _ABIBuilder:
         builder.add_address("intermediateCurrency").add_uint24("fee").add_int24("tickSpacing")
         return builder.add_address("hooks").add_bytes("hookData")
 
-    """
-    struct PathKey {
-        Currency intermediateCurrency;
-        uint24 fee;
-        int24 tickSpacing;
-        IHooks hooks;
-        bytes hookData;
-    }
-    """
+
     @staticmethod
     def _build_v4_swap_exact_in() -> FunctionABI:
         builder = FunctionABIBuilder(V4Actions.SWAP_EXACT_IN.name)
         builder.add_address("currencyIn")
         builder.add_struct_array(_ABIBuilder._v4_path_key_struct_array_builder())
         return builder.add_uint128("amountIn").add_uint128("amountOutMinimum").build()
-    """
-        struct ExactInputParams {
-            Currency currencyIn;
-            PathKey[] path;
-            uint128 amountIn;
-            uint128 amountOutMinimum;
-        }
-    """
+
+
+    @staticmethod
+    def _build_v4_mint_position_from_deltas() -> FunctionABI:
+        builder = FunctionABIBuilder(V4Actions.MINT_POSITION_FROM_DELTAS.name)
+        pool_key = _ABIBuilder._v4_pool_key_struct_builder()
+        builder.add_struct(pool_key).add_int24("tickLower").add_int24("tickUpper")
+        builder.add_uint128("amount0Max").add_uint128("amount1Max").add_address("recipient").add_bytes("hookData")
+        return builder.build()
+
+    @staticmethod
+    def _build_v4_wrap_eth() -> FunctionABI:
+        builder = FunctionABIBuilder(V4Actions.WRAP.name)
+        return builder.add_uint256("amount").build()
+
+    @staticmethod
+    def _build_v4_unwrap_weth() -> FunctionABI:
+        builder = FunctionABIBuilder(V4Actions.UNWRAP.name)
+        return builder.add_uint256("amount").build()

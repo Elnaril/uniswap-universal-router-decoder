@@ -183,7 +183,7 @@ def test_v4_position_manager_call():
         codec.
         encode.
         chain().
-        v4_pm_call().
+        v4_posm_call().
         mint_position(
             pool_key,
             MIN_TICK,
@@ -198,7 +198,7 @@ def test_v4_position_manager_call():
         close_currency("0x0000000000000000000000000000000000000000").
         sweep("0xBf5617af623f1863c4abc900c5bebD5415a694e8", "0x29F08a27911bbCd0E01E8B1D97ec3cA187B6351D").
         sweep("0x0000000000000000000000000000000000000000", "0x29F08a27911bbCd0E01E8B1D97ec3cA187B6351D").
-        build_v4_pm_call(codec.get_default_deadline()).
+        build_v4_posm_call(codec.get_default_deadline()).
         build()
     )
     print(encoded_input)
