@@ -6,6 +6,19 @@
 
 ---
 
+<div>
+    <img 
+        style="display: block; 
+               margin-left: auto;
+               margin-right: auto;
+               width: 75%;"
+        src="./python_uniswap_universal_router_sdk_small.jpg" 
+        alt="Python Uniswap Universal Router SDK">
+</div>
+
+---
+
+
 #### Project Information
 [![Tests & Lint](https://github.com/Elnaril/uniswap-universal-router-decoder/actions/workflows/tests.yml/badge.svg)](https://github.com/Elnaril/uniswap-universal-router-decoder/actions/workflows/tests.yml)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/uniswap-universal-router-decoder)](https://pypi.org/project/uniswap-universal-router-decoder/)
