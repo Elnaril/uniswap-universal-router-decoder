@@ -49,6 +49,7 @@
    - `V4_SWAP`
      - `SWAP_EXACT_IN_SINGLE`
      - `SWAP_EXACT_IN`
+     - `SWAP_EXACT_OUT_SINGLE`
      - `SETTLE`
      - `SETTLE_ALL`
      - `TAKE_ALL`
@@ -106,6 +107,7 @@ The target audience is Python developers who are familiar with the Ethereum bloc
 | 0x10        | V4_SWAP                     |                              | Partially  |
 |             |                             | 0x06 - SWAP_EXACT_IN_SINGLE  |     ✅      |
 |             |                             | 0x07 - SWAP_EXACT_IN         |     ✅      |
+|             |                             | 0x08 - SWAP_EXACT_OUT_SINGLE |     ✅      |
 |             |                             | 0x0b - SETTLE                |     ✅      |
 |             |                             | 0x0c - SETTLE_ALL            |     ✅      |
 |             |                             | 0x0f - TAKE_ALL              |     ✅      |
