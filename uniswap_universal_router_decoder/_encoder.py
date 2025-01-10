@@ -314,6 +314,37 @@ class _V4ChainedSwapFunctionBuilder(_V4ChainedCommonFunctionBuilder):
         self._add_action(V4Actions.SWAP_EXACT_IN, args)
         return self
 
+    def swap_exact_out_single(
+            self,
+            pool_key: PoolKey,
+            zero_for_one: bool,
+            amount_out: Wei,
+            amount_in_max: Wei,
+            hook_data: bytes = b'') -> _V4ChainedSwapFunctionBuilder:
+        """
+        Encode the call to the V4_SWAP function SWAP_EXACT_IN_SINGLE.
+
+        :param pool_key: the target pool key returned by encode.v4_pool_key()
+        :param zero_for_one: the swap direction, true for currency_0 to currency_1, false for currency_1 to currency_0
+        :param amount_out: the exact amount of the bought currency in Wei
+        :param amount_in_max: the maximum accepted sold currency
+        :param hook_data: encoded data sent to the pool's hook, if any.
+        :return:
+        """
+        args = ((tuple(pool_key.values()), zero_for_one, amount_out, amount_in_max, hook_data),)
+        self._add_action(V4Actions.SWAP_EXACT_OUT_SINGLE, args)
+        return self
+
+    def swap_exact_out(
+            self,
+            currency_out: ChecksumAddress,
+            path_keys: Sequence[PathKey],
+            amount_out: int,
+            amount_in_max: int) -> _V4ChainedSwapFunctionBuilder:
+        args = (currency_out, [tuple(path_key.values()) for path_key in path_keys], amount_out, amount_in_max)
+        self._add_action(V4Actions.SWAP_EXACT_OUT, args)
+        return self
+
     def build_v4_swap(self) -> _ChainedFunctionBuilder:
         args = (bytes(self.actions), self.arguments)
         self.builder._add_command(RouterFunction.V4_SWAP, args)

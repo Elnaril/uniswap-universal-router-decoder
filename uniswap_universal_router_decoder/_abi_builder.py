@@ -172,6 +172,8 @@ class _ABIBuilder:
             V4Actions.MINT_POSITION_FROM_DELTAS: self._build_v4_mint_position_from_deltas(),
             V4Actions.WRAP: self._build_v4_wrap_eth(),
             V4Actions.UNWRAP: self._build_v4_unwrap_weth(),
+            V4Actions.SWAP_EXACT_OUT_SINGLE: self._build_v4_swap_exact_out_single(),
+            V4Actions.SWAP_EXACT_OUT: self._build_v4_swap_exact_out(),
 
             MiscFunctions.EXECUTE: self._build_execute(),
             MiscFunctions.EXECUTE_WITH_DEADLINE: self._build_execute_with_deadline(),
@@ -363,3 +365,19 @@ class _ABIBuilder:
     def _build_v4_unwrap_weth() -> FunctionABI:
         builder = FunctionABIBuilder(V4Actions.UNWRAP.name)
         return builder.add_uint256("amount").build()
+
+    @staticmethod
+    def _build_v4_swap_exact_out_single() -> FunctionABI:
+        builder = FunctionABIBuilder(V4Actions.SWAP_EXACT_OUT_SINGLE.name)
+        pool_key = _ABIBuilder._v4_pool_key_struct_builder()
+        outer_struct = builder.create_struct("exact_out_single_params")
+        outer_struct.add_struct(pool_key).add_bool("zeroForOne").add_uint128("amountOut").add_uint128("amountInMaximum")
+        outer_struct.add_bytes("hookData")
+        return builder.add_struct(outer_struct).build()
+
+    @staticmethod
+    def _build_v4_swap_exact_out() -> FunctionABI:
+        builder = FunctionABIBuilder(V4Actions.SWAP_EXACT_OUT.name)
+        builder.add_address("currencyOut")
+        builder.add_struct_array(_ABIBuilder._v4_path_key_struct_array_builder())
+        return builder.add_uint128("amountOut").add_uint128("amountInMaximum").build()

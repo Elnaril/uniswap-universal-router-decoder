@@ -69,7 +69,9 @@ class V4Actions(Enum):
     MINT_POSITION = 0x02
     MINT_POSITION_FROM_DELTAS = 0x05
     SETTLE_PAIR = 0x0d
+    # TAKE_PAIR = 0x11
     CLOSE_CURRENCY = 0x12
+    # CLEAR_OR_TAKE = 0x13
     SWEEP = 0x14
     WRAP = 0x15
     UNWRAP = 0x16
@@ -77,11 +79,15 @@ class V4Actions(Enum):
     # Swaps
     SWAP_EXACT_IN_SINGLE = 0x06
     SWAP_EXACT_IN = 0x07
+    SWAP_EXACT_OUT_SINGLE = 0x08
+    SWAP_EXACT_OUT = 0x09
     SETTLE_ALL = 0x0c
     TAKE_ALL = 0x0f
+    # TAKE_PORTION = 0x10
 
     # Common
     SETTLE = 0x0b
+    # TAKE = 0x0e
 
 
 class V4Constants(Enum):
