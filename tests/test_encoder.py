@@ -16,7 +16,7 @@ from uniswap_universal_router_decoder import (
 )
 from uniswap_universal_router_decoder._constants import _ur_address  # noqa
 from uniswap_universal_router_decoder._encoder import _ChainedFunctionBuilder  # noqa
-from uniswap_universal_router_decoder._enums import _RouterFunction  # noqa
+from uniswap_universal_router_decoder._enums import RouterFunction  # noqa
 
 
 @pytest.mark.parametrize(
@@ -207,14 +207,14 @@ def test_chain_permit2_permit(codec):
     "router_function, revert_on_fail, expected_command",
     (
         # Todo: use functions that actually support the NO_REVERT_FLAG, like SUDOSWAP or another NFT function
-        (_RouterFunction.V3_SWAP_EXACT_IN, True, 0x00),
-        (_RouterFunction.V3_SWAP_EXACT_IN, False, 0x80),
-        (_RouterFunction.V2_SWAP_EXACT_IN, True, 0x08),
-        (_RouterFunction.V2_SWAP_EXACT_IN, False, 0x88),
-        (_RouterFunction.PERMIT2_PERMIT, True, 0x0a),
-        (_RouterFunction.PERMIT2_PERMIT, False, 0x8a),
-        (_RouterFunction.WRAP_ETH, True, 0x0b),
-        (_RouterFunction.WRAP_ETH, False, 0x8b),
+        (RouterFunction.V3_SWAP_EXACT_IN, True, 0x00),
+        (RouterFunction.V3_SWAP_EXACT_IN, False, 0x80),
+        (RouterFunction.V2_SWAP_EXACT_IN, True, 0x08),
+        (RouterFunction.V2_SWAP_EXACT_IN, False, 0x88),
+        (RouterFunction.PERMIT2_PERMIT, True, 0x0a),
+        (RouterFunction.PERMIT2_PERMIT, False, 0x8a),
+        (RouterFunction.WRAP_ETH, True, 0x0b),
+        (RouterFunction.WRAP_ETH, False, 0x8b),
     )
 )
 def test_get_command(router_function, revert_on_fail, expected_command, codec):

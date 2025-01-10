@@ -15,13 +15,11 @@ from typing import (
     List,
     Optional,
     Sequence,
-    Tuple,
     TypedDict,
     TypeVar,
     Union,
 )
 
-from eth_abi import encode
 from eth_account.account import SignedMessage
 from eth_utils import keccak
 from web3 import Web3
@@ -34,25 +32,18 @@ from web3.types import (
     Wei,
 )
 
-from uniswap_universal_router_decoder._abi_builder import _ABIMap
+from uniswap_universal_router_decoder._abi_builder import ABIMap
 from uniswap_universal_router_decoder._constants import (
-    _execution_function_input_types,
-    _execution_function_selector,
-    _execution_without_deadline_function_input_types,
-    _execution_without_deadline_function_selector,
-    _modify_liquidities_function_input_types,
-    _modify_liquidities_function_selector,
-    _path_key_types,
     _router_abi,
     _ur_address,
-    _v4_swap_input_types,
 )
 from uniswap_universal_router_decoder._enums import (
     _RouterConstant,
-    _RouterFunction,
-    _V4Actions,
     FunctionRecipient,
+    MiscFunctions,
+    RouterFunction,
     TransactionSpeed,
+    V4Actions,
 )
 from uniswap_universal_router_decoder.utils import (
     compute_gas_fees,
@@ -74,8 +65,16 @@ class PoolKey(TypedDict):
     hooks: ChecksumAddress
 
 
+class PathKey(TypedDict):
+    intermediate_currency: ChecksumAddress
+    fee: int
+    tick_spacing: int
+    hooks: ChecksumAddress
+    hook_data: bytes
+
+
 class _Encoder:
-    def __init__(self, w3: Web3, abi_map: _ABIMap) -> None:
+    def __init__(self, w3: Web3, abi_map: ABIMap) -> None:
         self._w3 = w3
         self._router_contract = self._w3.eth.contract(abi=_router_abi)
         self._abi_map = abi_map
@@ -124,11 +123,25 @@ class _Encoder:
             hooks=Web3.to_checksum_address(hooks),
         )
 
+    def v4_pool_id(self, pool_key: PoolKey) -> bytes:
+        args = (tuple(pool_key.values()), )
+        abi = self._abi_map[MiscFunctions.V4_POOL_ID]
+        return keccak(abi.encode(args))
+
     @staticmethod
-    def v4_pool_id(pool_key: PoolKey) -> bytes:
-        path_key_values = tuple(pool_key.values())
-        encoded_path_key = encode(_path_key_types, (path_key_values, ))
-        return keccak(encoded_path_key)
+    def v4_path_key(
+            intermediate_currency: ChecksumAddress,
+            fee: int,
+            tick_spacing: int,
+            hooks: Union[str, HexStr, ChecksumAddress] = "0x0000000000000000000000000000000000000000",
+            hook_data: bytes = b"") -> PathKey:
+        return PathKey(
+            intermediate_currency=Web3.to_checksum_address(intermediate_currency),
+            fee=int(fee),
+            tick_spacing=int(tick_spacing),
+            hooks=Web3.to_checksum_address(hooks),
+            hook_data=hook_data,
+        )
 
     def chain(self) -> _ChainedFunctionBuilder:
         """
@@ -141,12 +154,17 @@ TV4ChainedCommonFunctionBuilder = TypeVar("TV4ChainedCommonFunctionBuilder", bou
 
 
 class _V4ChainedCommonFunctionBuilder(ABC):
-    def __init__(self, builder: _ChainedFunctionBuilder, w3: Web3, abi_map: _ABIMap):
+    def __init__(self, builder: _ChainedFunctionBuilder, w3: Web3, abi_map: ABIMap):
         self.builder = builder
         self._w3 = w3
         self._abi_map = abi_map
         self.actions: bytearray = bytearray()
         self.arguments: List[bytes] = []
+
+    def _add_action(self, action: V4Actions, args: Sequence[Any]) -> None:
+        abi = self._abi_map[action]
+        self.actions.append(action.value)
+        self.arguments.append(abi.encode(args))
 
     def settle(
             self: TV4ChainedCommonFunctionBuilder,
@@ -154,36 +172,11 @@ class _V4ChainedCommonFunctionBuilder(ABC):
             amount: int,
             payer_is_user: bool) -> TV4ChainedCommonFunctionBuilder:
         args = (currency, amount, payer_is_user)
-        abi_mapping = self._abi_map[_V4Actions.SETTLE]
-        self.actions.append(_V4Actions.SETTLE.value)
-        self.arguments.append(encode(abi_mapping.fct_abi.get_abi_types(), args))
+        self._add_action(V4Actions.SETTLE, args)
         return self
 
 
 class _V4ChainedPositionFunctionBuilder(_V4ChainedCommonFunctionBuilder):
-
-    def _encode_mint_position_sub_contract(
-            self,
-            pool_key: PoolKey,
-            tick_lower: int,
-            tick_upper: int,
-            liquidity: int,
-            amount_0_max: int,
-            amount_1_max: int,
-            recipient: ChecksumAddress,
-            hook_data: bytes) -> bytes:
-        args = (
-            tuple(pool_key.values()),
-            tick_lower,
-            tick_upper,
-            liquidity,
-            amount_0_max,
-            amount_1_max,
-            recipient,
-            hook_data
-        )
-        abi_mapping = self._abi_map[_V4Actions.MINT_POSITION]
-        return encode(abi_mapping.fct_abi.get_abi_types(), args)
 
     def mint_position(
             self,
@@ -195,79 +188,90 @@ class _V4ChainedPositionFunctionBuilder(_V4ChainedCommonFunctionBuilder):
             amount_1_max: int,
             recipient: ChecksumAddress,
             hook_data: bytes) -> _V4ChainedPositionFunctionBuilder:
-        self.actions.append(_V4Actions.MINT_POSITION.value)
-        self.arguments.append(
-            self._encode_mint_position_sub_contract(
-                pool_key,
-                tick_lower,
-                tick_upper,
-                liquidity,
-                amount_0_max,
-                amount_1_max,
-                Web3.to_checksum_address(recipient),
-                hook_data,
-            )
+        args = (
+            tuple(pool_key.values()),
+            tick_lower,
+            tick_upper,
+            liquidity,
+            amount_0_max,
+            amount_1_max,
+            recipient,
+            hook_data
         )
+        self._add_action(V4Actions.MINT_POSITION, args)
         return self
-
-    def _encode_settle_pair_sub_contract(self, currency_0: ChecksumAddress, currency_1: ChecksumAddress) -> bytes:
-        args = (currency_0, currency_1)
-        abi_mapping = self._abi_map[_V4Actions.SETTLE_PAIR]
-        return encode(abi_mapping.fct_abi.get_abi_types(), args)
 
     def settle_pair(
             self,
             currency_0: ChecksumAddress,
             currency_1: ChecksumAddress) -> _V4ChainedPositionFunctionBuilder:
-        self.actions.append(_V4Actions.SETTLE_PAIR.value)
-        self.arguments.append(
-            self._encode_settle_pair_sub_contract(
-                Web3.to_checksum_address(currency_0),
-                Web3.to_checksum_address(currency_1),
-            )
-        )
+        args = (currency_0, currency_1)
+        self._add_action(V4Actions.SETTLE_PAIR, args)
         return self
 
     def close_currency(self, currency: ChecksumAddress) -> _V4ChainedPositionFunctionBuilder:
         args = (currency, )
-        abi_mapping = self._abi_map[_V4Actions.CLOSE_CURRENCY]
-        self.actions.append(_V4Actions.CLOSE_CURRENCY.value)
-        self.arguments.append(encode(abi_mapping.fct_abi.get_abi_types(), args))
+        self._add_action(V4Actions.CLOSE_CURRENCY, args)
         return self
 
     def sweep(self, currency: ChecksumAddress, to: ChecksumAddress) -> _V4ChainedPositionFunctionBuilder:
         args = (currency, to)
-        abi_mapping = self._abi_map[_V4Actions.SWEEP]
-        self.actions.append(_V4Actions.SWEEP.value)
-        self.arguments.append(encode(abi_mapping.fct_abi.get_abi_types(), args))
+        self._add_action(V4Actions.SWEEP, args)
         return self
 
-    @staticmethod
-    def _encode_modify_liquidities_function(arguments: Tuple[bytes, int]) -> bytes:
-        encoded_data = encode(_modify_liquidities_function_input_types, arguments)
-        return Web3.to_bytes(hexstr=_modify_liquidities_function_selector) + encoded_data
+    # def mint_position_from_deltas(
+    #         self,
+    #         pool_key: PoolKey,
+    #         tick_lower: int,
+    #         tick_upper: int,
+    #         amount_0_max: int,
+    #         amount_1_max: int,
+    #         recipient: ChecksumAddress,
+    #         hook_data: bytes) -> _V4ChainedPositionFunctionBuilder:
+    #     args = (
+    #         tuple(pool_key.values()),
+    #         tick_lower,
+    #         tick_upper,
+    #         amount_0_max,
+    #         amount_1_max,
+    #         recipient,
+    #         hook_data
+    #     )
+    #     self._add_action(V4Actions.MINT_POSITION_FROM_DELTAS, args)
+    #     return self
 
-    def build_v4_pm_call(self, deadline: int) -> _ChainedFunctionBuilder:
+    def wrap_eth(self, amount: Wei) -> _V4ChainedPositionFunctionBuilder:
+        """
+        Encode the call to the function WRAP which convert ETH to WETH in the position manager contract
+
+        :param amount: The amount of ETH in Wei.
+        :return: The chain link corresponding to this function call.
+        """
+        args = (amount, )
+        self._add_action(V4Actions.WRAP, args)
+        return self
+
+    def unwrap_weth(self, amount: Wei) -> _V4ChainedPositionFunctionBuilder:
+        """
+        Encode the call to the function UNWRAP which convert WETH to ETH in the position manager contract
+
+        :param amount: The amount of WETH in Wei.
+        :return: The chain link corresponding to this function call.
+        """
+        args = (amount, )
+        self._add_action(V4Actions.UNWRAP, args)
+        return self
+
+    def build_v4_posm_call(self, deadline: int) -> _ChainedFunctionBuilder:
         action_values = (bytes(self.actions), self.arguments)
-        encoded_data = encode(["bytes", "bytes[]"], action_values)
-        encoded_modify_liquidities_data = self._encode_modify_liquidities_function((encoded_data, deadline))
-        self.builder.commands.append(_RouterFunction.V4_POSITION_MANAGER_CALL.value)
-        self.builder.arguments.append(encoded_modify_liquidities_data)
+        abi = self._abi_map[MiscFunctions.UNLOCK_DATA]
+        encoded_data = abi.encode(action_values)
+        args = (encoded_data, deadline)
+        self.builder._add_command(RouterFunction.V4_POSITION_MANAGER_CALL, args, True)
         return self.builder
 
 
 class _V4ChainedSwapFunctionBuilder(_V4ChainedCommonFunctionBuilder):
-
-    def _encode_swap_exact_in_single_sub_contract(
-            self,
-            pool_key: PoolKey,
-            zero_for_one: bool,
-            amount_in: Wei,
-            amount_out_min: Wei,
-            hook_data: bytes = b'') -> bytes:
-        args = ((tuple(pool_key.values()), zero_for_one, amount_in, amount_out_min, hook_data),)
-        abi_mapping = self._abi_map[_V4Actions.SWAP_EXACT_IN_SINGLE]
-        return encode(abi_mapping.fct_abi.get_abi_types(), args)
 
     def swap_exact_in_single(
             self,
@@ -286,47 +290,80 @@ class _V4ChainedSwapFunctionBuilder(_V4ChainedCommonFunctionBuilder):
         :param hook_data: encoded data sent to the pool's hook, if any.
         :return:
         """
-        self.actions.append(_V4Actions.SWAP_EXACT_IN_SINGLE.value)
-        self.arguments.append(
-            self._encode_swap_exact_in_single_sub_contract(
-                pool_key,
-                zero_for_one,
-                amount_in,
-                amount_out_min,
-                hook_data,
-            )
-        )
+        args = ((tuple(pool_key.values()), zero_for_one, amount_in, amount_out_min, hook_data),)
+        self._add_action(V4Actions.SWAP_EXACT_IN_SINGLE, args)
         return self
 
     def take_all(self, currency: ChecksumAddress, min_amount: Wei) -> _V4ChainedSwapFunctionBuilder:
         args = (currency, min_amount)
-        abi_mapping = self._abi_map[_V4Actions.TAKE_ALL]
-        self.actions.append(_V4Actions.TAKE_ALL.value)
-        self.arguments.append(encode(abi_mapping.fct_abi.get_abi_types(), args))
+        self._add_action(V4Actions.TAKE_ALL, args)
         return self
 
     def settle_all(self, currency: ChecksumAddress, max_amount: Wei) -> _V4ChainedSwapFunctionBuilder:
         args = (currency, max_amount)
-        abi_mapping = self._abi_map[_V4Actions.SETTLE_ALL]
-        self.actions.append(_V4Actions.SETTLE_ALL.value)
-        self.arguments.append(encode(abi_mapping.fct_abi.get_abi_types(), args))
+        self._add_action(V4Actions.SETTLE_ALL, args)
+        return self
+
+    def swap_exact_in(
+            self,
+            currency_in: ChecksumAddress,
+            path_keys: Sequence[PathKey],
+            amount_in: int,
+            amount_out_min: int) -> _V4ChainedSwapFunctionBuilder:
+        args = (currency_in, [tuple(path_key.values()) for path_key in path_keys], amount_in, amount_out_min)
+        self._add_action(V4Actions.SWAP_EXACT_IN, args)
+        return self
+
+    def swap_exact_out_single(
+            self,
+            pool_key: PoolKey,
+            zero_for_one: bool,
+            amount_out: Wei,
+            amount_in_max: Wei,
+            hook_data: bytes = b'') -> _V4ChainedSwapFunctionBuilder:
+        """
+        Encode the call to the V4_SWAP function SWAP_EXACT_IN_SINGLE.
+
+        :param pool_key: the target pool key returned by encode.v4_pool_key()
+        :param zero_for_one: the swap direction, true for currency_0 to currency_1, false for currency_1 to currency_0
+        :param amount_out: the exact amount of the bought currency in Wei
+        :param amount_in_max: the maximum accepted sold currency
+        :param hook_data: encoded data sent to the pool's hook, if any.
+        :return:
+        """
+        args = ((tuple(pool_key.values()), zero_for_one, amount_out, amount_in_max, hook_data),)
+        self._add_action(V4Actions.SWAP_EXACT_OUT_SINGLE, args)
+        return self
+
+    def swap_exact_out(
+            self,
+            currency_out: ChecksumAddress,
+            path_keys: Sequence[PathKey],
+            amount_out: int,
+            amount_in_max: int) -> _V4ChainedSwapFunctionBuilder:
+        args = (currency_out, [tuple(path_key.values()) for path_key in path_keys], amount_out, amount_in_max)
+        self._add_action(V4Actions.SWAP_EXACT_OUT, args)
         return self
 
     def build_v4_swap(self) -> _ChainedFunctionBuilder:
-        action_values = (bytes(self.actions), self.arguments)
-        encoded_data = encode(_v4_swap_input_types, action_values)
-        self.builder.commands.append(_RouterFunction.V4_SWAP.value)
-        self.builder.arguments.append(encoded_data)
+        args = (bytes(self.actions), self.arguments)
+        self.builder._add_command(RouterFunction.V4_SWAP, args)
         return self.builder
 
 
 class _ChainedFunctionBuilder:
-    def __init__(self, w3: Web3, abi_map: _ABIMap):
+    def __init__(self, w3: Web3, abi_map: ABIMap):
         self._w3 = w3
         self._router_contract = self._w3.eth.contract(abi=_router_abi)
         self._abi_map = abi_map
         self.commands: bytearray = bytearray()
         self.arguments: List[bytes] = []
+
+    def _add_command(self, command: RouterFunction, args: Sequence[Any], add_selector: bool = False) -> None:
+        abi = self._abi_map[command]
+        self.commands.append(command.value)
+        arguments = abi.get_selector() + abi.encode(args) if add_selector else abi.encode(args)
+        self.arguments.append(arguments)
 
     @staticmethod
     def _get_recipient(
@@ -347,22 +384,8 @@ class _ChainedFunctionBuilder:
             )
 
     @staticmethod
-    def _get_command(router_function: _RouterFunction, revert_on_fail: bool) -> int:
+    def _get_command(router_function: RouterFunction, revert_on_fail: bool) -> int:
         return int(router_function.value if revert_on_fail else router_function.value | NO_REVERT_FLAG)
-
-    @staticmethod
-    def _encode_execution_function(arguments: Tuple[bytes, List[bytes], int]) -> HexStr:
-        encoded_data = encode(_execution_function_input_types, arguments)
-        return Web3.to_hex(Web3.to_bytes(hexstr=_execution_function_selector) + encoded_data)
-
-    @staticmethod
-    def _encode_execution_without_deadline_function(arguments: Tuple[bytes, List[bytes]]) -> HexStr:
-        encoded_data = encode(_execution_without_deadline_function_input_types, arguments)
-        return Web3.to_hex(Web3.to_bytes(hexstr=_execution_without_deadline_function_selector) + encoded_data)
-
-    def _encode_wrap_eth_sub_contract(self, recipient: ChecksumAddress, amount_min: Wei) -> bytes:
-        abi_mapping = self._abi_map[_RouterFunction.WRAP_ETH]
-        return encode(abi_mapping.fct_abi.get_abi_types(), [recipient, amount_min])
 
     def wrap_eth(
             self,
@@ -379,13 +402,9 @@ class _ChainedFunctionBuilder:
         :return: The chain link corresponding to this function call.
         """
         recipient = self._get_recipient(function_recipient, custom_recipient)
-        self.commands.append(_RouterFunction.WRAP_ETH.value)
-        self.arguments.append(self._encode_wrap_eth_sub_contract(recipient, amount))
+        args = (recipient, amount)
+        self._add_command(RouterFunction.WRAP_ETH, args)
         return self
-
-    def _encode_unwrap_weth_sub_contract(self, recipient: ChecksumAddress, amount_min: Wei) -> bytes:
-        abi_mapping = self._abi_map[_RouterFunction.UNWRAP_WETH]
-        return encode(abi_mapping.fct_abi.get_abi_types(), [recipient, amount_min])
 
     def unwrap_weth(
             self,
@@ -402,20 +421,9 @@ class _ChainedFunctionBuilder:
         :return: The chain link corresponding to this function call.
         """
         recipient = self._get_recipient(function_recipient, custom_recipient)
-        self.commands.append(_RouterFunction.UNWRAP_WETH.value)
-        self.arguments.append(self._encode_unwrap_weth_sub_contract(recipient, amount))
+        args = (recipient, amount)
+        self._add_command(RouterFunction.UNWRAP_WETH, args)
         return self
-
-    def _encode_v2_swap_exact_in_sub_contract(
-            self,
-            recipient: ChecksumAddress,
-            amount_in: Wei,
-            amount_out_min: Wei,
-            path: Sequence[ChecksumAddress],
-            payer_is_user: bool) -> bytes:
-        args = (recipient, amount_in, amount_out_min, path, payer_is_user)
-        abi_mapping = self._abi_map[_RouterFunction.V2_SWAP_EXACT_IN]
-        return encode(abi_mapping.fct_abi.get_abi_types(), args)
 
     def v2_swap_exact_in(
             self,
@@ -439,16 +447,8 @@ class _ChainedFunctionBuilder:
         :return: The chain link corresponding to this function call.
         """
         recipient = self._get_recipient(function_recipient, custom_recipient)
-        self.commands.append(_RouterFunction.V2_SWAP_EXACT_IN.value)
-        self.arguments.append(
-            self._encode_v2_swap_exact_in_sub_contract(
-                recipient,
-                amount_in,
-                amount_out_min,
-                path,
-                payer_is_sender,
-            )
-        )
+        args = (recipient, amount_in, amount_out_min, path, payer_is_sender)
+        self._add_command(RouterFunction.V2_SWAP_EXACT_IN, args)
         return self
 
     def v2_swap_exact_in_from_balance(
@@ -479,17 +479,6 @@ class _ChainedFunctionBuilder:
             False,
         )
 
-    def _encode_v2_swap_exact_out_sub_contract(
-            self,
-            recipient: ChecksumAddress,
-            amount_out: Wei,
-            amount_in_max: Wei,
-            path: Sequence[ChecksumAddress],
-            payer_is_user: bool) -> bytes:
-        args = (recipient, amount_out, amount_in_max, path, payer_is_user)
-        abi_mapping = self._abi_map[_RouterFunction.V2_SWAP_EXACT_OUT]
-        return encode(abi_mapping.fct_abi.get_abi_types(), args)
-
     def v2_swap_exact_out(
             self,
             function_recipient: FunctionRecipient,
@@ -512,29 +501,9 @@ class _ChainedFunctionBuilder:
         :return: The chain link corresponding to this function call.
         """
         recipient = self._get_recipient(function_recipient, custom_recipient)
-        self.commands.append(_RouterFunction.V2_SWAP_EXACT_OUT.value)
-        self.arguments.append(
-            self._encode_v2_swap_exact_out_sub_contract(
-                recipient,
-                amount_out,
-                amount_in_max,
-                path,
-                payer_is_sender,
-            )
-        )
+        args = (recipient, amount_out, amount_in_max, path, payer_is_sender)
+        self._add_command(RouterFunction.V2_SWAP_EXACT_OUT, args)
         return self
-
-    def _encode_v3_swap_exact_in_sub_contract(
-            self,
-            recipient: ChecksumAddress,
-            amount_in: Wei,
-            amount_out_min: Wei,
-            path: Sequence[Union[int, ChecksumAddress]],
-            payer_is_user: bool) -> bytes:
-        encoded_v3_path = _Encoder.v3_path(_RouterFunction.V3_SWAP_EXACT_IN.name, path)
-        args = (recipient, amount_in, amount_out_min, encoded_v3_path, payer_is_user)
-        abi_mapping = self._abi_map[_RouterFunction.V3_SWAP_EXACT_IN]
-        return encode(abi_mapping.fct_abi.get_abi_types(), args)
 
     def v3_swap_exact_in(
             self,
@@ -559,16 +528,9 @@ class _ChainedFunctionBuilder:
         :return: The chain link corresponding to this function call.
         """
         recipient = self._get_recipient(function_recipient, custom_recipient)
-        self.commands.append(_RouterFunction.V3_SWAP_EXACT_IN.value)
-        self.arguments.append(
-            self._encode_v3_swap_exact_in_sub_contract(
-                recipient,
-                amount_in,
-                amount_out_min,
-                path,
-                payer_is_sender,
-            )
-        )
+        encoded_v3_path = _Encoder.v3_path(RouterFunction.V3_SWAP_EXACT_IN.name, path)
+        args = (recipient, amount_in, amount_out_min, encoded_v3_path, payer_is_sender)
+        self._add_command(RouterFunction.V3_SWAP_EXACT_IN, args)
         return self
 
     def v3_swap_exact_in_from_balance(
@@ -600,18 +562,6 @@ class _ChainedFunctionBuilder:
             False,
         )
 
-    def _encode_v3_swap_exact_out_sub_contract(
-            self,
-            recipient: ChecksumAddress,
-            amount_out: Wei,
-            amount_in_max: Wei,
-            path: Sequence[Union[int, ChecksumAddress]],
-            payer_is_user: bool) -> bytes:
-        encoded_v3_path = _Encoder.v3_path(_RouterFunction.V3_SWAP_EXACT_OUT.name, path)
-        args = (recipient, amount_out, amount_in_max, encoded_v3_path, payer_is_user)
-        abi_mapping = self._abi_map[_RouterFunction.V3_SWAP_EXACT_OUT]
-        return encode(abi_mapping.fct_abi.get_abi_types(), args)
-
     def v3_swap_exact_out(
             self,
             function_recipient: FunctionRecipient,
@@ -635,30 +585,10 @@ class _ChainedFunctionBuilder:
         :return: The chain link corresponding to this function call.
         """
         recipient = self._get_recipient(function_recipient, custom_recipient)
-        self.commands.append(_RouterFunction.V3_SWAP_EXACT_OUT.value)
-        self.arguments.append(
-            self._encode_v3_swap_exact_out_sub_contract(
-                recipient,
-                amount_out,
-                amount_in_max,
-                path,
-                payer_is_sender,
-            )
-        )
+        encoded_v3_path = _Encoder.v3_path(RouterFunction.V3_SWAP_EXACT_OUT.name, path)
+        args = (recipient, amount_out, amount_in_max, encoded_v3_path, payer_is_sender)
+        self._add_command(RouterFunction.V3_SWAP_EXACT_OUT, args)
         return self
-
-    def _encode_permit2_permit_sub_contract(
-            self,
-            permit_single: Dict[str, Any],
-            signed_permit_single: SignedMessage) -> bytes:
-        struct = (
-            tuple(permit_single["details"].values()),
-            permit_single["spender"],
-            permit_single["sigDeadline"],
-        )
-        args = (struct, signed_permit_single.signature)
-        abi_mapping = self._abi_map[_RouterFunction.PERMIT2_PERMIT]
-        return encode(abi_mapping.fct_abi.get_abi_types(), args)
 
     def permit2_permit(
             self,
@@ -673,18 +603,14 @@ class _ChainedFunctionBuilder:
 
         :return: The chain link corresponding to this function call.
         """
-        self.commands.append(_RouterFunction.PERMIT2_PERMIT.value)
-        self.arguments.append(
-            self._encode_permit2_permit_sub_contract(
-                permit_single,
-                signed_permit_single,
-            )
+        struct = (
+            tuple(permit_single["details"].values()),
+            permit_single["spender"],
+            permit_single["sigDeadline"],
         )
+        args = (struct, signed_permit_single.signature)
+        self._add_command(RouterFunction.PERMIT2_PERMIT, args)
         return self
-
-    def _encode_sweep_sub_contract(self, token: ChecksumAddress, recipient: ChecksumAddress, amount_min: Wei) -> bytes:
-        abi_mapping = self._abi_map[_RouterFunction.SWEEP]
-        return encode(abi_mapping.fct_abi.get_abi_types(), [token, recipient, amount_min])
 
     def sweep(
             self,
@@ -703,19 +629,9 @@ class _ChainedFunctionBuilder:
         :return: The chain link corresponding to this function call.
         """
         recipient = self._get_recipient(function_recipient, custom_recipient)
-        self.commands.append(_RouterFunction.SWEEP.value)
-        self.arguments.append(
-            self._encode_sweep_sub_contract(
-                token_address,
-                recipient,
-                amount_min,
-            )
-        )
+        args = (token_address, recipient, amount_min)
+        self._add_command(RouterFunction.SWEEP, args)
         return self
-
-    def _encode_pay_portion_sub_contract(self, token: ChecksumAddress, recipient: ChecksumAddress, bips: int) -> bytes:
-        abi_mapping = self._abi_map[_RouterFunction.PAY_PORTION]
-        return encode(abi_mapping.fct_abi.get_abi_types(), [token, recipient, bips])
 
     def pay_portion(
             self,
@@ -742,19 +658,9 @@ class _ChainedFunctionBuilder:
             raise ValueError(f"Invalid argument: bips must be an int between 0 and 10_000. Received {bips}")
 
         recipient = self._get_recipient(function_recipient, custom_recipient)
-        self.commands.append(_RouterFunction.PAY_PORTION.value)
-        self.arguments.append(
-            self._encode_pay_portion_sub_contract(
-                token_address,
-                recipient,
-                bips,
-            )
-        )
+        args = (token_address, recipient, bips)
+        self._add_command(RouterFunction.PAY_PORTION, args)
         return self
-
-    def _encode_transfer_sub_contract(self, token: ChecksumAddress, recipient: ChecksumAddress, value: int) -> bytes:
-        abi_mapping = self._abi_map[_RouterFunction.TRANSFER]
-        return encode(abi_mapping.fct_abi.get_abi_types(), [token, recipient, value])
 
     def transfer(
             self,
@@ -763,8 +669,8 @@ class _ChainedFunctionBuilder:
             value: Wei,
             custom_recipient: Optional[ChecksumAddress] = None) -> _ChainedFunctionBuilder:
         """
-        Encode the call to the function TRANSFER which transfers a part of the router's ERC20 or ETH to an address.
-        Transferred amount = balance * bips / 10_000
+        Encode the call to the function TRANSFER which transfers an amount of ERC20 or ETH from the router's balance
+        to an address.
 
         :param function_recipient: A FunctionRecipient which defines the recipient of this function output.
         :param token_address: The address of token to pay or "0x0000000000000000000000000000000000000000" for ETH.
@@ -775,14 +681,8 @@ class _ChainedFunctionBuilder:
         """
 
         recipient = self._get_recipient(function_recipient, custom_recipient)
-        self.commands.append(_RouterFunction.TRANSFER.value)
-        self.arguments.append(
-            self._encode_transfer_sub_contract(
-                token_address,
-                recipient,
-                value,
-            )
-        )
+        args = (token_address, recipient, value)
+        self._add_command(RouterFunction.TRANSFER, args)
         return self
 
     def permit2_transfer_from(
@@ -792,48 +692,37 @@ class _ChainedFunctionBuilder:
             amount: Wei,
             custom_recipient: Optional[ChecksumAddress] = None) -> _ChainedFunctionBuilder:
         recipient = self._get_recipient(function_recipient, custom_recipient)
-        abi_mapping = self._abi_map[_RouterFunction.PERMIT2_TRANSFER_FROM]
-        self.commands.append(_RouterFunction.PERMIT2_TRANSFER_FROM.value)
-        self.arguments.append(
-            encode(abi_mapping.fct_abi.get_abi_types(), [token_address, recipient, amount])
-        )
+        args = (token_address, recipient, amount)
+        self._add_command(RouterFunction.PERMIT2_TRANSFER_FROM, args)
         return self
 
     def v4_swap(self) -> _V4ChainedSwapFunctionBuilder:
         return _V4ChainedSwapFunctionBuilder(self, self._w3, self._abi_map)
 
-    def _encode_v4_initialize_pool_sub_contract(self, pool_key: PoolKey, sqrt_price_x96: int) -> bytes:
-        args = (tuple(pool_key.values()), sqrt_price_x96)
-        abi_mapping = self._abi_map[_RouterFunction.V4_INITIALIZE_POOL]
-        return encode(abi_mapping.fct_abi.get_abi_types(), args)
-
     def v4_initialize_pool(self, pool_key: PoolKey, amount_0: Wei, amount_1: Wei) -> _ChainedFunctionBuilder:
         sqrt_price_x96 = compute_sqrt_price_x96(amount_0, amount_1)
-        self.commands.append(_RouterFunction.V4_INITIALIZE_POOL.value)
-        self.arguments.append(
-            self._encode_v4_initialize_pool_sub_contract(
-                pool_key,
-                sqrt_price_x96,
-            )
-        )
+        args = (tuple(pool_key.values()), sqrt_price_x96)
+        self._add_command(RouterFunction.V4_INITIALIZE_POOL, args)
         return self
 
-    def v4_pm_call(self) -> _V4ChainedPositionFunctionBuilder:
+    def v4_posm_call(self) -> _V4ChainedPositionFunctionBuilder:
         return _V4ChainedPositionFunctionBuilder(self, self._w3, self._abi_map)
 
     def build(self, deadline: Optional[int] = None) -> HexStr:
         """
         Build the encoded input for all the chained commands, ready to be sent to the UR
 
-        :param deadline: The optional unix timestamp after which the transaction won't be valid any more.
+        :param deadline: The optional unix timestamp after which the transaction won't be valid anymore.
         :return: The encoded data to add to the UR transaction dictionary parameters.
         """
         if deadline:
-            execute_input = (bytes(self.commands), self.arguments, deadline)
-            return self._encode_execution_function(execute_input)
+            execute_with_deadline_args = (bytes(self.commands), self.arguments, deadline)
+            abi = self._abi_map[MiscFunctions.EXECUTE_WITH_DEADLINE]
+            return Web3.to_hex(abi.get_selector() + abi.encode(execute_with_deadline_args))
         else:
-            execute_without_deadline_input = (bytes(self.commands), self.arguments)
-            return self._encode_execution_without_deadline_function(execute_without_deadline_input)
+            execute_args = (bytes(self.commands), self.arguments)
+            abi = self._abi_map[MiscFunctions.EXECUTE]
+            return Web3.to_hex(abi.get_selector() + abi.encode(execute_args))
 
     def build_transaction(
             self,
@@ -874,7 +763,7 @@ class _ChainedFunctionBuilder:
         :param chain_id: custom 'chainId'
         :param nonce: custom 'nonce'
         :param ur_address: custom Universal Router address
-        :param deadline: The optional unix timestamp after which the transaction won't be valid any more.
+        :param deadline: The optional unix timestamp after which the transaction won't be valid anymore.
         :param block_identifier: specify at what block the computing is done. Mostly for test purposes.
         :return: a transaction (TxParams) ready to be signed
         """

@@ -15,6 +15,15 @@ from uniswap_universal_router_decoder import (
 codec = RouterCodec()
 
 
+def to_camel_case(d: dict):
+    result = {}
+    for k, v in d.items():
+        breakdown = k.split("_")
+        camel_case_key = breakdown[0] + "".join(key_bit.title() for key_bit in breakdown[1:])
+        result[camel_case_key] = v
+    return result
+
+
 def test_pool_key():
     pool_key_1 = codec.encode.v4_pool_key(
         "0x0000000000000000000000000000000000000000",
@@ -42,7 +51,7 @@ def test_pool_id():
     assert codec.encode.v4_pool_id(pool_key) == Web3.to_bytes(hexstr=expected_pool_id)
 
 
-def test_v4_swap():
+def test_v4_swap_in_single():
     pool_key = codec.encode.v4_pool_key(
         "0x0000000000000000000000000000000000000000",
         "0xBf5617af623f1863c4abc900c5bebD5415a694e8",
@@ -174,7 +183,7 @@ def test_v4_position_manager_call():
         codec.
         encode.
         chain().
-        v4_pm_call().
+        v4_posm_call().
         mint_position(
             pool_key,
             MIN_TICK,
@@ -189,7 +198,7 @@ def test_v4_position_manager_call():
         close_currency("0x0000000000000000000000000000000000000000").
         sweep("0xBf5617af623f1863c4abc900c5bebD5415a694e8", "0x29F08a27911bbCd0E01E8B1D97ec3cA187B6351D").
         sweep("0x0000000000000000000000000000000000000000", "0x29F08a27911bbCd0E01E8B1D97ec3cA187B6351D").
-        build_v4_pm_call(codec.get_default_deadline()).
+        build_v4_posm_call(codec.get_default_deadline()).
         build()
     )
     print(encoded_input)
@@ -276,5 +285,98 @@ def test_v4_position_manager_call():
             }
         )
     ]
+}
+"""
+
+
+def test_v4_swap_in():
+    currency_in = Web3.to_checksum_address("0x0000000000000000000000000000000000000000")
+    path_key_0 = codec.encode.v4_path_key(
+        Web3.to_checksum_address("0xBf5617af623f1863c4abc900c5bebD5415a694e8"),
+        3000,
+        60,
+    )
+    path_key_1 = codec.encode.v4_path_key(
+        Web3.to_checksum_address("0x2207B8c3d6b63675D9D14019e9F6b7f76ddF997f"),
+        2500,
+        55,
+    )
+    encoded_input = (
+        codec.
+        encode.
+        chain().
+        v4_swap().
+        swap_exact_in(
+            currency_in=currency_in,
+            path_keys=[path_key_0, path_key_1],
+            amount_in=Wei(1 * 10**18),
+            amount_out_min=Wei(0),
+        ).
+        build_v4_swap().
+        build(deadline=1735989153)
+    )
+
+    print(encoded_input)
+
+    fct_name, decoded_input = codec.decode.function_input(encoded_input)
+    print(fct_name)
+    pp(decoded_input, indent=1, width=120)
+
+    assert repr(fct_name) == "<Function execute(bytes,bytes[],uint256)>"
+    assert int(decoded_input['commands'].hex(), 16) == 16
+    assert repr(decoded_input['inputs'][0][0]) == "<Function V4_SWAP(bytes,bytes[])>"
+    assert decoded_input['inputs'][0][1]["actions"] == b'\x07'
+    assert repr(decoded_input['inputs'][0][1]["params"][0][0]) == "<Function SWAP_EXACT_IN(address,(address,uint24,int24,address,bytes)[],uint128,uint128)>"  # noqa E501
+    assert decoded_input['inputs'][0][1]["params"][0][1]["currencyIn"] == "0x0000000000000000000000000000000000000000"
+    path_keys = [to_camel_case(path_key_0), to_camel_case(path_key_1)]
+    assert decoded_input['inputs'][0][1]["params"][0][1]["PathKeys"] == path_keys
+    assert decoded_input['inputs'][0][1]["params"][0][1]["amountIn"] == 1000000000000000000
+    assert decoded_input['inputs'][0][1]["params"][0][1]["amountOutMinimum"] == 0
+    assert decoded_input['inputs'][0][2]["revert_on_fail"] is True
+    assert decoded_input['deadline'] == 1735989153
+
+
+"""
+<Function execute(bytes,bytes[],uint256)>
+{
+    'commands': b'\x10',
+    'inputs': [
+        (
+            <Function V4_SWAP(bytes,bytes[])>,
+            {
+                'actions': b'\x07',
+                'params': [
+                    (
+                        <Function SWAP_EXACT_IN(address,(address,uint24,int24,address,bytes)[],uint128,uint128)>,
+                        {
+                            'currencyIn': '0x0000000000000000000000000000000000000000',
+                            'PathKeys': [
+                                {
+                                    'intermediateCurrency': '0xBf5617af623f1863c4abc900c5bebD5415a694e8',
+                                     'fee': 3000,
+                                     'tickSpacing': 60,
+                                     'hooks': '0x0000000000000000000000000000000000000000',
+                                     'hookData': b''
+                                 },
+                                 {
+                                     'intermediateCurrency': '0x2207B8c3d6b63675D9D14019e9F6b7f76ddF997f',
+                                     'fee': 2500,
+                                     'tickSpacing': 55,
+                                     'hooks': '0x0000000000000000000000000000000000000000',
+                                     'hookData': b''
+                                 }
+                              ],
+                              'amountIn': 1000000000000000000,
+                              'amountOutMinimum': 0
+                        }
+                    )
+                ]
+            },
+            {
+                'revert_on_fail': True
+            }
+        )
+    ],
+    'deadline': 1735989153
 }
 """

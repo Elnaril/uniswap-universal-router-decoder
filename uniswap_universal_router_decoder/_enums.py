@@ -7,13 +7,16 @@ Enums used by the Uniswap Universal Router Codec
 """
 
 
-from enum import Enum
+from enum import (
+    auto,
+    Enum,
+)
 
 from web3 import Web3
 from web3.types import Wei
 
 
-class _RouterFunction(Enum):
+class RouterFunction(Enum):
     # https://docs.uniswap.org/contracts/universal-router/technical-reference#command
     V3_SWAP_EXACT_IN = 0
     V3_SWAP_EXACT_OUT = 1
@@ -60,24 +63,40 @@ class TransactionSpeed(Enum):
     FASTER = 3
 
 
-class _V4Actions(Enum):
+class V4Actions(Enum):
     # https://github.com/Uniswap/v4-periphery/blob/main/src/libraries/Actions.sol
     # Positions
     MINT_POSITION = 0x02
+    MINT_POSITION_FROM_DELTAS = 0x05
     SETTLE_PAIR = 0x0d
+    # TAKE_PAIR = 0x11
     CLOSE_CURRENCY = 0x12
+    # CLEAR_OR_TAKE = 0x13
     SWEEP = 0x14
+    WRAP = 0x15
     UNWRAP = 0x16
 
     # Swaps
     SWAP_EXACT_IN_SINGLE = 0x06
+    SWAP_EXACT_IN = 0x07
+    SWAP_EXACT_OUT_SINGLE = 0x08
+    SWAP_EXACT_OUT = 0x09
     SETTLE_ALL = 0x0c
     TAKE_ALL = 0x0f
+    # TAKE_PORTION = 0x10
 
     # Common
     SETTLE = 0x0b
+    # TAKE = 0x0e
 
 
 class V4Constants(Enum):
     OPEN_DELTA = 0
     CONTRACT_BALANCE = 0x8000000000000000000000000000000000000000000000000000000000000000
+
+
+class MiscFunctions(Enum):
+    EXECUTE = auto()
+    EXECUTE_WITH_DEADLINE = auto()  # value = "execute" would be nice, but enum names and values must be unique
+    UNLOCK_DATA = auto()
+    V4_POOL_ID = auto()

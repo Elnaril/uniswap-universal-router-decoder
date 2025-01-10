@@ -29,7 +29,7 @@ from web3.types import (
 )
 
 from uniswap_universal_router_decoder._abi_builder import (
-    _ABIMap,
+    ABIMap,
     build_abi_type_list,
 )
 from uniswap_universal_router_decoder._constants import (
@@ -40,13 +40,13 @@ from uniswap_universal_router_decoder._constants import (
 )
 from uniswap_universal_router_decoder._enums import (
     _RouterConstant,
-    _RouterFunction,
-    _V4Actions,
+    RouterFunction,
+    V4Actions,
 )
 
 
 class _V4Decoder:
-    def __init__(self, w3: Web3, abi_map: _ABIMap) -> None:
+    def __init__(self, w3: Web3, abi_map: ABIMap) -> None:
         self._w3 = w3
         self._abi_map = abi_map
         self._pm_contract = w3.eth.contract(abi=_position_manager_abi)
@@ -61,9 +61,9 @@ class _V4Decoder:
         decoded_params = []
         for i, action in enumerate(actions):
             try:
-                abi_mapping = self._abi_map[_V4Actions(action)]
-                data = abi_mapping.selector + params[i]
-                sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
+                abi_mapping = self._abi_map[V4Actions(action)]
+                data = abi_mapping.get_selector() + params[i]
+                sub_contract = self._w3.eth.contract(abi=abi_mapping.get_full_abi())
                 decoded_params.append(sub_contract.decode_function_input(data))
             except (ValueError, KeyError, DecodingError):
                 decoded_params.append(params[i].hex())
@@ -78,7 +78,7 @@ class _V4Decoder:
 
 
 class _Decoder:
-    def __init__(self, w3: Web3, abi_map: _ABIMap) -> None:
+    def __init__(self, w3: Web3, abi_map: ABIMap) -> None:
         self._w3 = w3
         self._router_contract = self._w3.eth.contract(abi=_router_abi)
         self._abi_map = abi_map
@@ -100,15 +100,15 @@ class _Decoder:
             # iterating over bytes produces integers
             command_function = b & _RouterConstant.COMMAND_TYPE_MASK.value
             try:
-                abi_mapping = self._abi_map[_RouterFunction(command_function)]
-                if b == _RouterFunction.V4_POSITION_MANAGER_CALL.value:
+                abi_mapping = self._abi_map[RouterFunction(command_function)]
+                if b == RouterFunction.V4_POSITION_MANAGER_CALL.value:
                     data = command_input[i]
                 else:
-                    data = abi_mapping.selector + command_input[i]
-                sub_contract = self._w3.eth.contract(abi=abi_mapping.fct_abi.get_full_abi())
+                    data = abi_mapping.get_selector() + command_input[i]
+                sub_contract = self._w3.eth.contract(abi=abi_mapping.get_full_abi())
                 revert_on_fail = not bool(b & _RouterConstant.FLAG_ALLOW_REVERT.value)
                 decoded_fct_name, decoded_fct_params = sub_contract.decode_function_input(data)
-                if b == _RouterFunction.V4_SWAP.value:
+                if b == RouterFunction.V4_SWAP.value:
                     decoded_command_input.append(
                         (
                             decoded_fct_name,
@@ -122,7 +122,7 @@ class _Decoder:
                             {"revert_on_fail": revert_on_fail},
                         )
                     )
-                elif b == _RouterFunction.V4_POSITION_MANAGER_CALL.value:
+                elif b == RouterFunction.V4_POSITION_MANAGER_CALL.value:
                     decoded_command_input.append(
                         (
                             decoded_fct_name,

@@ -6,6 +6,19 @@
 
 ---
 
+<div>
+    <img 
+        style="display: block; 
+               margin-left: auto;
+               margin-right: auto;
+               width: 75%;"
+        src="./python_uniswap_universal_router_sdk_small.jpg" 
+        alt="Python Uniswap Universal Router SDK">
+</div>
+
+---
+
+
 #### Project Information
 [![Tests & Lint](https://github.com/Elnaril/uniswap-universal-router-decoder/actions/workflows/tests.yml/badge.svg)](https://github.com/Elnaril/uniswap-universal-router-decoder/actions/workflows/tests.yml)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/uniswap-universal-router-decoder)](https://pypi.org/project/uniswap-universal-router-decoder/)
@@ -23,7 +36,7 @@
 ---
 
 ## Release Notes
-### v2.0.0a1
+### v2.0.0a2
  - Add support for some V4 functions and features:
    - `V4_INITIALIZE_POOL`
    - `V4_POSITION_MANAGER_CALL`
@@ -31,9 +44,12 @@
      - `SETTLE`
      - `SETTLE_PAIR`
      - `CLOSE_CURRENCY`
+     - `WRAP`
      - `UNWRAP`
    - `V4_SWAP`
      - `SWAP_EXACT_IN_SINGLE`
+     - `SWAP_EXACT_IN`
+     - `SWAP_EXACT_OUT_SINGLE`
      - `SETTLE`
      - `SETTLE_ALL`
      - `TAKE_ALL`
@@ -41,6 +57,8 @@
  - Add support for `PERMIT2_TRANSFER_FROM`
  - Custom contract error decoding
  - Encoding refactoring
+ - Remove support for Python 3.8
+ - Update repository picture
 
 ### v1.2.1
  - Add support for web3 v7
@@ -69,39 +87,42 @@ The target audience is Python developers who are familiar with the Ethereum bloc
 
 ### List of supported Uniswap Universal Router Functions
 
-| Command Id  | Universal Router Function   | Underlying Action - Function  | Supported  |
-|-------------|-----------------------------|-------------------------------|:----------:|
-| 0x00        | V3_SWAP_EXACT_IN            |                               |     ✅      |
-| 0x01        | V3_SWAP_EXACT_OUT           |                               |     ✅      |
-| 0x02        | PERMIT2_TRANSFER_FROM       |                               |     ✅      |
-| 0x03        | PERMIT2_PERMIT_BATCH        |                               |     ❌      |
-| 0x04        | SWEEP                       |                               |     ✅      |
-| 0x05        | TRANSFER                    |                               |     ✅      |
-| 0x06        | PAY_PORTION                 |                               |     ✅      |
-| 0x07        | placeholder                 |                               |    N/A     |
-| 0x08        | V2_SWAP_EXACT_IN            |                               |     ✅      |
-| 0x09        | V2_SWAP_EXACT_OUT           |                               |     ✅      |
-| 0x0a        | PERMIT2_PERMIT              |                               |     ✅      |
-| 0x0b        | WRAP_ETH                    |                               |     ✅      |
-| 0x0c        | UNWRAP_WETH                 |                               |     ✅      |
-| 0x0d        | PERMIT2_TRANSFER_FROM_BATCH |                               |     ❌      |
-| 0x0e - 0x0f | placeholders                |                               |    N/A     |
-| 0x10        | V4_SWAP                     |                               | Partially  |
-|             |                             | 0x06 - SWAP_EXACT_IN_SINGLE   |     ✅      |
-|             |                             | 0x0b - SETTLE                 |     ✅      |
-|             |                             | 0x0c - SETTLE_ALL             |     ✅      |
-|             |                             | 0x0f - TAKE_ALL               |     ✅      |
-| 0x11 - 0x12 |                             |                               |     ❌      |
-| 0x13        | V4_INITIALIZE_POOL          |                               |     ✅      |
-| 0x14        | V4_POSITION_MANAGER_CALL    |                               | Partially  |
-|             |                             | 0x02 - MINT_POSITION          |     ✅      |
-|             |                             | 0x0b - SETTLE                 |     ✅      |
-|             |                             | 0x0d - SETTLE_PAIR            |     ✅      |
-|             |                             | 0x12 - CLOSE_CURRENCY         |     ✅      |
-|             |                             | 0x14 - SWEEP                  |     ✅      |
-|             |                             | 0x16 - UNWRAP                 |     ✅      |
-| 0x15 - 0x1d |                             |                               |     ❌      |
-| 0x1e - 0x3f | placeholders                |                               |    N/A     |
+| Command Id  | Universal Router Function   | Underlying Action - Function | Supported  |
+|-------------|-----------------------------|------------------------------|:----------:|
+| 0x00        | V3_SWAP_EXACT_IN            |                              |     ✅      |
+| 0x01        | V3_SWAP_EXACT_OUT           |                              |     ✅      |
+| 0x02        | PERMIT2_TRANSFER_FROM       |                              |     ✅      |
+| 0x03        | PERMIT2_PERMIT_BATCH        |                              |     ❌      |
+| 0x04        | SWEEP                       |                              |     ✅      |
+| 0x05        | TRANSFER                    |                              |     ✅      |
+| 0x06        | PAY_PORTION                 |                              |     ✅      |
+| 0x07        | placeholder                 |                              |    N/A     |
+| 0x08        | V2_SWAP_EXACT_IN            |                              |     ✅      |
+| 0x09        | V2_SWAP_EXACT_OUT           |                              |     ✅      |
+| 0x0a        | PERMIT2_PERMIT              |                              |     ✅      |
+| 0x0b        | WRAP_ETH                    |                              |     ✅      |
+| 0x0c        | UNWRAP_WETH                 |                              |     ✅      |
+| 0x0d        | PERMIT2_TRANSFER_FROM_BATCH |                              |     ❌      |
+| 0x0e - 0x0f | placeholders                |                              |    N/A     |
+| 0x10        | V4_SWAP                     |                              | Partially  |
+|             |                             | 0x06 - SWAP_EXACT_IN_SINGLE  |     ✅      |
+|             |                             | 0x07 - SWAP_EXACT_IN         |     ✅      |
+|             |                             | 0x08 - SWAP_EXACT_OUT_SINGLE |     ✅      |
+|             |                             | 0x0b - SETTLE                |     ✅      |
+|             |                             | 0x0c - SETTLE_ALL            |     ✅      |
+|             |                             | 0x0f - TAKE_ALL              |     ✅      |
+| 0x11 - 0x12 |                             |                              |     ❌      |
+| 0x13        | V4_INITIALIZE_POOL          |                              |     ✅      |
+| 0x14        | V4_POSITION_MANAGER_CALL    |                              | Partially  |
+|             |                             | 0x02 - MINT_POSITION         |     ✅      |
+|             |                             | 0x0b - SETTLE                |     ✅      |
+|             |                             | 0x0d - SETTLE_PAIR           |     ✅      |
+|             |                             | 0x12 - CLOSE_CURRENCY        |     ✅      |
+|             |                             | 0x14 - SWEEP                 |     ✅      |
+|             |                             | 0x15 - WRAP                  |     ✅      |
+|             |                             | 0x16 - UNWRAP                |     ✅      |
+| 0x15 - 0x1d |                             |                              |     ❌      |
+| 0x1e - 0x3f | placeholders                |                              |    N/A     |
 
 ---
 
@@ -421,7 +442,22 @@ pool_key = codec.encode.v4_pool_key(
     token_1_address,
     fee,  # ex: 3000
     tick_spacing,  # ex: 60
+    hooks,  # address or "0x0000000000000000000000000000000000000000"
 )
+```
+
+#### How to build an Uniswap V4 path key
+```python
+from uniswap_universal_router_decoder import RouterCodec
+codec = RouterCodec()
+
+path_key = codec.encode.v4_path_key(
+        intermediate_token_address,
+        fee,  # ex: 3000
+        tick_spacing,  # ex: 60
+        hooks,  # address or "0x0000000000000000000000000000000000000000"
+        hook_data,  # ex: b"" if no data
+    )
 ```
 
 #### How to initialize an Uniswap V4 pool with the Universal Router function V4_INITIALIZE_POOL
@@ -476,6 +512,73 @@ trx_params = (
 ```
 
 #### How to perform an Uniswap V4 swap with the Universal Router function V4_SWAP
+###### Example using the V4 SWAP_EXACT_IN_SINGLE function to swap ETH for a token
+```python
+pool_key = codec.encode.v4_pool_key(
+    eth_address,  # "0x0000000000000000000000000000000000000000"
+    token_address,
+    pool_fee,  # ex: 3000
+    tick_spacing,  # ex: 60
+)
+
+trx_params = (
+    codec.
+    encode.
+    chain().
+    v4_swap().
+        swap_exact_in_single(
+            pool_key=pool_key,
+            zero_for_one=True,
+            amount_in=eth_amount,
+            amount_out_min=token_amount_min,
+        ).
+        take_all(token_address, Wei(0)).
+        settle_all(eth_address, eth_amount).  # with eth_address = "0x0000000000000000000000000000000000000000"
+        build_v4_swap().
+    build_transaction(account.address, eth_amount, ur_address=ur_address)
+)
+
+raw_transaction = w3.eth.account.sign_transaction(trx_params, account.key).raw_transaction
+trx_hash = w3.eth.send_raw_transaction(raw_transaction)
+```
+
+###### Example using the V4 SWAP_EXACT_IN function to swap ETH for a token through 2 pools
+path: eth -> token a -> token b
+
+```python
+path_key_eth_token_a = codec.encode.v4_path_key(
+    token_a_address,
+    fee,
+    tick_spacing,
+)
+path_key_token_a_token_b = codec.encode.v4_path_key(
+    token_b_address,
+    fee,
+    tick_spacing,
+)
+
+trx_params = (
+    codec.
+    encode.
+    chain().
+    v4_swap().
+        swap_exact_in(
+            eth_address,
+            [path_key_eth_token_a, path_key_token_a_token_b],
+            amount_in,
+            amount_out_min,
+        ).
+        take_all(token_b_address, Wei(0)).
+        settle_all(eth_address, amount_in).
+        build_v4_swap().
+    build_transaction(
+        account.address,
+        amount_in,
+        ur_address=ur_address,
+    )
+)
+```
+
 
 ### Other chainable functions
 (See integration tests for full examples) 
