@@ -175,6 +175,15 @@ class _V4ChainedCommonFunctionBuilder(ABC):
         self._add_action(V4Actions.SETTLE, args)
         return self
 
+    def take(
+            self: TV4ChainedCommonFunctionBuilder,
+            currency: ChecksumAddress,
+            recipient: ChecksumAddress,
+            amount: int) -> TV4ChainedCommonFunctionBuilder:
+        args = (currency, recipient, amount)
+        self._add_action(V4Actions.TAKE, args)
+        return self
+
 
 class _V4ChainedPositionFunctionBuilder(_V4ChainedCommonFunctionBuilder):
 
@@ -262,6 +271,23 @@ class _V4ChainedPositionFunctionBuilder(_V4ChainedCommonFunctionBuilder):
         self._add_action(V4Actions.UNWRAP, args)
         return self
 
+    def take_pair(
+            self,
+            currency_0: ChecksumAddress,
+            currency_1: ChecksumAddress,
+            recipient: ChecksumAddress) -> _V4ChainedPositionFunctionBuilder:
+        args = (currency_0, currency_1, recipient)
+        self._add_action(V4Actions.TAKE_PAIR, args)
+        return self
+
+    def clear_or_take(
+            self,
+            currency: ChecksumAddress,
+            amount_max: int) -> _V4ChainedPositionFunctionBuilder:
+        args = (currency, amount_max)
+        self._add_action(V4Actions.CLEAR_OR_TAKE, args)
+        return self
+
     def build_v4_posm_call(self, deadline: int) -> _ChainedFunctionBuilder:
         action_values = (bytes(self.actions), self.arguments)
         abi = self._abi_map[MiscFunctions.UNLOCK_DATA]
@@ -343,6 +369,15 @@ class _V4ChainedSwapFunctionBuilder(_V4ChainedCommonFunctionBuilder):
             amount_in_max: int) -> _V4ChainedSwapFunctionBuilder:
         args = (currency_out, [tuple(path_key.values()) for path_key in path_keys], amount_out, amount_in_max)
         self._add_action(V4Actions.SWAP_EXACT_OUT, args)
+        return self
+
+    def take_portion(
+            self,
+            currency: ChecksumAddress,
+            recipient: ChecksumAddress,
+            bips: int) -> _V4ChainedSwapFunctionBuilder:
+        args = (currency, recipient, bips)
+        self._add_action(V4Actions.TAKE_PORTION, args)
         return self
 
     def build_v4_swap(self) -> _ChainedFunctionBuilder:

@@ -36,7 +36,7 @@
 ---
 
 ## Release Notes
-### v2.0.0a2
+### v2.0.0a3
  - Add support for some V4 functions and features:
    - `V4_INITIALIZE_POOL`
    - `V4_POSITION_MANAGER_CALL`
@@ -46,13 +46,18 @@
      - `CLOSE_CURRENCY`
      - `WRAP`
      - `UNWRAP`
+     - `TAKE_PAIR`
+     - `CLEAR_OR_TAKE`
+     - `TAKE`
    - `V4_SWAP`
      - `SWAP_EXACT_IN_SINGLE`
      - `SWAP_EXACT_IN`
      - `SWAP_EXACT_OUT_SINGLE`
      - `SETTLE`
      - `SETTLE_ALL`
-     - `TAKE_ALL`
+     - `TAKE_ALL` 
+     - `TAKE_PORTION`
+     - `TAKE`
    - Pool Key and Pool Id encoding
  - Add support for `PERMIT2_TRANSFER_FROM`
  - Custom contract error decoding
