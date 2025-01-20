@@ -174,6 +174,10 @@ class _ABIBuilder:
             V4Actions.UNWRAP: self._build_v4_unwrap_weth(),
             V4Actions.SWAP_EXACT_OUT_SINGLE: self._build_v4_swap_exact_out_single(),
             V4Actions.SWAP_EXACT_OUT: self._build_v4_swap_exact_out(),
+            V4Actions.TAKE_PAIR: self._build_v4_take_pair(),
+            V4Actions.CLEAR_OR_TAKE: self._build_v4_clear_or_take(),
+            V4Actions.TAKE_PORTION: self._build_v4_take_portion(),
+            V4Actions.TAKE: self._build_v4_take(),
 
             MiscFunctions.EXECUTE: self._build_execute(),
             MiscFunctions.EXECUTE_WITH_DEADLINE: self._build_execute_with_deadline(),
@@ -381,3 +385,23 @@ class _ABIBuilder:
         builder.add_address("currencyOut")
         builder.add_struct_array(_ABIBuilder._v4_path_key_struct_array_builder())
         return builder.add_uint128("amountOut").add_uint128("amountInMaximum").build()
+
+    @staticmethod
+    def _build_v4_take_pair() -> FunctionABI:
+        builder = FunctionABIBuilder(V4Actions.TAKE_PAIR.name)
+        return builder.add_address("currency0").add_address("currency1").add_address("recipient").build()
+
+    @staticmethod
+    def _build_v4_clear_or_take() -> FunctionABI:
+        builder = FunctionABIBuilder(V4Actions.CLEAR_OR_TAKE.name)
+        return builder.add_address("currency").add_uint256("amountMax").build()
+
+    @staticmethod
+    def _build_v4_take_portion() -> FunctionABI:
+        builder = FunctionABIBuilder(V4Actions.TAKE_PORTION.name)
+        return builder.add_address("currency").add_address("recipient").add_uint256("bips").build()
+
+    @staticmethod
+    def _build_v4_take() -> FunctionABI:
+        builder = FunctionABIBuilder(V4Actions.TAKE.name)
+        return builder.add_address("currency").add_address("recipient").add_uint256("amount").build()

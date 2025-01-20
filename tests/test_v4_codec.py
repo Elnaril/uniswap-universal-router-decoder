@@ -51,7 +51,7 @@ def test_pool_id():
     assert codec.encode.v4_pool_id(pool_key) == Web3.to_bytes(hexstr=expected_pool_id)
 
 
-def test_v4_swap_in_single():
+def test_v4_swap_exact_in_single():
     pool_key = codec.encode.v4_pool_key(
         "0x0000000000000000000000000000000000000000",
         "0xBf5617af623f1863c4abc900c5bebD5415a694e8",
@@ -289,7 +289,7 @@ def test_v4_position_manager_call():
 """
 
 
-def test_v4_swap_in():
+def test_v4_swap_exact_in():
     currency_in = Web3.to_checksum_address("0x0000000000000000000000000000000000000000")
     path_key_0 = codec.encode.v4_path_key(
         Web3.to_checksum_address("0xBf5617af623f1863c4abc900c5bebD5415a694e8"),
@@ -379,4 +379,118 @@ def test_v4_swap_in():
     ],
     'deadline': 1735989153
 }
+"""
+
+
+def test_v4_swap_exact_out_single():
+    pool_key = codec.encode.v4_pool_key(
+        "0x0000000000000000000000000000000000000000",
+        "0xBf5617af623f1863c4abc900c5bebD5415a694e8",
+        3000,
+        50,
+        "0x0123456789012345678901234567890123456789"
+    )
+    encoded_input = (
+        codec.
+        encode.
+        chain().
+        v4_swap().
+        swap_exact_out_single(
+            pool_key=pool_key,
+            zero_for_one=True,
+            amount_out=798750268136655870501951828,
+            amount_in_max=500000000000000,
+            hook_data=b"hook_data",
+        ).
+        settle_all("0x0000000000000000000000000000000000000000", 500000000000000).
+        take(
+            "0xBf5617af623f1863c4abc900c5bebD5415a694e8",
+            Web3.to_checksum_address("0x0000000000000000000000000000000000000001"),
+            V4Constants.OPEN_DELTA.value,
+        ).
+        build_v4_swap().
+        build(deadline=1732612928)
+    )
+
+    print(encoded_input)
+
+    fct_name, decoded_input = codec.decode.function_input(encoded_input)
+    print(fct_name)
+    pp(decoded_input, width=120)
+
+    assert repr(fct_name) == "<Function execute(bytes,bytes[],uint256)>"
+    assert int(decoded_input['commands'].hex(), 16) == 16
+    assert repr(decoded_input['inputs'][0][0]) == "<Function V4_SWAP(bytes,bytes[])>"
+    assert decoded_input['inputs'][0][1]["actions"] == b'\x08\x0c\x0e'
+
+    assert repr(decoded_input['inputs'][0][1]["params"][0][0]) == "<Function SWAP_EXACT_OUT_SINGLE(((address,address,uint24,int24,address),bool,uint128,uint128,bytes))>"  # noqa E501
+    exact_out_single_params = decoded_input['inputs'][0][1]["params"][0][1]["exact_out_single_params"]
+    assert exact_out_single_params["PoolKey"] == to_camel_case(pool_key)
+    assert exact_out_single_params["zeroForOne"]
+    assert exact_out_single_params["amountOut"] == 798750268136655870501951828
+    assert exact_out_single_params["amountInMaximum"] == 500000000000000
+    assert exact_out_single_params["hookData"] == b'hook_data'
+
+    assert repr(decoded_input['inputs'][0][1]["params"][1][0]) == "<Function SETTLE_ALL(address,uint256)>"
+    assert decoded_input['inputs'][0][1]["params"][1][1]["currency"] == "0x0000000000000000000000000000000000000000"
+    assert decoded_input['inputs'][0][1]["params"][1][1]["maxAmount"] == 500000000000000
+
+    assert repr(decoded_input['inputs'][0][1]["params"][2][0]) == "<Function TAKE(address,address,uint256)>"
+    assert decoded_input['inputs'][0][1]["params"][2][1]["currency"] == "0xBf5617af623f1863c4abc900c5bebD5415a694e8"
+    assert decoded_input['inputs'][0][1]["params"][2][1]["recipient"] == "0x0000000000000000000000000000000000000001"
+    assert decoded_input['inputs'][0][1]["params"][2][1]["amount"] == 0
+
+    assert decoded_input['inputs'][0][2] == {'revert_on_fail': True}
+    assert decoded_input['deadline'] == 1732612928
+
+"""
+<Function execute(bytes,bytes[],uint256)>
+{'commands': b'\x10',
+ 'inputs': [
+    (
+        <Function V4_SWAP(bytes,bytes[])>,
+        {
+            'actions': b'\x08\x0c\x0e',
+            'params': [
+                (
+                    <Function SWAP_EXACT_OUT_SINGLE(((address,address,uint24,int24,address),bool,uint128,uint128,bytes))>,  # noqa E501
+                    {
+                        'exact_out_single_params': {
+                            'PoolKey': {
+                                'currency0': '0x0000000000000000000000000000000000000000',
+                                'currency1': '0xBf5617af623f1863c4abc900c5bebD5415a694e8',
+                                'fee': 3000,
+                                'tickSpacing': 50,
+                                'hooks': '0x0123456789012345678901234567890123456789'
+                            },
+                            'zeroForOne': True,
+                            'amountOut': 798750268136655870501951828,
+                            'amountInMaximum': 500000000000000,
+                            'hookData': b'hook_data'
+                        }
+                    }
+                ),
+                (
+                    <Function SETTLE_ALL(address,uint256)>,
+                    {
+                        'currency': '0x0000000000000000000000000000000000000000',
+                        'maxAmount': 500000000000000
+                    }
+                ),
+                (
+                    <Function TAKE(address,address,uint256)>,
+                    {
+                        'currency': '0xBf5617af623f1863c4abc900c5bebD5415a694e8',
+                        'recipient': '0x0000000000000000000000000000000000000001',
+                        'amount': 0
+                    }
+                )
+            ]
+        },
+        {'revert_on_fail': True}
+    )
+],
+'deadline': 1732612928
+}
+
 """

@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "uniswap-universal-router-decoder"
-version = "2.0.0a2"
+version = "2.0.0a3"
 authors = [
   { name="Elnaril", email="elnaril_dev@caramail.com" },
 ]
 description = "Decode & Encode transactions sent to the Uniswap Universal Router"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
