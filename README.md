@@ -92,42 +92,48 @@ The target audience is Python developers who are familiar with the Ethereum bloc
 
 ### List of supported Uniswap Universal Router Functions
 
-| Command Id  | Universal Router Function   | Underlying Action - Function | Supported  |
-|-------------|-----------------------------|------------------------------|:----------:|
-| 0x00        | V3_SWAP_EXACT_IN            |                              |     ✅      |
-| 0x01        | V3_SWAP_EXACT_OUT           |                              |     ✅      |
-| 0x02        | PERMIT2_TRANSFER_FROM       |                              |     ✅      |
-| 0x03        | PERMIT2_PERMIT_BATCH        |                              |     ❌      |
-| 0x04        | SWEEP                       |                              |     ✅      |
-| 0x05        | TRANSFER                    |                              |     ✅      |
-| 0x06        | PAY_PORTION                 |                              |     ✅      |
-| 0x07        | placeholder                 |                              |    N/A     |
-| 0x08        | V2_SWAP_EXACT_IN            |                              |     ✅      |
-| 0x09        | V2_SWAP_EXACT_OUT           |                              |     ✅      |
-| 0x0a        | PERMIT2_PERMIT              |                              |     ✅      |
-| 0x0b        | WRAP_ETH                    |                              |     ✅      |
-| 0x0c        | UNWRAP_WETH                 |                              |     ✅      |
-| 0x0d        | PERMIT2_TRANSFER_FROM_BATCH |                              |     ❌      |
-| 0x0e - 0x0f | placeholders                |                              |    N/A     |
-| 0x10        | V4_SWAP                     |                              | Partially  |
-|             |                             | 0x06 - SWAP_EXACT_IN_SINGLE  |     ✅      |
-|             |                             | 0x07 - SWAP_EXACT_IN         |     ✅      |
-|             |                             | 0x08 - SWAP_EXACT_OUT_SINGLE |     ✅      |
-|             |                             | 0x0b - SETTLE                |     ✅      |
-|             |                             | 0x0c - SETTLE_ALL            |     ✅      |
-|             |                             | 0x0f - TAKE_ALL              |     ✅      |
-| 0x11 - 0x12 |                             |                              |     ❌      |
-| 0x13        | V4_INITIALIZE_POOL          |                              |     ✅      |
-| 0x14        | V4_POSITION_MANAGER_CALL    |                              | Partially  |
-|             |                             | 0x02 - MINT_POSITION         |     ✅      |
-|             |                             | 0x0b - SETTLE                |     ✅      |
-|             |                             | 0x0d - SETTLE_PAIR           |     ✅      |
-|             |                             | 0x12 - CLOSE_CURRENCY        |     ✅      |
-|             |                             | 0x14 - SWEEP                 |     ✅      |
-|             |                             | 0x15 - WRAP                  |     ✅      |
-|             |                             | 0x16 - UNWRAP                |     ✅      |
-| 0x15 - 0x1d |                             |                              |     ❌      |
-| 0x1e - 0x3f | placeholders                |                              |    N/A     |
+| Command Id  | Universal Router Function   | Underlying Action - Function | Supported |
+|-------------|-----------------------------|------------------------------|:---------:|
+| 0x00        | V3_SWAP_EXACT_IN            |                              |     ✅     |
+| 0x01        | V3_SWAP_EXACT_OUT           |                              |     ✅     |
+| 0x02        | PERMIT2_TRANSFER_FROM       |                              |     ✅     |
+| 0x03        | PERMIT2_PERMIT_BATCH        |                              |     ❌     |
+| 0x04        | SWEEP                       |                              |     ✅     |
+| 0x05        | TRANSFER                    |                              |     ✅     |
+| 0x06        | PAY_PORTION                 |                              |     ✅     |
+| 0x07        | placeholder                 |                              |    N/A    |
+| 0x08        | V2_SWAP_EXACT_IN            |                              |     ✅     |
+| 0x09        | V2_SWAP_EXACT_OUT           |                              |     ✅     |
+| 0x0a        | PERMIT2_PERMIT              |                              |     ✅     |
+| 0x0b        | WRAP_ETH                    |                              |     ✅     |
+| 0x0c        | UNWRAP_WETH                 |                              |     ✅     |
+| 0x0d        | PERMIT2_TRANSFER_FROM_BATCH |                              |     ❌     |
+| 0x0e - 0x0f | placeholders                |                              |    N/A    |
+| 0x10        | V4_SWAP                     |                              |     ✅     |
+|             |                             | 0x06 - SWAP_EXACT_IN_SINGLE  |     ✅     |
+|             |                             | 0x07 - SWAP_EXACT_IN         |     ✅     |
+|             |                             | 0x08 - SWAP_EXACT_OUT_SINGLE |     ✅     |
+|             |                             | 0x09 - SWAP_EXACT_OUT        |     ✅     |
+|             |                             | 0x0b - SETTLE                |     ✅     |
+|             |                             | 0x0c - SETTLE_ALL            |     ✅     |
+|             |                             | 0x0e - TAKE                  |     ✅     |
+|             |                             | 0x0f - TAKE_ALL              |     ✅     |
+|             |                             | 0x10 - TAKE_PORTION          |     ✅     |
+| 0x11 - 0x12 |                             |                              |     ❌     |
+| 0x13        | V4_INITIALIZE_POOL          |                              |     ✅     |
+| 0x14        | V4_POSITION_MANAGER_CALL    |                              |     ✅     |
+|             |                             | 0x02 - MINT_POSITION         |     ✅     |
+|             |                             | 0x0b - SETTLE                |     ✅     |
+|             |                             | 0x0d - SETTLE_PAIR           |     ✅     |
+|             |                             | 0x0e - TAKE                  |     ✅     |
+|             |                             | 0x11 - TAKE_PAIR             |     ✅     |
+|             |                             | 0x12 - CLOSE_CURRENCY        |     ✅     |
+|             |                             | 0x13 - CLEAR_OR_TAKE         |     ✅     |
+|             |                             | 0x14 - SWEEP                 |     ✅     |
+|             |                             | 0x15 - WRAP                  |     ✅     |
+|             |                             | 0x16 - UNWRAP                |     ✅     |
+| 0x15 - 0x1d |                             |                              |     ❌     |
+| 0x1e - 0x3f | placeholders                |                              |    N/A    |
 
 ---
 
