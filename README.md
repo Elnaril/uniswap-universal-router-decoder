@@ -53,6 +53,7 @@
      - `SWAP_EXACT_IN_SINGLE`
      - `SWAP_EXACT_IN`
      - `SWAP_EXACT_OUT_SINGLE`
+     - `SWAP_EXACT_OUT`
      - `SETTLE`
      - `SETTLE_ALL`
      - `TAKE_ALL` 
