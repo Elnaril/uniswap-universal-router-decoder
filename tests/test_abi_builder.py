@@ -18,8 +18,8 @@ expected_execute_abi = json.loads('{"inputs":[{"name":"commands","type":"bytes"}
 expected_execute_signature = "execute(bytes,bytes[])"
 expected_fct_abi_19 = json.loads('{"inputs": [{"components": [{"name": "currency0", "type": "address"}, {"name": "currency1", "type": "address"}, {"name": "fee", "type": "uint24"}, {"name": "tickSpacing", "type": "int24"}, {"name": "hooks", "type": "address"}], "name": "PoolKey", "type": "tuple"}, {"name": "sqrtPriceX96", "type": "uint256"}], "name": "V4_INITIALIZE_POOL", "type": "function"}')  # noqa E501
 expected_fct_signature_19 = "V4_INITIALIZE_POOL((address,address,uint24,int24,address),uint256)"
-expected_v4_swap_exact_in_abi = json.loads('{"inputs":[{"name":"currencyIn","type":"address"},{"components":[{"name":"intermediateCurrency","type":"address"},{"name":"fee","type":"uint24"},{"name":"tickSpacing","type":"int24"},{"name":"hooks","type":"address"},{"name":"hookData","type":"bytes"}],"name":"PathKeys","type":"tuple[]"},{"name":"amountIn","type":"uint128"},{"name":"amountOutMinimum","type":"uint128"}],"name":"SWAP_EXACT_IN","type":"function"}')  # noqa E501
-expected_v4_swap_exact_in_signature = "SWAP_EXACT_IN(address,(address,uint24,int24,address,bytes)[],uint128,uint128)"
+expected_v4_swap_exact_in_abi = json.loads('{"inputs": [{"name": "params", "type": "ExactInputParams"}], "name": "SWAP_EXACT_IN", "type": "function"}')  # noqa E501
+expected_v4_swap_exact_in_signature = "SWAP_EXACT_IN(ExactInputParams)"
 
 
 @pytest.mark.parametrize(
@@ -29,7 +29,7 @@ expected_v4_swap_exact_in_signature = "SWAP_EXACT_IN(address,(address,uint24,int
         (RouterFunction(10), expected_fct_abi_10, b'9#\xf7\x04', expected_fct_signature_10),
         (MiscFunctions.EXECUTE, expected_execute_abi, bytes.fromhex("24856bc3"), expected_execute_signature),
         (RouterFunction.V4_INITIALIZE_POOL, expected_fct_abi_19, b'\xdb\xd4\xe4\xbd', expected_fct_signature_19),
-        (V4Actions.SWAP_EXACT_IN, expected_v4_swap_exact_in_abi, b']\x01\xe5\x90', expected_v4_swap_exact_in_signature),  # noqa E501
+        (V4Actions.SWAP_EXACT_IN, expected_v4_swap_exact_in_abi, b'h>~1', expected_v4_swap_exact_in_signature),  # noqa E501
     )
 )
 def test_build_abi_map(command_id, expected_fct_abi, expected_selector, expected_signature, codec):

@@ -7,8 +7,10 @@ Factory that builds the UR function ABIs used by the Uniswap Universal Router Co
 """
 from __future__ import annotations
 
+from io import BytesIO
 from typing import (
     Any,
+    cast,
     Dict,
     List,
     Sequence,
@@ -16,7 +18,9 @@ from typing import (
 )
 
 from eth_abi import encode
+from eth_abi.registry import registry
 from eth_utils import keccak
+from web3 import Web3
 
 from uniswap_universal_router_decoder._enums import (
     MiscFunctions,
@@ -140,8 +144,17 @@ class FunctionABIBuilder:
         self.abi.inputs.append({"name": arg_name, "type": "bytes[]"})
         return self
 
+    def add_v4_exact_input_params(self, arg_name: str = "params") -> FunctionABIBuilder:
+        self.abi.inputs.append({"name": arg_name, "type": "ExactInputParams"})
+        return self
+
 
 class _ABIBuilder:
+    def __init__(self) -> None:
+        self.w3 = Web3()
+        if not registry.has_encoder("ExactInputParams"):
+            registry.register("ExactInputParams", self.encode_v4_exact_input_params, self.decode_v4_exact_input_params)
+
     def build_abi_map(self) -> ABIMap:
         abi_map: ABIMap = {
             # mapping between command identifier and function abi
@@ -346,8 +359,8 @@ class _ABIBuilder:
         return builder.add_address("hooks").add_bytes("hookData")
 
     @staticmethod
-    def _build_v4_swap_exact_in() -> FunctionABI:
-        builder = FunctionABIBuilder(V4Actions.SWAP_EXACT_IN.name)
+    def _build_strict_v4_swap_exact_in() -> FunctionABI:
+        builder = FunctionABIBuilder("STRICT_SWAP_EXACT_IN")
         builder.add_address("currencyIn")
         builder.add_struct_array(_ABIBuilder._v4_path_key_struct_array_builder())
         return builder.add_uint128("amountIn").add_uint128("amountOutMinimum").build()
@@ -405,3 +418,20 @@ class _ABIBuilder:
     def _build_v4_take() -> FunctionABI:
         builder = FunctionABIBuilder(V4Actions.TAKE.name)
         return builder.add_address("currency").add_address("recipient").add_uint256("amount").build()
+
+    @staticmethod
+    def _build_v4_swap_exact_in() -> FunctionABI:
+        builder = FunctionABIBuilder(V4Actions.SWAP_EXACT_IN.name)
+        return builder.add_v4_exact_input_params().build()
+
+    def decode_v4_exact_input_params(self, stream: BytesIO) -> Dict[str, Any]:
+        fct_abi = self._build_strict_v4_swap_exact_in()
+        raw_data = stream.read()
+        sub_contract = self.w3.eth.contract(abi=fct_abi.get_full_abi())
+        fct_name, decoded_params = sub_contract.decode_function_input(fct_abi.get_selector() + raw_data[32:])
+        return cast(Dict[str, Any], decoded_params)
+
+    def encode_v4_exact_input_params(self, args: Sequence[Any]) -> bytes:
+        fct_abi = self._build_strict_v4_swap_exact_in()
+        encoded_data = 0x20.to_bytes(32, "big") + encode(fct_abi.get_abi_types(), args)
+        return encoded_data

@@ -326,12 +326,12 @@ def test_v4_swap_exact_in():
     assert int(decoded_input['commands'].hex(), 16) == 16
     assert repr(decoded_input['inputs'][0][0]) == "<Function V4_SWAP(bytes,bytes[])>"
     assert decoded_input['inputs'][0][1]["actions"] == b'\x07'
-    assert repr(decoded_input['inputs'][0][1]["params"][0][0]) == "<Function SWAP_EXACT_IN(address,(address,uint24,int24,address,bytes)[],uint128,uint128)>"  # noqa E501
-    assert decoded_input['inputs'][0][1]["params"][0][1]["currencyIn"] == "0x0000000000000000000000000000000000000000"
+    assert repr(decoded_input['inputs'][0][1]["params"][0][0]) == "<Function SWAP_EXACT_IN(ExactInputParams)>"
+    assert decoded_input['inputs'][0][1]["params"][0][1]["params"]["currencyIn"] == "0x0000000000000000000000000000000000000000"  # noqa E501
     path_keys = [to_camel_case(path_key_0), to_camel_case(path_key_1)]
-    assert decoded_input['inputs'][0][1]["params"][0][1]["PathKeys"] == path_keys
-    assert decoded_input['inputs'][0][1]["params"][0][1]["amountIn"] == 1000000000000000000
-    assert decoded_input['inputs'][0][1]["params"][0][1]["amountOutMinimum"] == 0
+    assert decoded_input['inputs'][0][1]["params"][0][1]["params"]["PathKeys"] == path_keys
+    assert decoded_input['inputs'][0][1]["params"][0][1]["params"]["amountIn"] == 1000000000000000000
+    assert decoded_input['inputs'][0][1]["params"][0][1]["params"]["amountOutMinimum"] == 0
     assert decoded_input['inputs'][0][2]["revert_on_fail"] is True
     assert decoded_input['deadline'] == 1735989153
 
@@ -347,27 +347,29 @@ def test_v4_swap_exact_in():
                 'actions': b'\x07',
                 'params': [
                     (
-                        <Function SWAP_EXACT_IN(address,(address,uint24,int24,address,bytes)[],uint128,uint128)>,
+                        <Function SWAP_EXACT_IN(ExactInputParams)>,
                         {
-                            'currencyIn': '0x0000000000000000000000000000000000000000',
-                            'PathKeys': [
-                                {
-                                    'intermediateCurrency': '0xBf5617af623f1863c4abc900c5bebD5415a694e8',
-                                     'fee': 3000,
-                                     'tickSpacing': 60,
-                                     'hooks': '0x0000000000000000000000000000000000000000',
-                                     'hookData': b''
-                                 },
-                                 {
-                                     'intermediateCurrency': '0x2207B8c3d6b63675D9D14019e9F6b7f76ddF997f',
-                                     'fee': 2500,
-                                     'tickSpacing': 55,
-                                     'hooks': '0x0000000000000000000000000000000000000000',
-                                     'hookData': b''
-                                 }
-                              ],
-                              'amountIn': 1000000000000000000,
-                              'amountOutMinimum': 0
+                            'params': {
+                                'currencyIn': '0x0000000000000000000000000000000000000000',
+                                'PathKeys': [
+                                    {
+                                        'intermediateCurrency': '0xBf5617af623f1863c4abc900c5bebD5415a694e8',
+                                        'fee': 3000,
+                                        'tickSpacing': 60,
+                                        'hooks': '0x0000000000000000000000000000000000000000',
+                                        'hookData': b''
+                                    },
+                                    {
+                                        'intermediateCurrency': '0x2207B8c3d6b63675D9D14019e9F6b7f76ddF997f',
+                                        'fee': 2500,
+                                        'tickSpacing': 55,
+                                        'hooks': '0x0000000000000000000000000000000000000000',
+                                        'hookData': b''
+                                    }
+                                ],
+                                'amountIn': 1000000000000000000,
+                                'amountOutMinimum': 0
+                            }
                         }
                     )
                 ]
@@ -380,6 +382,41 @@ def test_v4_swap_exact_in():
     'deadline': 1735989153
 }
 """
+
+
+def test_v4_swap_exact_in_2(w3):
+    trx_hash = "0xa6ec9dabbd0f80bdb2d9d5f1da8006939af385ec83874363b5a85b99dde51164"
+    router = RouterCodec(w3=w3)
+    decoded_transaction = router.decode.transaction(trx_hash)
+    print(decoded_transaction)
+
+    currency_in = Web3.to_checksum_address("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48")
+    path_key_0 = codec.encode.v4_path_key(
+        Web3.to_checksum_address("0x0000000000000000000000000000000000000000"),
+        3000,
+        60,
+    )
+
+    encoded_input = (
+        codec.
+        encode.
+        chain().
+        v4_swap().
+        swap_exact_in(
+            currency_in=currency_in,
+            path_keys=[path_key_0, ],
+            amount_in=Wei(1 * 10 ** 6),
+            amount_out_min=Wei(0),
+        ).
+        build_v4_swap().
+        build(deadline=1737747761)
+    )
+
+    print(encoded_input)
+    assert b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00 \x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xa0\xb8i\x91\xc6!\x8b6\xc1\xd1\x9dJ.\x9e\xb0\xce6\x06\xebH\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x80\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x0fB@\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00 \x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x0b\xb8\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00<\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xa0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'.hex() in encoded_input  # noqa
+
+    decoded_input = codec.decode.function_input(encoded_input)
+    print(decoded_input)
 
 
 def test_v4_swap_exact_out_single():

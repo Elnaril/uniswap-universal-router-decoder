@@ -336,7 +336,7 @@ class _V4ChainedSwapFunctionBuilder(_V4ChainedCommonFunctionBuilder):
             path_keys: Sequence[PathKey],
             amount_in: int,
             amount_out_min: int) -> _V4ChainedSwapFunctionBuilder:
-        args = (currency_in, [tuple(path_key.values()) for path_key in path_keys], amount_in, amount_out_min)
+        args = ((currency_in, [tuple(path_key.values()) for path_key in path_keys], amount_in, amount_out_min), )
         self._add_action(V4Actions.SWAP_EXACT_IN, args)
         return self
 
