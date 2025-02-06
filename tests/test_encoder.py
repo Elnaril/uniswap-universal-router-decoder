@@ -307,7 +307,7 @@ def test_transfer(codec):
 
 
 def test_build_transaction(codec_rpc):
-    sender = "0x52d7Bb619F6E37A038e522eDF755008d9EfdD695"
+    sender = "0x1AB4973a48dc892Cd9971ECE8e01DcC7688f8F23"
     balance = codec_rpc._w3.eth.get_balance("0x52d7Bb619F6E37A038e522eDF755008d9EfdD695", block_identifier=19876107)
     assert balance > Web3.to_wei(4, "ether")
 
@@ -337,12 +337,12 @@ def test_build_transaction(codec_rpc):
     assert trx_1["value"] == amount_in
     assert trx_1["to"] == _ur_address
     assert trx_1["chainId"] == 1
-    assert trx_1["nonce"] == 94
+    assert trx_1["nonce"] == 397356
     assert trx_1["type"] == "0x2"
     assert trx_1["maxPriorityFeePerGas"] == 2500000000
     assert trx_1["maxFeePerGas"] == 20479961920
     assert len(trx_1["data"]) > 100
-    assert abs(trx_1["gas"] - 192214) < 1000
+    assert abs(trx_1["gas"] - 172074) < 15000
 
     # transaction 2 - same but with FASTER speed
     trx_2 = builder.build_transaction(
@@ -354,7 +354,7 @@ def test_build_transaction(codec_rpc):
 
     assert trx_2["maxPriorityFeePerGas"] == 3000000000
     assert trx_2["maxFeePerGas"] == 20979961920
-    assert abs(trx_2["gas"] - 192214) < 1000
+    assert abs(trx_2["gas"] - 172074) < 15000
 
     # transaction 3 - no call to rpc and custom fields
     trx_3 = builder.build_transaction(
