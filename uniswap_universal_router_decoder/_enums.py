@@ -100,3 +100,5 @@ class MiscFunctions(Enum):
     EXECUTE_WITH_DEADLINE = auto()  # value = "execute" would be nice, but enum names and values must be unique
     UNLOCK_DATA = auto()
     V4_POOL_ID = auto()
+
+    STRICT_V4_SWAP_EXACT_IN = auto()

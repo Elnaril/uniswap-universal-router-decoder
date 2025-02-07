@@ -13,6 +13,7 @@ from typing import (
     cast,
     Dict,
     List,
+    Optional,
     Sequence,
     Union,
 )
@@ -150,8 +151,9 @@ class FunctionABIBuilder:
 
 
 class _ABIBuilder:
-    def __init__(self) -> None:
-        self.w3 = Web3()
+    def __init__(self, w3: Optional[Web3] = None) -> None:
+        self.w3 = w3 if w3 else Web3()
+        self.abi_map = self.build_abi_map()
         if not registry.has_encoder("ExactInputParams"):
             registry.register("ExactInputParams", self.encode_v4_exact_input_params, self.decode_v4_exact_input_params)
 
@@ -196,6 +198,7 @@ class _ABIBuilder:
             MiscFunctions.EXECUTE_WITH_DEADLINE: self._build_execute_with_deadline(),
             MiscFunctions.UNLOCK_DATA: self._build_unlock_data(),
             MiscFunctions.V4_POOL_ID: self._build_v4_pool_id(),
+            MiscFunctions.STRICT_V4_SWAP_EXACT_IN: self._build_strict_v4_swap_exact_in(),
         }
         return abi_map
 
@@ -425,13 +428,13 @@ class _ABIBuilder:
         return builder.add_v4_exact_input_params().build()
 
     def decode_v4_exact_input_params(self, stream: BytesIO) -> Dict[str, Any]:
-        fct_abi = self._build_strict_v4_swap_exact_in()
+        fct_abi = self.abi_map[MiscFunctions.STRICT_V4_SWAP_EXACT_IN]
         raw_data = stream.read()
         sub_contract = self.w3.eth.contract(abi=fct_abi.get_full_abi())
         fct_name, decoded_params = sub_contract.decode_function_input(fct_abi.get_selector() + raw_data[32:])
         return cast(Dict[str, Any], decoded_params)
 
     def encode_v4_exact_input_params(self, args: Sequence[Any]) -> bytes:
-        fct_abi = self._build_strict_v4_swap_exact_in()
+        fct_abi = self.abi_map[MiscFunctions.STRICT_V4_SWAP_EXACT_IN]
         encoded_data = 0x20.to_bytes(32, "big") + encode(fct_abi.get_abi_types(), args)
         return encoded_data

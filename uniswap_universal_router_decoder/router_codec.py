@@ -44,13 +44,13 @@ __status__ = "Development"
 
 class RouterCodec:
     def __init__(self, w3: Optional[Web3] = None, rpc_endpoint: Optional[str] = None) -> None:
-        self._abi_map = _ABIBuilder().build_abi_map()
         if w3:
             self._w3 = w3
         elif rpc_endpoint:
             self._w3 = Web3(Web3.HTTPProvider(rpc_endpoint))
         else:
             self._w3 = Web3()
+        self._abi_map = _ABIBuilder(self._w3).abi_map
         self.decode = _Decoder(self._w3, self._abi_map)
         self.encode = _Encoder(self._w3, self._abi_map)
 
