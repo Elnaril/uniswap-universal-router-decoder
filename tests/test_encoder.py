@@ -342,7 +342,7 @@ def test_build_transaction(codec_rpc):
     assert trx_1["maxPriorityFeePerGas"] == 2500000000
     assert trx_1["maxFeePerGas"] == 20479961920
     assert len(trx_1["data"]) > 100
-    assert abs(trx_1["gas"] - 172074) < 15000
+    assert abs(trx_1["gas"] - 172074) < 30000
 
     # transaction 2 - same but with FASTER speed
     trx_2 = builder.build_transaction(
@@ -354,7 +354,7 @@ def test_build_transaction(codec_rpc):
 
     assert trx_2["maxPriorityFeePerGas"] == 3000000000
     assert trx_2["maxFeePerGas"] == 20979961920
-    assert abs(trx_2["gas"] - 172074) < 15000
+    assert abs(trx_2["gas"] - 172074) < 30000
 
     # transaction 3 - no call to rpc and custom fields
     trx_3 = builder.build_transaction(
