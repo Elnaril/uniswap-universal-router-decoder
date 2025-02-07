@@ -15,7 +15,7 @@ _position_manager_abi = '[{"inputs":[{"internalType":"contract IPoolManager","na
 
 # Mainnet addresses
 _permit2_address = Web3.to_checksum_address("0x000000000022D473030F116dDEE9F6B43aC78BA3")
-_ur_address = Web3.to_checksum_address("0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD")
+_ur_address = Web3.to_checksum_address("0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af")
 
 _permit2_domain_data = {'name': 'Permit2', 'chainId': 1, 'verifyingContract': _permit2_address}
 _permit2_types = {

@@ -22,5 +22,10 @@ def test_get_max_expiration(codec):
     )
 )
 def test_fetch_permit2_allowance(wallet, token, block_identifier, expected_result, codec_rpc):
-    amount, expiration, nonce = codec_rpc.fetch_permit2_allowance(wallet, token, block_identifier=block_identifier)
+    amount, expiration, nonce = codec_rpc.fetch_permit2_allowance(
+        wallet,
+        token,
+        spender=Web3.to_checksum_address("0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD"),  # old UR address
+        block_identifier=block_identifier
+    )
     assert (amount, expiration, nonce) == expected_result
