@@ -531,3 +531,37 @@ def test_v4_swap_exact_out_single():
 }
 
 """
+
+
+def test_v4_swap_exact_out(w3):
+    trx_hash = "0x966a949326d0b3aba5d41c7e8fda72b585fb5f5eb4378a2ccddb82836df92711"
+    router = RouterCodec(w3=w3)
+    decoded_transaction = router.decode.transaction(trx_hash)
+    print(decoded_transaction)
+
+    currency_out = Web3.to_checksum_address("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48")
+    path_key_0 = codec.encode.v4_path_key(
+        Web3.to_checksum_address("0x0000000000000000000000000000000000000000"),
+        3000,
+        60,
+    )
+
+    encoded_input = (
+        codec.
+        encode.
+        chain().
+        v4_swap().
+        swap_exact_out(
+            currency_out=currency_out,
+            path_keys=[path_key_0, ],
+            amount_out=Wei(1002500),
+            amount_in_max=Wei(346005692668603),
+        ).
+        build_v4_swap().
+        build(deadline=1737749606)
+    )
+
+    print(encoded_input)
+
+    decoded_input = codec.decode.function_input(encoded_input)
+    print(decoded_input)

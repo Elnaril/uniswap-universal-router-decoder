@@ -149,6 +149,10 @@ class FunctionABIBuilder:
         self.abi.inputs.append({"name": arg_name, "type": "ExactInputParams"})
         return self
 
+    def add_v4_exact_output_params(self, arg_name: str = "params") -> FunctionABIBuilder:
+        self.abi.inputs.append({"name": arg_name, "type": "ExactOutputParams"})
+        return self
+
 
 class _ABIBuilder:
     def __init__(self, w3: Optional[Web3] = None) -> None:
@@ -156,6 +160,12 @@ class _ABIBuilder:
         self.abi_map = self.build_abi_map()
         if not registry.has_encoder("ExactInputParams"):
             registry.register("ExactInputParams", self.encode_v4_exact_input_params, self.decode_v4_exact_input_params)
+        if not registry.has_encoder("ExactOutputParams"):
+            registry.register(
+                "ExactOutputParams",
+                self.encode_v4_exact_output_params,
+                self.decode_v4_exact_output_params,
+            )
 
     def build_abi_map(self) -> ABIMap:
         abi_map: ABIMap = {
@@ -199,6 +209,7 @@ class _ABIBuilder:
             MiscFunctions.UNLOCK_DATA: self._build_unlock_data(),
             MiscFunctions.V4_POOL_ID: self._build_v4_pool_id(),
             MiscFunctions.STRICT_V4_SWAP_EXACT_IN: self._build_strict_v4_swap_exact_in(),
+            MiscFunctions.STRICT_V4_SWAP_EXACT_OUT: self._build_strict_v4_swap_exact_out(),
         }
         return abi_map
 
@@ -363,7 +374,7 @@ class _ABIBuilder:
 
     @staticmethod
     def _build_strict_v4_swap_exact_in() -> FunctionABI:
-        builder = FunctionABIBuilder("STRICT_SWAP_EXACT_IN")
+        builder = FunctionABIBuilder(MiscFunctions.STRICT_V4_SWAP_EXACT_IN.name)
         builder.add_address("currencyIn")
         builder.add_struct_array(_ABIBuilder._v4_path_key_struct_array_builder())
         return builder.add_uint128("amountIn").add_uint128("amountOutMinimum").build()
@@ -396,8 +407,8 @@ class _ABIBuilder:
         return builder.add_struct(outer_struct).build()
 
     @staticmethod
-    def _build_v4_swap_exact_out() -> FunctionABI:
-        builder = FunctionABIBuilder(V4Actions.SWAP_EXACT_OUT.name)
+    def _build_strict_v4_swap_exact_out() -> FunctionABI:
+        builder = FunctionABIBuilder(MiscFunctions.STRICT_V4_SWAP_EXACT_OUT.name)
         builder.add_address("currencyOut")
         builder.add_struct_array(_ABIBuilder._v4_path_key_struct_array_builder())
         return builder.add_uint128("amountOut").add_uint128("amountInMaximum").build()
@@ -436,5 +447,22 @@ class _ABIBuilder:
 
     def encode_v4_exact_input_params(self, args: Sequence[Any]) -> bytes:
         fct_abi = self.abi_map[MiscFunctions.STRICT_V4_SWAP_EXACT_IN]
+        encoded_data = 0x20.to_bytes(32, "big") + encode(fct_abi.get_abi_types(), args)
+        return encoded_data
+
+    @staticmethod
+    def _build_v4_swap_exact_out() -> FunctionABI:
+        builder = FunctionABIBuilder(V4Actions.SWAP_EXACT_OUT.name)
+        return builder.add_v4_exact_output_params().build()
+
+    def decode_v4_exact_output_params(self, stream: BytesIO) -> Dict[str, Any]:
+        fct_abi = self.abi_map[MiscFunctions.STRICT_V4_SWAP_EXACT_OUT]
+        raw_data = stream.read()
+        sub_contract = self.w3.eth.contract(abi=fct_abi.get_full_abi())
+        fct_name, decoded_params = sub_contract.decode_function_input(fct_abi.get_selector() + raw_data[32:])
+        return cast(Dict[str, Any], decoded_params)
+
+    def encode_v4_exact_output_params(self, args: Sequence[Any]) -> bytes:
+        fct_abi = self.abi_map[MiscFunctions.STRICT_V4_SWAP_EXACT_OUT]
         encoded_data = 0x20.to_bytes(32, "big") + encode(fct_abi.get_abi_types(), args)
         return encoded_data

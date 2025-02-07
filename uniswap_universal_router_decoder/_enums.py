@@ -102,3 +102,4 @@ class MiscFunctions(Enum):
     V4_POOL_ID = auto()
 
     STRICT_V4_SWAP_EXACT_IN = auto()
+    STRICT_V4_SWAP_EXACT_OUT = auto()
