@@ -36,8 +36,8 @@
 ---
 
 ## Release Notes
-### v2.0.0a3
- - Add support for some V4 functions and features:
+### v2.0.0-beta.1
+ - Add support for V4 functions and features:
    - `V4_INITIALIZE_POOL`
    - `V4_POSITION_MANAGER_CALL`
      - `MINT_POSITION`
@@ -59,7 +59,7 @@
      - `TAKE_ALL` 
      - `TAKE_PORTION`
      - `TAKE`
-   - Pool Key and Pool Id encoding
+   - Pool Key, Path and Id encoding
  - Add support for `PERMIT2_TRANSFER_FROM`
  - Custom contract error decoding
  - Encoding refactoring
@@ -205,6 +205,7 @@ Example of decoded input returned by `decode.function_input()`:
     }
 )
 ```
+> **Tip**: You can format the decoded input like above with this [Gedit plugin](https://github.com/Elnaril/gedit-plugin-collection?tab=readme-ov-file#prettifier) ;) 
 
 ### How to decode an Uniswap Universal Router transaction
 It's also possible to decode the whole transaction, given its hash 
@@ -445,6 +446,7 @@ transaction["data"] = encoded_data
 
 ### Uniswap V4 Functions
 #### How to build an Uniswap V4 pool key
+PoolKey is used to identify a pool. 
 ```python
 from uniswap_universal_router_decoder import RouterCodec
 codec = RouterCodec()
@@ -459,6 +461,7 @@ pool_key = codec.encode.v4_pool_key(
 ```
 
 #### How to build an Uniswap V4 path key
+PathKey is used to identify pools in a multi-hop swaps.
 ```python
 from uniswap_universal_router_decoder import RouterCodec
 codec = RouterCodec()
@@ -470,6 +473,15 @@ path_key = codec.encode.v4_path_key(
         hooks,  # address or "0x0000000000000000000000000000000000000000"
         hook_data,  # ex: b"" if no data
     )
+```
+
+#### How to encode an Uniswap V4 pool id
+Pool ids are used by V4 contracts to identify pools. For ex, you'll need it to request the `StateView` contract.
+```python
+from uniswap_universal_router_decoder import RouterCodec
+codec = RouterCodec()
+
+pool_id = codec.encode.v4_pool_id(pool_key=pool_key)
 ```
 
 #### How to initialize an Uniswap V4 pool with the Universal Router function V4_INITIALIZE_POOL
