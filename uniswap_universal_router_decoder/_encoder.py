@@ -81,6 +81,12 @@ class _Encoder:
 
     @staticmethod
     def v3_path(v3_fn_name: str, path_seq: Sequence[Union[int, ChecksumAddress]]) -> bytes:
+        """
+        Encode a V3 path
+        :param v3_fn_name: 'V3_SWAP_EXACT_IN' or 'V3_SWAP_EXACT_OUT'
+        :param path_seq: a sequence of token addresses with the pool fee in between, ex: [tk_in_addr, fee, tk_out_addr]
+        :return: the encoded V3 path
+        """
         if len(path_seq) < 3:
             raise ValueError("Invalid list to encode a V3 path. Must have at least 3 parameters")
         path_list = list(path_seq)
@@ -106,11 +112,12 @@ class _Encoder:
             hooks: Union[str, HexStr, ChecksumAddress] = "0x0000000000000000000000000000000000000000") -> PoolKey:
         """
         Make sure currency_0 < currency_1 and returns the v4 pool key
-        :param currency_0:
-        :param currency_1:
+
+        :param currency_0: the address of one token, or "0x0000000000000000000000000000000000000000" for ETH
+        :param currency_1: the address of the other token, or "0x0000000000000000000000000000000000000000" for ETH
         :param fee: pool fee in percentage * 10000 (ex: 3000 for 0.3%)
         :param tick_spacing: granularity of the pool. Lower values are more precise but more expensive to trade
-        :param hooks: hook address
+        :param hooks: hook address, default is no hooks, ie "0x0000000000000000000000000000000000000000"
         :return: the v4 pool key
         """
         if int(currency_0, 16) > int(currency_1, 16):
@@ -124,6 +131,12 @@ class _Encoder:
         )
 
     def v4_pool_id(self, pool_key: PoolKey) -> bytes:
+        """
+        Encode the pool id
+
+        :param pool_key: the PoolKey (see v4_pool_key() to get it)
+        :return: the pool id
+        """
         args = (tuple(pool_key.values()), )
         abi = self._abi_map[MiscFunctions.V4_POOL_ID]
         return keccak(abi.encode(args))
@@ -135,6 +148,16 @@ class _Encoder:
             tick_spacing: int,
             hooks: Union[str, HexStr, ChecksumAddress] = "0x0000000000000000000000000000000000000000",
             hook_data: bytes = b"") -> PathKey:
+        """
+        Build a PathKey which is used by multi-hop swap encoding
+
+        :param intermediate_currency: the address of one token of the target pool
+        :param fee: pool fee in percentage * 10000 (ex: 3000 for 0.3%)
+        :param tick_spacing: granularity of the pool. Lower values are more precise but more expensive to trade
+        :param hooks: hook address, default is no hooks, ie "0x0000000000000000000000000000000000000000"
+        :param hook_data: encoded hook data
+        :return: the corresponding PathKey
+        """
         return PathKey(
             intermediate_currency=Web3.to_checksum_address(intermediate_currency),
             fee=int(fee),
@@ -171,6 +194,14 @@ class _V4ChainedCommonFunctionBuilder(ABC):
             currency: ChecksumAddress,
             amount: int,
             payer_is_user: bool) -> TV4ChainedCommonFunctionBuilder:
+        """
+        Pay the contract for a given amount of tokens (currency). Used for swaps and position management.
+
+        :param currency: The token addr or "0x0000000000000000000000000000000000000000" for the native currency (ie ETH)
+        :param amount: The amount to send to the contract
+        :param payer_is_user: Whether this amount comes from the transaction sender or not.
+        :return: The chain link corresponding to this function call.
+        """
         args = (currency, amount, payer_is_user)
         self._add_action(V4Actions.SETTLE, args)
         return self
@@ -180,6 +211,14 @@ class _V4ChainedCommonFunctionBuilder(ABC):
             currency: ChecksumAddress,
             recipient: ChecksumAddress,
             amount: int) -> TV4ChainedCommonFunctionBuilder:
+        """
+        Get the given amount of tokens (currency) from the contract. Used for swaps and position management.
+
+        :param currency: The token addr or "0x0000000000000000000000000000000000000000" for the native currency (ie ETH)
+        :param recipient: Address of who gets the tokens
+        :param amount: The token amount to get
+        :return: The chain link corresponding to this function call.
+        """
         args = (currency, recipient, amount)
         self._add_action(V4Actions.TAKE, args)
         return self
@@ -197,6 +236,19 @@ class _V4ChainedPositionFunctionBuilder(_V4ChainedCommonFunctionBuilder):
             amount_1_max: int,
             recipient: ChecksumAddress,
             hook_data: bytes) -> _V4ChainedPositionFunctionBuilder:
+        """
+        Position - Mint a V4 position, ie add some liquidity to a given pool and get a position as ERC-721 token.
+
+        :param pool_key: The PoolKey to identify the pool where the liquidity will be added to.
+        :param tick_lower: The lower tick boundary of the position
+        :param tick_upper: The upper tick boundary of the position
+        :param liquidity: The amount of liquidity units to mint
+        :param amount_0_max: The maximum amount of currency_0 the sender is willing to pay
+        :param amount_1_max: The maximum amount of currency_1 the sender is willing to pay
+        :param recipient: The address that will receive the liquidity position (ERC-721)
+        :param hook_data: The encoded hook data to be forwarded to the hook functions
+        :return: The chain link corresponding to this function call.
+        """
         args = (
             tuple(pool_key.values()),
             tick_lower,
@@ -214,16 +266,36 @@ class _V4ChainedPositionFunctionBuilder(_V4ChainedCommonFunctionBuilder):
             self,
             currency_0: ChecksumAddress,
             currency_1: ChecksumAddress) -> _V4ChainedPositionFunctionBuilder:
+        """
+        Position - Indicates that tokens are to be paid by the caller to create the position.
+
+        :param currency_0: The address of 1 token
+        :param currency_1: The address of the other token
+        :return: The chain link corresponding to this function call.
+        """
         args = (currency_0, currency_1)
         self._add_action(V4Actions.SETTLE_PAIR, args)
         return self
 
     def close_currency(self, currency: ChecksumAddress) -> _V4ChainedPositionFunctionBuilder:
+        """
+        Position - Automatically determines if a currency should be settled or taken.
+
+        :param currency: The token or ETH to be paid or received.
+        :return: The chain link corresponding to this function call.
+        """
         args = (currency, )
         self._add_action(V4Actions.CLOSE_CURRENCY, args)
         return self
 
     def sweep(self, currency: ChecksumAddress, to: ChecksumAddress) -> _V4ChainedPositionFunctionBuilder:
+        """
+        Position - Sweep the contract
+
+        :param currency: The token or ETH address to sweep
+        :param to: The sweep recipient address
+        :return: The chain link corresponding to this function call.
+        """
         args = (currency, to)
         self._add_action(V4Actions.SWEEP, args)
         return self
@@ -251,7 +323,7 @@ class _V4ChainedPositionFunctionBuilder(_V4ChainedCommonFunctionBuilder):
 
     def wrap_eth(self, amount: Wei) -> _V4ChainedPositionFunctionBuilder:
         """
-        Encode the call to the function WRAP which convert ETH to WETH in the position manager contract
+        Position - Encode the call to the function WRAP which convert ETH to WETH in the position manager contract
 
         :param amount: The amount of ETH in Wei.
         :return: The chain link corresponding to this function call.
@@ -262,7 +334,7 @@ class _V4ChainedPositionFunctionBuilder(_V4ChainedCommonFunctionBuilder):
 
     def unwrap_weth(self, amount: Wei) -> _V4ChainedPositionFunctionBuilder:
         """
-        Encode the call to the function UNWRAP which convert WETH to ETH in the position manager contract
+        Position - Encode the call to the function UNWRAP which convert WETH to ETH in the position manager contract
 
         :param amount: The amount of WETH in Wei.
         :return: The chain link corresponding to this function call.
@@ -284,11 +356,25 @@ class _V4ChainedPositionFunctionBuilder(_V4ChainedCommonFunctionBuilder):
             self,
             currency: ChecksumAddress,
             amount_max: int) -> _V4ChainedPositionFunctionBuilder:
+        """
+        Position - If the token amount to-be-collected is below a threshold, opt to forfeit the dust.
+        Otherwise, claim the tokens.
+
+        :param currency: The token or ETH address to be forfeited or claimed.
+        :param amount_max: The threshold.
+        :return: The chain link corresponding to this function call.
+        """
         args = (currency, amount_max)
         self._add_action(V4Actions.CLEAR_OR_TAKE, args)
         return self
 
     def build_v4_posm_call(self, deadline: int) -> _ChainedFunctionBuilder:
+        """
+        Position - Build the V4 position manager call
+
+        :param deadline: When this call is not valid anymore
+        :return: The chain link corresponding to this function call.
+        """
         action_values = (bytes(self.actions), self.arguments)
         abi = self._abi_map[MiscFunctions.UNLOCK_DATA]
         encoded_data = abi.encode(action_values)
@@ -307,25 +393,39 @@ class _V4ChainedSwapFunctionBuilder(_V4ChainedCommonFunctionBuilder):
             amount_out_min: Wei,
             hook_data: bytes = b'') -> _V4ChainedSwapFunctionBuilder:
         """
-        Encode the call to the V4_SWAP function SWAP_EXACT_IN_SINGLE.
+        Swap - Encode the call to the V4_SWAP function SWAP_EXACT_IN_SINGLE.
 
         :param pool_key: the target pool key returned by encode.v4_pool_key()
         :param zero_for_one: the swap direction, true for currency_0 to currency_1, false for currency_1 to currency_0
         :param amount_in: the exact amount of the sold currency in Wei
         :param amount_out_min: the minimum accepted bought currency
         :param hook_data: encoded data sent to the pool's hook, if any.
-        :return:
+        :return: The chain link corresponding to this function call.
         """
         args = ((tuple(pool_key.values()), zero_for_one, amount_in, amount_out_min, hook_data),)
         self._add_action(V4Actions.SWAP_EXACT_IN_SINGLE, args)
         return self
 
     def take_all(self, currency: ChecksumAddress, min_amount: Wei) -> _V4ChainedSwapFunctionBuilder:
+        """
+        Swap - Final action that collects all output tokens after the swap is complete.
+
+        :param currency: The address of the token or ETH ("0x0000000000000000000000000000000000000000") to receive
+        :param min_amount: The expected minimum amount to be received.
+        :return: The chain link corresponding to this function call.
+        """
         args = (currency, min_amount)
         self._add_action(V4Actions.TAKE_ALL, args)
         return self
 
     def settle_all(self, currency: ChecksumAddress, max_amount: Wei) -> _V4ChainedSwapFunctionBuilder:
+        """
+        Swap - Final action that ensures all input tokens involved in the swap are properly paid to the contract.
+
+        :param currency: The address of the token or ETH ("0x0000000000000000000000000000000000000000") to pay.
+        :param max_amount: The expected maximum amount to be received.
+        :return: The chain link corresponding to this function call.
+        """
         args = (currency, max_amount)
         self._add_action(V4Actions.SETTLE_ALL, args)
         return self
@@ -336,6 +436,15 @@ class _V4ChainedSwapFunctionBuilder(_V4ChainedCommonFunctionBuilder):
             path_keys: Sequence[PathKey],
             amount_in: int,
             amount_out_min: int) -> _V4ChainedSwapFunctionBuilder:
+        """
+        Swap - Encode Multi-hop V4 SWAP_EXACT_IN swaps.
+
+        :param currency_in: The address of the token (or ETH) to send to the first pool.
+        :param path_keys: The sequence of path keys to identify the pools
+        :param amount_in: The amount to send to the contract
+        :param amount_out_min: The expected minimum amount to be received
+        :return: The chain link corresponding to this function call.
+        """
         args = ((currency_in, [tuple(path_key.values()) for path_key in path_keys], amount_in, amount_out_min), )
         self._add_action(V4Actions.SWAP_EXACT_IN, args)
         return self
@@ -348,14 +457,14 @@ class _V4ChainedSwapFunctionBuilder(_V4ChainedCommonFunctionBuilder):
             amount_in_max: Wei,
             hook_data: bytes = b'') -> _V4ChainedSwapFunctionBuilder:
         """
-        Encode the call to the V4_SWAP function SWAP_EXACT_IN_SINGLE.
+        Swap - Encode the call to the V4_SWAP function SWAP_EXACT_IN_SINGLE.
 
         :param pool_key: the target pool key returned by encode.v4_pool_key()
         :param zero_for_one: the swap direction, true for currency_0 to currency_1, false for currency_1 to currency_0
         :param amount_out: the exact amount of the bought currency in Wei
         :param amount_in_max: the maximum accepted sold currency
         :param hook_data: encoded data sent to the pool's hook, if any.
-        :return:
+        :return: The chain link corresponding to this function call.
         """
         args = ((tuple(pool_key.values()), zero_for_one, amount_out, amount_in_max, hook_data),)
         self._add_action(V4Actions.SWAP_EXACT_OUT_SINGLE, args)
@@ -367,6 +476,15 @@ class _V4ChainedSwapFunctionBuilder(_V4ChainedCommonFunctionBuilder):
             path_keys: Sequence[PathKey],
             amount_out: int,
             amount_in_max: int) -> _V4ChainedSwapFunctionBuilder:
+        """
+        Swap - Encode Multi-hop V4 SWAP_EXACT_OUT swaps.
+
+        :param currency_out: The address of the token (or ETH) to be received
+        :param path_keys: The sequence of path keys to identify the pools
+        :param amount_out: The amount to be received
+        :param amount_in_max: The maximum amount that the transaction sender is willing to pay.
+        :return: The chain link corresponding to this function call.
+        """
         args = ((currency_out, [tuple(path_key.values()) for path_key in path_keys], amount_out, amount_in_max), )
         self._add_action(V4Actions.SWAP_EXACT_OUT, args)
         return self
@@ -376,11 +494,24 @@ class _V4ChainedSwapFunctionBuilder(_V4ChainedCommonFunctionBuilder):
             currency: ChecksumAddress,
             recipient: ChecksumAddress,
             bips: int) -> _V4ChainedSwapFunctionBuilder:
+        """
+        Swap - Send a portion of token to a given recipient.
+
+        :param currency: The address of the token (or ETH) to use for this action
+        :param recipient: The address which will receive the tokens
+        :param bips: The recipient will receive balance * bips / 10_000
+        :return: The chain link corresponding to this function call.
+        """
         args = (currency, recipient, bips)
         self._add_action(V4Actions.TAKE_PORTION, args)
         return self
 
     def build_v4_swap(self) -> _ChainedFunctionBuilder:
+        """
+        Build the V4 swap call
+
+        :return: The chain link corresponding to this function call.
+        """
         args = (bytes(self.actions), self.arguments)
         self.builder._add_command(RouterFunction.V4_SWAP, args)
         return self.builder
@@ -726,21 +857,51 @@ class _ChainedFunctionBuilder:
             token_address: ChecksumAddress,
             amount: Wei,
             custom_recipient: Optional[ChecksumAddress] = None) -> _ChainedFunctionBuilder:
+        """
+        Encode the transfer of tokens from the caller address to the given recipient.
+        The UR must have been permit2'ed for the token first.
+
+        :param function_recipient: A FunctionRecipient which defines the recipient of this function output.
+        :param token_address: The address of the token to be transferred.
+        :param amount: The amount to transfer.
+        :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
+        :return: The chain link corresponding to this function call.
+        """
         recipient = self._get_recipient(function_recipient, custom_recipient)
         args = (token_address, recipient, amount)
         self._add_command(RouterFunction.PERMIT2_TRANSFER_FROM, args)
         return self
 
     def v4_swap(self) -> _V4ChainedSwapFunctionBuilder:
+        """
+        V4 - Start building a call to the V4 swap functions
+
+        :return: The chain link corresponding to this function call.
+        """
         return _V4ChainedSwapFunctionBuilder(self, self._w3, self._abi_map)
 
     def v4_initialize_pool(self, pool_key: PoolKey, amount_0: Wei, amount_1: Wei) -> _ChainedFunctionBuilder:
+        """
+        V4 - Encode the call to initialize (create) a V4 pool.
+        The amounts are used to compute the initial sqrtPriceX96. They are NOT send.
+        So, basically only the ratio amount_0 / amount_1 is relevant.
+        For ex, to create a pool with 2 USD stable coins, you just need to set amount_0 = amount_1 = 1
+
+        :param pool_key: The pool key that identify the pool to create
+        :param amount_0: "virtual" amount of PoolKey.currency_0
+        :param amount_1: "virtual" amount of PoolKey.currency_1
+        :return: The chain link corresponding to this function call.
+        """
         sqrt_price_x96 = compute_sqrt_price_x96(amount_0, amount_1)
         args = (tuple(pool_key.values()), sqrt_price_x96)
         self._add_command(RouterFunction.V4_INITIALIZE_POOL, args)
         return self
 
     def v4_posm_call(self) -> _V4ChainedPositionFunctionBuilder:
+        """
+        V4 - Start building a call to the V4 positon manager functions
+        :return: The chain link corresponding to this function call.
+        """
         return _V4ChainedPositionFunctionBuilder(self, self._w3, self._abi_map)
 
     def build(self, deadline: Optional[int] = None) -> HexStr:

@@ -200,6 +200,13 @@ class _Decoder:
             contract_error: Union[str, HexStr],
             abis: Sequence[str] = (_permit2_abi, _pool_manager_abi, _position_manager_abi, _router_abi),
     ) -> Tuple[str, Dict[str, Any]]:
+        """
+        Decode contract custom errors.
+
+        :param contract_error: the hexadecimal error, ex: '0x5d1d0f9f'
+        :param abis: override the default abis which are permit2, v4 pool and position managers, and the UR
+        :return: the decoded error if it's part of the abis, or 'Unknown error'
+        """
         for abi in abis:
             try:
                 json_abi = json.loads(abi)
