@@ -65,6 +65,7 @@
  - Encoding refactoring
  - Remove support for Python 3.8
  - Update repository picture
+ - Update default router address to Mainnet's one
 
 ### v1.2.1
  - Add support for web3 v7
