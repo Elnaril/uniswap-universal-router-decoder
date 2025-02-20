@@ -423,7 +423,7 @@ class _V4ChainedSwapFunctionBuilder(_V4ChainedCommonFunctionBuilder):
         Swap - Final action that ensures all input tokens involved in the swap are properly paid to the contract.
 
         :param currency: The address of the token or ETH ("0x0000000000000000000000000000000000000000") to pay.
-        :param max_amount: The expected maximum amount to be received.
+        :param max_amount: The expected maximum amount to pay.
         :return: The chain link corresponding to this function call.
         """
         args = (currency, max_amount)
@@ -883,7 +883,7 @@ class _ChainedFunctionBuilder:
     def v4_initialize_pool(self, pool_key: PoolKey, amount_0: Wei, amount_1: Wei) -> _ChainedFunctionBuilder:
         """
         V4 - Encode the call to initialize (create) a V4 pool.
-        The amounts are used to compute the initial sqrtPriceX96. They are NOT send.
+        The amounts are used to compute the initial sqrtPriceX96. They are NOT sent.
         So, basically only the ratio amount_0 / amount_1 is relevant.
         For ex, to create a pool with 2 USD stable coins, you just need to set amount_0 = amount_1 = 1
 
