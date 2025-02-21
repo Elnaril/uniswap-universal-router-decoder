@@ -4,15 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "uniswap-universal-router-decoder"
-version = "2.0.0-beta.1"
+version = "2.0.0"
 authors = [
   { name="Elnaril", email="elnaril_dev@caramail.com" },
 ]
-description = "Decode & Encode transactions sent to the Uniswap Universal Router"
+description = "Decode & Encode transactions sent to the Uniswap Universal Router. Support Uniswap V2, V3 & V4"
 readme = "README.md"
 requires-python = ">=3.9"
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Natural Language :: English",

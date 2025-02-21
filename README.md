@@ -36,7 +36,7 @@
 ---
 
 ## Release Notes
-### v2.0.0-beta.1
+### v2.0.0
  - Add support for V4 functions and features:
    - `V4_INITIALIZE_POOL`
    - `V4_POSITION_MANAGER_CALL`
@@ -66,6 +66,7 @@
  - Remove support for Python 3.8
  - Update repository picture
  - Update default router address to Mainnet's one
+ - Add integration tests for V4 functions
 
 ### v1.2.1
  - Add support for web3 v7
