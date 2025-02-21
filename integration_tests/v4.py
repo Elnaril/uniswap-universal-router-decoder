@@ -367,10 +367,13 @@ def swap_exact_in_eth_to_uni():
     print("SWAP IN THROUGH 2 POOLS (ETH -> WBTC -> UNI) => OK")
 
 
-def swap_exact_out_uni_to_eth():
+def swap_exact_out_uni_to_eth_and_pay_portion():
     print("START SWAP OUT THROUGH 2 POOLS (UNI -> WBTC -> ETH)")
     eth_balance = w3.eth.get_balance(account.address)
     print("ETH balance:", eth_balance / 10 ** 18)
+
+    pay_portion_recipient = Web3.to_checksum_address("0x350D7640755FD89DF55eebb88DdFfa91Ab805cb7")
+    assert w3.eth.get_balance(pay_portion_recipient) == 0
 
     path_key_eth_wbtc = codec.encode.v4_path_key(
         wbtc_address,
@@ -396,6 +399,7 @@ def swap_exact_out_uni_to_eth():
             amount_out,
             Wei(300 * 10**18),  # max 300 UNI in
         ).
+        take_portion(eth_address, pay_portion_recipient, 1000).  # 1000/10000 = 0.1 = 10% => 0.1 ETH
         settle_all(uni_address, 300 * 10**18).
         take_all(eth_address, 0).  # or take(eth_address, account.address, amount_out).
         build_v4_swap().
@@ -412,12 +416,16 @@ def swap_exact_out_uni_to_eth():
     assert receipt["status"] == 1, f'receipt["status"] is actually {receipt["status"]}'  # status == 1 => trx success
 
     new_uni_balance = uni_contract.functions.balanceOf(account.address).call()
-    print(f"{new_uni_balance=}", new_uni_balance / 10 ** 18)
+    print(f"{new_uni_balance=}", new_uni_balance / 10**18)
     assert new_uni_balance == 1211586049451302584537 < 1214600561839991914502
 
     new_eth_balance = w3.eth.get_balance(account.address)
-    print("New ETH balance:", new_eth_balance / 10 ** 18)
-    assert new_eth_balance - eth_balance > 0.99 * 10**18
+    print("New ETH balance:", new_eth_balance / 10**18, "Diff:", (new_eth_balance - eth_balance) / 10**18)
+    assert new_eth_balance - eth_balance > 0.899 * 10**18
+
+    new_pay_portion_recipient_balance = w3.eth.get_balance(pay_portion_recipient)
+    print(f"{new_pay_portion_recipient_balance=}")
+    assert new_pay_portion_recipient_balance == 10**17
 
     print("SWAP OUT THROUGH 2 POOLS (UNI -> WBTC -> ETH) => OK")
 
@@ -438,7 +446,7 @@ def launch_integration_tests():
     mint_v4_position()
 
     swap_exact_in_eth_to_uni()
-    swap_exact_out_uni_to_eth()
+    swap_exact_out_uni_to_eth_and_pay_portion()
 
 
 def print_success_message():
