@@ -118,7 +118,7 @@ def buy_and_transfer():
         .chain()
         # weth conversion and swap
         .wrap_eth(FunctionRecipient.ROUTER, amount_in_max)
-        .v3_swap_exact_out(FunctionRecipient.ROUTER, amount_out, amount_in_max, v3_path, payer_is_sender=False)
+        .v3_swap_exact_out(FunctionRecipient.ROUTER, amount_out, amount_in_max, v3_path, payer_is_sender=False)  # noqa: E501
         # usdc transfer
         .transfer(FunctionRecipient.SENDER, usdc_address, usdc_amount_per_recipient)  # transfer usdc to account
         .transfer(FunctionRecipient.CUSTOM, usdc_address, usdc_amount_per_recipient, recipients[0].address)  # transfer usdc to 1st recipient  # noqa
@@ -144,13 +144,17 @@ def buy_and_transfer():
     for i in range(4, 6):
         eth_balance = w3.eth.get_balance(recipients[i].address)
         # Recipients should receive at least the eth_amount_per_recipient
-        assert eth_balance >= eth_amount_per_recipient, f"Recipient {i} has {eth_balance} but expected at least {eth_amount_per_recipient}"
+        assert eth_balance >= eth_amount_per_recipient, (
+            f"Recipient {i} has {eth_balance} but expected at least {eth_amount_per_recipient}"
+        )
         # And not significantly more (allow for small rounding)
-        assert eth_balance < eth_amount_per_recipient + Wei(10**6), f"Recipient {i} has {eth_balance} which is too much"
+        assert eth_balance < eth_amount_per_recipient + Wei(10**6), f"Recipient {i} has {eth_balance} which is too much"  # noqa: E501
 
     account_eth_balance = w3.eth.get_balance(account.address)
     print("Account ETH balance", account_eth_balance / 10**18)
-    assert account_eth_balance < initial_eth_amount - value + Wei(10**18), f"Actual ETH balance is {account_eth_balance}"
+    assert account_eth_balance < initial_eth_amount - value + Wei(10**18), (
+        f"Actual ETH balance is {account_eth_balance}"
+    )
 
     print(" => BUY & TRANSFER USDC/ETH: OK")
 
@@ -180,7 +184,9 @@ def simple_transfers():
 
     gas_used = receipt["gasUsed"]
     print("Gas used (total/per transfer):", gas_used, gas_used // 48)
-    assert receipt["gasUsed"] < 48 * 21000, f"Gas used {receipt['gasUsed']} exceeds 48 * 21000 = {48 * 21000}"
+    assert receipt["gasUsed"] < 48 * 21000, (
+        f"Gas used {receipt['gasUsed']} exceeds 48 * 21000 = {48 * 21000}"
+    )
 
     print(" => SIMPLE ETH MASS TRANSFERS: OK")
 
