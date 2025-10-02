@@ -52,7 +52,6 @@ def launch_anvil():
     )
     time.sleep(5)  # Increased wait time for anvil to fully start
     parent_id = anvil_process.pid
-    
     return parent_id
 
 
@@ -88,7 +87,6 @@ def send_transaction(encoded_input, value):
 def wrap_unwrap():
     global transient_eth_balance
     in_amount = Wei(10**18)
-    
     encoded_input = (
         codec
         .encode
@@ -105,7 +103,6 @@ def wrap_unwrap():
     eth_balance = w3.eth.get_balance(account.address)
     assert eth_balance == transient_eth_balance - trx_fee, f"eth_balance: {eth_balance}, transient_eth_balance: {transient_eth_balance},trx_fee: {trx_fee}"  # noqa E501
     transient_eth_balance = eth_balance
-    
     print(" => WRAP ETH and UNWRAP WETH: OK")
 
 
@@ -117,7 +114,6 @@ def buy_usdc_from_v2_and_sell_to_v3():
     v2_out_amount = Wei(817968342)  # with slippage
     v3_path = [usdc_address, 500, weth_address]
     v3_out_amount = Wei(int(2.98 * 10**17))  # with slippage
-    
     encoded_input = (
         codec
         .encode
