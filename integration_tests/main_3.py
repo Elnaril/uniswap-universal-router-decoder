@@ -2,7 +2,7 @@ import os
 import subprocess
 import time
 
-from eth_utils import keccak
+from eth_account.account import LocalAccount
 from web3 import (
     Account,
     Web3,
@@ -21,7 +21,7 @@ chain_id = 1  # Ethereum mainnet
 initial_block_number = 23491937
 gas_limit = 800_000
 
-account = Account.from_key("0xf7e96bcf6b5223c240ec308d8374ff01a753b00743b3a0127791f37f00c56514")
+account: LocalAccount = Account.from_key("0xf7e96bcf6b5223c240ec308d8374ff01a753b00743b3a0127791f37f00c56514")
 assert account.address == "0x1e46c294f20bC7C27D93a9b5f45039751D8BCc3e"
 init_amount = 10000 * 10**18
 transient_eth_balance = init_amount
