@@ -17,13 +17,13 @@ from uniswap_universal_router_decoder import (
 
 web3_provider = os.environ['WEB3_HTTP_PROVIDER_URL_ETHEREUM_MAINNET']
 w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:8545"))
-chain_id = 1337
-block_number = 17621078
+chain_id = 1  # Ethereum mainnet
+initial_block_number = 23491937
 gas_limit = 800_000
 
-account = Account.from_key(keccak(text="moo"))
-assert account.address == "0xcd7328a5D376D5530f054EAF0B9D235a4Fd36059"
-init_amount = 100 * 10**18
+account = Account.from_key("0xf7e96bcf6b5223c240ec308d8374ff01a753b00743b3a0127791f37f00c56514")
+assert account.address == "0x1e46c294f20bC7C27D93a9b5f45039751D8BCc3e"
+init_amount = 10000 * 10**18
 transient_eth_balance = init_amount
 
 erc20_abi = '[{"constant":true,"inputs":[],"name":"name","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"},{"name":"_spender","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"anonymous":false,"inputs":[{"indexed":true,"name":"_from","type":"address"},{"indexed":true,"name":"_to","type":"address"},{"indexed":false,"name":"_value","type":"uint256"}],"name":"Transfer","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"_owner","type":"address"},{"indexed":true,"name":"_spender","type":"address"},{"indexed":false,"name":"_value","type":"uint256"}],"name":"Approval","type":"event"}]'  # noqa
@@ -34,25 +34,26 @@ weth_contract = w3.eth.contract(address=weth_address, abi=weth_abi)
 usdc_address = Web3.to_checksum_address("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48")
 usdc_contract = w3.eth.contract(address=usdc_address, abi=erc20_abi)
 
-ur_address = Web3.to_checksum_address("0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD")
+# Universal Router address (Ethereum mainnet, latest)
+ur_address = Web3.to_checksum_address("0x66a9893cc07d91d95644aedd05d03f95e1dba8af")
 permit2_address = Web3.to_checksum_address("0x000000000022D473030F116dDEE9F6B43aC78BA3")
 
 codec = RouterCodec()
 
 
-def launch_ganache():
-    ganache_process = subprocess.Popen(
-        f"""ganache
-        --logging.quiet='true'
-        --fork.url='{web3_provider}'
-        --fork.blockNumber='{block_number}'
-        --miner.defaultGasPrice='15000000000'
-        --wallet.accounts='{account.key.hex()}','{init_amount}'
-        """.replace("\n", " "),
+def launch_anvil():
+    anvil_process = subprocess.Popen(
+        " ".join([
+            "anvil -vvvvv",
+            f"--fork-url {web3_provider}",
+            f"--fork-block-number {initial_block_number}",
+            f"--chain-id {chain_id}",
+            "--mnemonic-seed-unsafe 8721345628937456298",
+        ]),
         shell=True,
     )
-    time.sleep(3)
-    parent_id = ganache_process.pid
+    time.sleep(2)
+    parent_id = anvil_process.pid
     return parent_id
 
 
@@ -67,8 +68,8 @@ def kill_processes(parent_id):
 
 
 def check_initialization():
-    assert w3.eth.chain_id == chain_id  # 1337
-    assert w3.eth.block_number == block_number + 1
+    assert w3.eth.chain_id == chain_id  # 1
+    assert w3.eth.block_number == initial_block_number  # Anvil starts at the exact fork block
     assert w3.eth.get_balance(account.address) == init_amount
     assert usdc_contract.functions.balanceOf(account.address).call() == 0
     print(" => Initialization: OK")
@@ -87,7 +88,7 @@ def send_transaction(value, encoded_data):
         "nonce": w3.eth.get_transaction_count(account.address),
         "data": encoded_data,
     }
-    raw_transaction = w3.eth.account.sign_transaction(trx_params, account.key).rawTransaction
+    raw_transaction = w3.eth.account.sign_transaction(trx_params, account.key).raw_transaction
     trx_hash = w3.eth.send_raw_transaction(raw_transaction)
     return trx_hash
 
@@ -112,7 +113,7 @@ def buy_usdc():
     assert receipt["status"] == 1, f'receipt["status"] is actually {receipt["status"]}'  # trx success
 
     usdc_balance = usdc_contract.functions.balanceOf(account.address).call()
-    assert usdc_balance == 1956854186
+    assert usdc_balance == 4492413591  # Expected USDC balance after buying with 1 ETH at block 23491937
 
     print(" => BUY USDC: OK")
 
@@ -131,7 +132,7 @@ def approve_permit2_for_usdc():
             "nonce": w3.eth.get_transaction_count(account.address),
         }
     )
-    raw_transaction = w3.eth.account.sign_transaction(trx_params, account.key).rawTransaction
+    raw_transaction = w3.eth.account.sign_transaction(trx_params, account.key).raw_transaction
     trx_hash = w3.eth.send_raw_transaction(raw_transaction)
 
     receipt = w3.eth.wait_for_transaction_receipt(trx_hash)
@@ -174,10 +175,10 @@ def sell_usdc_part_1():
     assert receipt["status"] == 1, f'receipt["status"] is actually {receipt["status"]}'  # trx success
 
     usdc_balance = usdc_contract.functions.balanceOf(account.address).call()
-    assert usdc_balance == 1456854186
+    assert usdc_balance == 3992413591  # Expected USDC balance after selling 500 USDC
 
     weth_balance = weth_contract.functions.balanceOf(account.address).call()
-    assert weth_balance == 255256875527333931
+    assert weth_balance == 111191685048513998  # Expected WETH balance after first swap
 
     print(" => SELL USDC for WETH PART 1: OK")
 
@@ -219,10 +220,10 @@ def sell_usdc_part_2():
     assert receipt["status"] == 1, f'receipt["status"] is actually {receipt["status"]}'  # trx success
 
     usdc_balance = usdc_contract.functions.balanceOf(account.address).call()
-    assert usdc_balance == 956854186
+    assert usdc_balance == 3492413591  # Expected USDC balance after selling another 500 USDC
 
     weth_balance = weth_contract.functions.balanceOf(account.address).call()
-    assert weth_balance == 510513624712717843
+    assert weth_balance == 222382316205822575  # Expected WETH balance after second swap
 
     amount, expiration, nonce = codec.fetch_permit2_allowance(account.address, usdc_address)
     assert amount == 2**160 - 1, "Wrong Permit2 allowance amount"  # infinite allowance
@@ -251,12 +252,12 @@ def print_success_message():
 
 
 def main():
-    ganache_pid = launch_ganache()
+    anvil_pid = launch_anvil()
     try:
         launch_integration_tests()
         print_success_message()
     finally:
-        kill_processes(ganache_pid)
+        kill_processes(anvil_pid)
 
 
 if __name__ == "__main__":
