@@ -5,6 +5,7 @@ flake8
 isort
 mypy
 pytest
+pytest-mock
 tox
 
 build
