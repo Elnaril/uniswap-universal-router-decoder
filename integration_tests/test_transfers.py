@@ -25,7 +25,7 @@ chain_id = 1
 initial_block_number = 21893982
 initial_eth_amount = 10000 * 10**18
 
-recipients = tuple(Account.from_key(f"0x{i:064x}") for i in range(1, 7))
+recipients = tuple(Account.from_key(f"0x{i+100:064x}") for i in range(1, 7))
 
 erc20_abi = '[{"constant":true,"inputs":[],"name":"name","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"},{"name":"_spender","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"anonymous":false,"inputs":[{"indexed":true,"name":"_from","type":"address"},{"indexed":true,"name":"_to","type":"address"},{"indexed":false,"name":"_value","type":"uint256"}],"name":"Transfer","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"_owner","type":"address"},{"indexed":true,"name":"_spender","type":"address"},{"indexed":false,"name":"_value","type":"uint256"}],"name":"Approval","type":"event"}]'  # noqa
 weth_abi = '[{"constant":true,"inputs":[],"name":"name","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"guy","type":"address"},{"name":"wad","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"src","type":"address"},{"name":"dst","type":"address"},{"name":"wad","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"wad","type":"uint256"}],"name":"withdraw","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"name":"","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"dst","type":"address"},{"name":"wad","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[],"name":"deposit","outputs":[],"payable":true,"stateMutability":"payable","type":"function"},{"constant":true,"inputs":[{"name":"","type":"address"},{"name":"","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"payable":true,"stateMutability":"payable","type":"fallback"},{"anonymous":false,"inputs":[{"indexed":true,"name":"src","type":"address"},{"indexed":true,"name":"guy","type":"address"},{"indexed":false,"name":"wad","type":"uint256"}],"name":"Approval","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"src","type":"address"},{"indexed":true,"name":"dst","type":"address"},{"indexed":false,"name":"wad","type":"uint256"}],"name":"Transfer","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"dst","type":"address"},{"indexed":false,"name":"wad","type":"uint256"}],"name":"Deposit","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"src","type":"address"},{"indexed":false,"name":"wad","type":"uint256"}],"name":"Withdrawal","type":"event"}]'  # noqa
@@ -74,6 +74,8 @@ def check_initialization():
     assert w3.eth.chain_id == chain_id
     assert w3.eth.block_number == initial_block_number
     assert w3.eth.get_balance(account.address) == initial_eth_amount
+    for acc in recipients:
+        assert w3.eth.get_balance(acc.address) == 0
     for acc in recipients + (account, ):
         assert usdc_contract.functions.balanceOf(acc.address).call() == 0
     print(" => Initialization: OK")
@@ -118,7 +120,9 @@ def buy_and_transfer():
         .chain()
         # weth conversion and swap
         .wrap_eth(FunctionRecipient.ROUTER, amount_in_max)
-        .v3_swap_exact_out(FunctionRecipient.ROUTER, amount_out, amount_in_max, v3_path, payer_is_sender=False)  # noqa: E501
+        .v3_swap_exact_out(
+            FunctionRecipient.ROUTER, amount_out, amount_in_max, v3_path, payer_is_sender=False
+        )
         # usdc transfer
         .transfer(FunctionRecipient.SENDER, usdc_address, usdc_amount_per_recipient)  # transfer usdc to account
         .transfer(FunctionRecipient.CUSTOM, usdc_address, usdc_amount_per_recipient, recipients[0].address)  # transfer usdc to 1st recipient  # noqa
@@ -143,16 +147,16 @@ def buy_and_transfer():
 
     for i in range(4, 6):
         eth_balance = w3.eth.get_balance(recipients[i].address)
-        # Recipients should receive at least the eth_amount_per_recipient
-        assert eth_balance >= eth_amount_per_recipient, (
-            f"Recipient {i} has {eth_balance} but expected at least {eth_amount_per_recipient}"
+        assert eth_balance == eth_amount_per_recipient, (
+            f"Recipient {i} has {eth_balance} but expected exactly {eth_amount_per_recipient}"
         )
-        # And not significantly more (allow for small rounding)
-        assert eth_balance < eth_amount_per_recipient + Wei(10**6), f"Recipient {i} has {eth_balance} which is too much"  # noqa: E501
 
+    unwrap_weth_amount = int.from_bytes(receipt["logs"][-1]["data"], "big")
+    gas_price = receipt["effectiveGasPrice"]
+    gas_used = receipt["gasUsed"]
     account_eth_balance = w3.eth.get_balance(account.address)
     print("Account ETH balance", account_eth_balance / 10**18)
-    assert account_eth_balance < initial_eth_amount - value + Wei(10**18), (
+    assert initial_eth_amount - value + unwrap_weth_amount - gas_price * gas_used == account_eth_balance, (
         f"Actual ETH balance is {account_eth_balance}"
     )
 

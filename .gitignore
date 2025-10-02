@@ -27,5 +27,5 @@ anvil_state/
 anvil.log
 chain_data/
 
-#Ignore vscode AI rules
+# Ignore vscode AI rules
 .github/instructions/codacy.instructions.md
