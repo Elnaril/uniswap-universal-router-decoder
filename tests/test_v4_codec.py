@@ -1,4 +1,5 @@
 from pprint import pp
+
 import pytest
 from web3 import Web3
 from web3.types import (
@@ -8,7 +9,7 @@ from web3.types import (
 
 from uniswap_universal_router_decoder import (
     RouterCodec,
-    V4Constants
+    V4Constants,
 )
 
 

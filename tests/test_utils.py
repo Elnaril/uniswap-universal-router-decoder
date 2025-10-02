@@ -5,7 +5,7 @@ from uniswap_universal_router_decoder import TransactionSpeed
 from uniswap_universal_router_decoder.utils import (
     compute_gas_fees,
     compute_sqrt_price_x96,
-    convert_sqrt_price_x96
+    convert_sqrt_price_x96,
 )
 
 
