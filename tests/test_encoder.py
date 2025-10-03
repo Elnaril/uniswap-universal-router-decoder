@@ -408,3 +408,159 @@ def test_build_transaction(codec_rpc):
             max_fee_per_gas_limit=Wei(1 * 10 ** 9),
             block_identifier=19876107
         )
+
+
+@pytest.mark.parametrize(
+    'function_recipient_input, token_address_input, amount_input, custom_recipient_input, expected_result',
+    (
+        (
+            FunctionRecipient.SENDER,
+            Web3.to_checksum_address('0xBf5617af623f1863c4abc900c5bebD5415a694e8'),
+            Wei(1),
+            Web3.to_checksum_address('0x0000000000000000000000000000000000000001'),
+            HexStr('0x24856bc300000000000000000000000000000000000000000000000000000000000000400000000000000000000000'
+                   '000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000'
+                   '000000000102000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+                   '000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000'
+                   '000000002000000000000000000000000000000000000000000000000000000000000000600000000000000000000000'
+                   '00bf5617af623f1863c4abc900c5bebd5415a694e8000000000000000000000000000000000000000000000000000000'
+                   '00000000010000000000000000000000000000000000000000000000000000000000000001')
+        ),
+        (
+            FunctionRecipient.ROUTER,
+            Web3.to_checksum_address('0x0000000000000000000000000000000000000000'),
+            Wei(2),
+            Web3.to_checksum_address('0x0000000000000000000000000000000000000002'),
+            HexStr('0x24856bc300000000000000000000000000000000000000000000000000000000000000400000000000000000000000'
+                   '000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000'
+                   '000000000102000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+                   '000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000'
+                   '000000002000000000000000000000000000000000000000000000000000000000000000600000000000000000000000'
+                   '000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+                   '00000000020000000000000000000000000000000000000000000000000000000000000002')
+        )
+    )
+)
+def test_permit2_transfer_from(
+        codec,
+        function_recipient_input,
+        token_address_input,
+        amount_input,
+        custom_recipient_input,
+        expected_result
+):
+    result = (
+        codec
+        .encode
+        .chain()
+        .permit2_transfer_from(
+            function_recipient=function_recipient_input,
+            token_address=token_address_input,
+            amount=amount_input,
+            custom_recipient=custom_recipient_input
+        )
+        .build()
+    )
+    assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    'trx_speed_input, priority_fee_input, max_fee_per_gas_input, max_fee_per_gas_limit_input, err_msg',
+    (
+        (
+            None,
+            None,
+            Wei(2),
+            None,
+            'Either trx_speed or both priority_fee and max_fee_per_gas must be set.'
+        ),
+        (
+            None,
+            Wei(2),
+            None,
+            None,
+            'Either trx_speed or both priority_fee and max_fee_per_gas must be set.'
+        ),
+        (
+            TransactionSpeed.FAST,
+            Wei(1),
+            Wei(2),
+            None,
+            "priority_fee and max_fee_per_gas can't be set with trx_speed"
+        ),
+        (
+            TransactionSpeed.FAST,
+            None,
+            Wei(1),
+            None,
+            "priority_fee and max_fee_per_gas can't be set with trx_speed"
+        ),
+        (
+            TransactionSpeed.FAST,
+            None,
+            None,
+            0,
+            'Computed max_fee_per_gas is greater than max_fee_per_gas_limit. Either provide max_fee_per_gas, '
+            'increase max_fee_per_gas_limit or wait for less strained conditions'
+        ),
+    )
+)
+def test_build_transaction_value_err(
+        mocker,
+        codec,
+        trx_speed_input,
+        priority_fee_input,
+        max_fee_per_gas_input,
+        max_fee_per_gas_limit_input,
+        err_msg
+):
+    mocker.patch(
+        'uniswap_universal_router_decoder._encoder.compute_gas_fees',
+        return_value=(Wei(1), Wei(10**12)),
+    )
+    with pytest.raises(ValueError) as err:
+        _ = codec.encode.chain().build_transaction(
+            sender=Web3.to_checksum_address('0xBf5617af623f1863c4abc900c5bebD5415a694e8'),
+            value=Wei(0),
+            trx_speed=trx_speed_input,
+            priority_fee=priority_fee_input,
+            max_fee_per_gas=max_fee_per_gas_input,
+            max_fee_per_gas_limit=max_fee_per_gas_limit_input,
+            chain_id=1,
+            nonce=0,
+            gas_limit=1,
+        )
+    assert str(err.value) == err_msg
+
+
+@pytest.mark.parametrize(
+    'priority_fee_input, max_fee_per_gas_input',
+    [
+        (
+            Wei(1),
+            Wei(2),
+        ),
+        (
+            Wei(2),
+            Wei(1),
+        ),
+    ]
+)
+def test_build_transaction_with_priority_fee_and_max_fee_per_gas_and_not_trx_speed(
+        codec,
+        priority_fee_input,
+        max_fee_per_gas_input
+):
+    result = codec.encode.chain().build_transaction(
+        sender=Web3.to_checksum_address('0xBf5617af623f1863c4abc900c5bebD5415a694e8'),
+        value=Wei(0),
+        trx_speed=None,
+        priority_fee=priority_fee_input,
+        max_fee_per_gas=max_fee_per_gas_input,
+        max_fee_per_gas_limit=None,
+        chain_id=1,
+        nonce=0,
+        gas_limit=1,
+    )
+    assert result['maxPriorityFeePerGas'] == priority_fee_input
+    assert result['maxFeePerGas'] == max_fee_per_gas_input
