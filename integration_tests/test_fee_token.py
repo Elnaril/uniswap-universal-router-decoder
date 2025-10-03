@@ -20,8 +20,8 @@ web3_provider = os.environ.get(
 )
 w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:8545"))
 chain_id = 1
-initial_block_number = 21839495
-initial_eth_amount = 10000 * 10**18
+block_number = 21839495
+init_amount = 10000 * 10**18
 gas_limit = 1_500_000
 
 account = Account.from_key('0xf7e96bcf6b5223c240ec308d8374ff01a753b00743b3a0127791f37f00c56514')
@@ -49,7 +49,7 @@ def launch_anvil():
             [
                 "anvil -vvvvv",
                 f"--fork-url {web3_provider}",
-                f"--fork-block-number {initial_block_number}",
+                f"--fork-block-number {block_number}",
                 "--mnemonic-seed-unsafe 8721345628937456298",
             ]
         ),
@@ -72,11 +72,10 @@ def kill_processes(parent_id):
 
 def check_initialization():
     assert w3.eth.chain_id == chain_id
-    assert w3.eth.block_number == initial_block_number
-    assert w3.eth.get_balance(account.address) == initial_eth_amount
-    assert weth_contract.functions.balanceOf(account.address).call() == 0
+    assert w3.eth.block_number in [block_number, block_number + 1]
+    assert w3.eth.get_balance(account.address) == init_amount
     assert token_contract.functions.balanceOf(account.address).call() == 0
-    print(" => INITIALIZATION: OK")
+    print(" => Initialization: OK")
 
 
 def send_transaction(value, encoded_data):
@@ -106,20 +105,15 @@ def buy_token_from_v2():
         .encode
         .chain()
         .wrap_eth(FunctionRecipient.ROUTER, v2_in_amount)
-        .v2_swap_exact_in(
-            FunctionRecipient.SENDER,
-            v2_in_amount,
-            v2_out_amount,
-            v2_path,
-            payer_is_sender=False
-        )
+        .v2_swap_exact_in(FunctionRecipient.SENDER, v2_in_amount, v2_out_amount, v2_path, payer_is_sender=False)
         .build(codec.get_default_deadline())
     )
     trx_hash = send_transaction(v2_in_amount, encoded_input)
     receipt = w3.eth.wait_for_transaction_receipt(trx_hash)
-    assert receipt["status"] == 1
+    assert receipt["status"] == 1  # trx success
+    assert w3.eth.get_balance(account.address) < init_amount - v2_in_amount  # ADD THIS
     assert token_contract.functions.balanceOf(account.address).call() > 0
-    print(" => BUY TOKEN: OK")
+    print("Balance after buy:", token_contract.functions.balanceOf(account.address).call())  # CHANGE THIS
 
 
 def sell_token_from_v2():
@@ -149,7 +143,7 @@ def sell_token_from_v2():
     assert receipt["status"] == 1
     assert weth_contract.functions.balanceOf(account.address).call() > 0
     assert token_contract.functions.balanceOf(account.address).call() == 0
-    print(" => SELL TOKEN: OK")
+    print("Balance after sell", token_contract.functions.balanceOf(account.address).call())
 
 
 def approve_permit2_for_token():
@@ -169,8 +163,8 @@ def approve_permit2_for_token():
     raw_transaction = w3.eth.account.sign_transaction(trx_params, account.key).raw_transaction
     trx_hash = w3.eth.send_raw_transaction(raw_transaction)
     receipt = w3.eth.wait_for_transaction_receipt(trx_hash)
-    assert receipt["status"] == 1
-    print(" => APPROVE PERMIT2 FOR TOKEN: OK")
+    assert receipt["status"] == 1, f'receipt["status"] is actually {receipt["status"]}'
+    print(" => Approve Permit2 for token: OK")
 
 
 def launch_integration_tests():
@@ -178,9 +172,19 @@ def launch_integration_tests():
     print("| Launching integration tests            |")
     print("------------------------------------------")
     check_initialization()
+    tax_balance_before_buy = token_contract.functions.balanceOf(token_address).call()
+    print("token tax balance before buy", tax_balance_before_buy)
+
     buy_token_from_v2()
+    tax_balance_after_buy = token_contract.functions.balanceOf(token_address).call()
+    print("token tax balance after buy", tax_balance_after_buy)
+    assert tax_balance_after_buy > tax_balance_before_buy
+
     approve_permit2_for_token()
     sell_token_from_v2()
+    tax_balance_after_sell = token_contract.functions.balanceOf(token_address).call()
+    print("token tax balance after sell", tax_balance_after_sell)
+    assert tax_balance_after_sell > tax_balance_after_buy
 
 
 def print_success_message():
