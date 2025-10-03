@@ -588,7 +588,7 @@ def test_decode_v4_actions_unequal_param_len(actions_input, params_input, err_ms
         (b'\xff', [b'\x11\x22'], ['1122']),
     )
 )
-def test_decode_v4_actions_(actions_input, params_input, expected_result):
+def test_decode_v4_actions(actions_input, params_input, expected_result):
     result = codec.decode._v4_decoder._decode_v4_actions(actions=actions_input, params=params_input)
     assert result == expected_result
 
@@ -628,7 +628,7 @@ def test_v4_settle_pair(currency_0_input, currency_1_input, expected_result_func
     'amount_input, expected_result_func',
     (
         (Wei(123456789012345678), '<Function WRAP(uint256)>'),
-        (Wei(123456789012345678), '<Function WRAP(uint256)>')
+        (Wei(0), '<Function WRAP(uint256)>')
     )
 )
 def test_v4_wrap_eth(amount_input, expected_result_func):
@@ -650,7 +650,7 @@ def test_v4_wrap_eth(amount_input, expected_result_func):
     'amount_input, expected_result_func',
     (
         (Wei(123456789012345678), '<Function UNWRAP(uint256)>'),
-        (Wei(123456789012345678), '<Function UNWRAP(uint256)>')
+        (Wei(0), '<Function UNWRAP(uint256)>')
     )
 )
 def test_v4_unwrap_weth(amount_input, expected_result_func):
