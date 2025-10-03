@@ -100,7 +100,6 @@ def buy_uni_with_fees():
     v2_in_amount = 1 * 10**18  # 1 eth
     v2_out_amount = 0  # Accept any amount (removes hardcoded dependency)
     fees = 100  # 1%
-    
     encoded_input = (
         codec
         .encode
@@ -122,27 +121,25 @@ def buy_uni_with_fees():
         .sweep(FunctionRecipient.SENDER, uni_address, 0)
         .build(codec.get_default_deadline())
     )
-    
+
     trx_hash = send_transaction(v2_in_amount, encoded_input)
     receipt = w3.eth.wait_for_transaction_receipt(trx_hash)
     assert receipt["status"] == 1  # trx success
     assert w3.eth.get_balance(account.address) < initial_eth_amount - v2_in_amount
     account_uni_balance = uni_contract.functions.balanceOf(account.address).call()
     account_2_uni_balance = uni_contract.functions.balanceOf(account_2.address).call()
-    
+
     # Validate both accounts received UNI and total matches expected ratio
     total_uni = account_uni_balance + account_2_uni_balance
     assert account_uni_balance > 0, f"Actual account uni balance is {account_uni_balance}"
     assert account_2_uni_balance > 0, f"Actual account_2 uni balance is {account_2_uni_balance}"
-    
+
     # Validate 1% fee distribution (with small tolerance for rounding)
     expected_account_2_amount = int(total_uni * 0.01)
     assert abs(account_2_uni_balance - expected_account_2_amount) < 1000, \
         f"Account 2 should get ~1% of total. Got {account_2_uni_balance}, expected ~{expected_account_2_amount}"
-    
+
     print(" => BUY UNI WITH FEES: OK")
-
-
 
 
 def launch_integration_tests():
