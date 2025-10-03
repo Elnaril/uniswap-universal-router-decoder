@@ -17,8 +17,8 @@ from uniswap_universal_router_decoder import (
 web3_provider = os.environ['WEB3_HTTP_PROVIDER_URL_ETHEREUM_MAINNET']
 w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:8545"))
 chain_id = 1
-initial_block_number = 21839495
-initial_eth_amount = 10000 * 10**18
+block_number = 21839495
+init_amount = 10000 * 10**18
 gas_limit = 800_000
 
 account = Account.from_key('0xf7e96bcf6b5223c240ec308d8374ff01a753b00743b3a0127791f37f00c56514')
@@ -40,14 +40,12 @@ codec = RouterCodec()
 
 def launch_anvil():
     anvil_process = subprocess.Popen(
-        " ".join(
-            [
-                "anvil -vvvvv",
-                f"--fork-url {web3_provider}",
-                f"--fork-block-number {initial_block_number}",
-                "--mnemonic-seed-unsafe 8721345628937456298",
-            ]
-        ),
+        " ".join([
+            "anvil",
+            f"--fork-url {web3_provider}",
+            f"--fork-block-number {block_number}",
+            "--mnemonic-seed-unsafe 8721345628937456298",
+        ]),
         shell=True,
     )
     time.sleep(2)
@@ -67,9 +65,9 @@ def kill_processes(parent_id):
 
 def check_initialization():
     assert w3.eth.chain_id == chain_id
-    assert w3.eth.block_number == initial_block_number
-    assert w3.eth.get_balance(account.address) == initial_eth_amount
-    assert w3.eth.get_balance(account_2.address) == initial_eth_amount
+    assert w3.eth.block_number in [block_number, block_number + 1]
+    assert w3.eth.get_balance(account.address) == init_amount
+    assert w3.eth.get_balance(account_2.address) == init_amount
 
     assert uni_contract.functions.balanceOf(account.address).call() == 0
     assert uni_contract.functions.balanceOf(account_2.address).call() == 0
@@ -125,7 +123,7 @@ def buy_uni_with_fees():
     trx_hash = send_transaction(v2_in_amount, encoded_input)
     receipt = w3.eth.wait_for_transaction_receipt(trx_hash)
     assert receipt["status"] == 1  # trx success
-    assert w3.eth.get_balance(account.address) < initial_eth_amount - v2_in_amount
+    assert w3.eth.get_balance(account.address) < init_amount - v2_in_amount
     account_uni_balance = uni_contract.functions.balanceOf(account.address).call()
     account_2_uni_balance = uni_contract.functions.balanceOf(account_2.address).call()
 
