@@ -203,6 +203,43 @@ def test_chain_permit2_permit(codec):
     assert encoded_input == HexStr('0x3593564c000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000063fa0e9900000000000000000000000000000000000000000000000000000000000000010a000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000001600000000000000000000000004fabb145d64652a948d72533023f6e7a623c7c53000000000000000000000000ffffffffffffffffffffffffffffffffffffffff00000000000000000000000000000000000000000000000000000000642194910000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ef1c6e67703c7bd7107eed8303fbe6ec2554bf6b0000000000000000000000000000000000000000000000000000000063fa0e9900000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000041c18b2a09e7d03f38102824a401a765fe05a40753a2188520250e7ffb825f41960dd8703c82a9683c0a7a8eafb2b930aa29b3edc018cad7afc6e29781420a8ec51b00000000000000000000000000000000000000000000000000000000000000')  # noqa E501
 
 
+def test_chain_permit2_permit_batch(codec):
+    tokens_and_amounts = [
+        (
+            Web3.to_checksum_address("0x4Fabb145d64652a948d72533023f6E7A623C7C53"),
+            Wei(2**160 - 1),
+            1677767825,
+            0,
+        ),
+        (
+            Web3.to_checksum_address("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"),
+            Wei(2**160 - 1),
+            1677767825,
+            0,
+        ),
+    ]
+    spender = Web3.to_checksum_address("0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B")
+    deadline = 1677332121
+
+    permit_batch, signable_message = codec.create_permit2_batch_signable_message(
+        tokens_and_amounts,
+        spender,
+        deadline,
+    )
+    assert len(permit_batch["details"]) == 2
+    assert permit_batch["spender"] == spender
+    assert permit_batch["sigDeadline"] == deadline
+
+    account: LocalAccount = Account.from_key(keccak(text="moo"))
+    signed_message: SignedMessage = account.sign_message(signable_message)
+
+    encoded_input = codec.encode.chain().permit2_permit_batch(permit_batch, signed_message).build(deadline)
+    
+    # Verify the structure is correct
+    assert isinstance(encoded_input, str)
+    assert encoded_input.startswith('0x3593564c')
+
+
 @pytest.mark.parametrize(
     "router_function, revert_on_fail, expected_command",
     (
@@ -213,6 +250,8 @@ def test_chain_permit2_permit(codec):
         (RouterFunction.V2_SWAP_EXACT_IN, False, 0x88),
         (RouterFunction.PERMIT2_PERMIT, True, 0x0a),
         (RouterFunction.PERMIT2_PERMIT, False, 0x8a),
+        (RouterFunction.PERMIT2_PERMIT_BATCH, True, 0x03),
+        (RouterFunction.PERMIT2_PERMIT_BATCH, False, 0x83),
         (RouterFunction.WRAP_ETH, True, 0x0b),
         (RouterFunction.WRAP_ETH, False, 0x8b),
     )

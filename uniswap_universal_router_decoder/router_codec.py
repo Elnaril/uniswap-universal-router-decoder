@@ -129,6 +129,77 @@ class RouterCodec:
         )
         return permit_single, signable_message
 
+    @staticmethod
+    def create_permit2_batch_signable_message(
+            tokens_and_amounts: list[Tuple[ChecksumAddress, Wei, int, int]],
+            spender: ChecksumAddress,
+            deadline: int,
+            chain_id: int = 1,
+            verifying_contract: ChecksumAddress = _permit2_address) -> Tuple[Dict[str, Any], SignableMessage]:
+        """
+        Create a eth_account.messages.SignableMessage for batch permits that will be sent to the UR/Permit2 contracts
+        to set token permissions for multiple tokens through signature validation in a single transaction.
+
+        See https://docs.uniswap.org/contracts/permit2/reference/allowance-transfer#batched-permit
+
+        See https://eips.ethereum.org/EIPS/eip-712 for EIP712 structured data signing.
+
+        In addition to this step, the Permit2 contract has to be approved through the token contracts.
+
+        :param tokens_and_amounts: A list of tuples, each containing (token_address, amount, expiration, nonce)
+            - token_address: The address of the token for which an allowance will be given to the UR
+            - amount: The allowance amount in Wei. Max = 2 ** 160 - 1
+            - expiration: The Unix timestamp at which this token's allowance becomes invalid
+            - nonce: An incrementing value indexed per owner, token, and spender for each signature
+        :param spender: The spender (ie: the UR) address
+        :param deadline: The deadline, as a Unix timestamp, on the permit signature
+        :param chain_id: What it says on the box. Default to 1.
+        :param verifying_contract: the permit2 contract address. Default to uniswap permit2 address.
+        :return: A tuple: (PermitBatch, SignableMessage).
+            The first element is the first parameter of permit2_permit_batch().
+            The second element must be signed with eth_account.signers.local.LocalAccount.sign_message() in your code
+            and the resulting SignedMessage is the 2nd parameter of permit2_permit_batch().
+        """
+        permit_details = [
+            {
+                "token": token_address,
+                "amount": amount,
+                "expiration": expiration,
+                "nonce": nonce,
+            }
+            for token_address, amount, expiration, nonce in tokens_and_amounts
+        ]
+        permit_batch = {
+            "details": permit_details,
+            "spender": spender,
+            "sigDeadline": deadline,
+        }
+        domain_data = dict(_permit2_domain_data)
+        domain_data["chainId"] = chain_id
+        domain_data["verifyingContract"] = verifying_contract
+        
+        # PermitBatch types for EIP-712
+        permit_batch_types = {
+            "PermitBatch": [
+                {"name": "details", "type": "PermitDetails[]"},
+                {"name": "spender", "type": "address"},
+                {"name": "sigDeadline", "type": "uint256"},
+            ],
+            "PermitDetails": [
+                {"name": "token", "type": "address"},
+                {"name": "amount", "type": "uint160"},
+                {"name": "expiration", "type": "uint48"},
+                {"name": "nonce", "type": "uint48"},
+            ],
+        }
+        
+        signable_message = encode_typed_data(
+            domain_data=domain_data,
+            message_types=permit_batch_types,
+            message_data=permit_batch,
+        )
+        return permit_batch, signable_message
+
     def fetch_permit2_allowance(
             self,
             wallet: ChecksumAddress,
