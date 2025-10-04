@@ -34,7 +34,7 @@ wbnb_contract = w3.eth.contract(address=wbnb_address, abi=wbnb_abi)
 usdt_address = Web3.to_checksum_address("0x55d398326f99059fF775485246999027B3197955")
 usdt_contract = w3.eth.contract(address=usdt_address, abi=erc20_abi)
 
-ur_address = Web3.to_checksum_address("0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD")
+ur_address = Web3.to_checksum_address("0x1906c1d672b88cd1b9ac7593301ca990f94eae07")
 permit2_address = Web3.to_checksum_address("0x000000000022D473030F116dDEE9F6B43aC78BA3")
 
 codec = RouterCodec()
