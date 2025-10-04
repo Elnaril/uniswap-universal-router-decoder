@@ -1,6 +1,7 @@
 import os
 import subprocess
 import time
+import psutil
 
 from eth_utils import keccak
 from web3 import (
@@ -15,9 +16,8 @@ from uniswap_universal_router_decoder import (
 )
 
 
-web3_provider = os.environ['QUICKNODE_BSC_MAINNET']
 w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:8545"))
-chain_id = 1337
+chain_id = 56
 block_number = 31096415
 gas_limit = 800_000
 
@@ -40,30 +40,17 @@ permit2_address = Web3.to_checksum_address("0x000000000022D473030F116dDEE9F6B43a
 codec = RouterCodec()
 
 
-def launch_ganache():
-    ganache_process = subprocess.Popen(
-        f"""ganache
-        --logging.quiet='true'
-        --fork.url='{web3_provider}'
-        --fork.blockNumber='{block_number}'
-        --miner.defaultGasPrice='15000000000'
-        --wallet.accounts='{account.key.hex()}','{init_amount}'
-        """.replace("\n", " "),
-        shell=True,
-    )
+def launch_anvil():
+    anvil_process = subprocess.Popen(["anvil", "--fork-url", "https://bsc-dataseed.binance.org", "--chain-id", "56", "--port", "8545", "--block-time", "3"])
     time.sleep(3)
-    parent_id = ganache_process.pid
+    parent_id = anvil_process.pid
     return parent_id
 
 
 def kill_processes(parent_id):
-    processes = [str(parent_id), ]
-    pgrep_process = subprocess.run(
-        f"pgrep -P {parent_id}", shell=True, text=True, capture_output=True
-    ).stdout.strip("\n")
-    children_ids = pgrep_process.split("\n") if len(pgrep_process) > 0 else []
-    processes.extend(children_ids)
-    subprocess.run(f"kill {' '.join(processes)}", shell=True, text=True, capture_output=True)
+    for proc in psutil.process_iter(['name']):
+        if proc.info['name'] == 'anvil':
+            proc.kill()
 
 
 def check_initialization():
@@ -251,12 +238,12 @@ def print_success_message():
 
 
 def main():
-    ganache_pid = launch_ganache()
+    anvil_pid = launch_anvil()
     try:
         launch_integration_tests()
         print_success_message()
     finally:
-        kill_processes(ganache_pid)
+        kill_processes(anvil_pid)
 
 
 if __name__ == "__main__":
