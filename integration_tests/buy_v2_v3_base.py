@@ -114,8 +114,7 @@ def buy_usdc_from_v2_and_v3():
     assert w3.eth.get_balance(account.address) < init_amount - total_in_amount
     bought_usdc = usdc_contract.functions.balanceOf(account.address).call()
     print(f"Bought USDC: {bought_usdc}")
-    # Allow for some variation due to market conditions, but should be approximately 8.7-8.8k USDC
-    assert 8_700_000_000 <= bought_usdc <= 8_800_000_000, f"Bought USDC amount {bought_usdc} is outside expected range"
+    assert bought_usdc == 8743089218, f"Expected exactly 8743089218 USDC, but got {bought_usdc}"
 
     print(" => BUY USDC: OK")
 
