@@ -18,7 +18,7 @@ from uniswap_universal_router_decoder import (
 
 w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:8545"))
 chain_id = 56
-block_number = 31096415
+block_number = 63449441
 gas_limit = 800_000
 
 account = Account.from_key(keccak(text="moo"))
