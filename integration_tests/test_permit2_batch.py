@@ -9,8 +9,8 @@ This test validates the full workflow:
 5. Verify the permit batch was processed correctly
 """
 
-import os
 from decimal import Decimal
+import os
 
 from eth_account import Account
 from eth_account.messages import encode_typed_data
@@ -38,11 +38,11 @@ TEST_PRIVATE_KEY = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4
 def test_permit2_batch_integration():
     """
     Integration test for PERMIT2_PERMIT_BATCH command.
-    
+
     Prerequisites:
     1. Foundry Anvil must be running with mainnet fork:
        anvil --fork-url https://eth.llamarpc.com --fork-block-number 21000000
-    
+
     This test:
     - Creates a batch permit for 3 tokens (DAI, USDC, USDT)
     - Signs the EIP-712 message
@@ -53,28 +53,28 @@ def test_permit2_batch_integration():
     # Setup Web3 connection
     w3 = Web3(Web3.HTTPProvider(ANVIL_RPC))
     assert w3.is_connected(), "Cannot connect to Anvil. Make sure it's running."
-    
+
     # Setup test account
     test_account = Account.from_key(TEST_PRIVATE_KEY)
     print(f"Test account: {test_account.address}")
-    
+
     # Verify account has funds
     balance = w3.eth.get_balance(test_account.address)
     assert balance > 0, f"Test account {test_account.address} has no ETH"
     print(f"Account balance: {Web3.from_wei(balance, 'ether')} ETH")
-    
+
     # Initialize codec
     codec = RouterCodec()
-    
+
     # Define permit batch parameters
     current_block = w3.eth.block_number
     current_timestamp = w3.eth.get_block(current_block)['timestamp']
-    
+
     # Expiration 1 hour from now
     expiration = current_timestamp + 3600
     # Signature deadline 2 hours from now
     sig_deadline = current_timestamp + 7200
-    
+
     permit_batch = {
         "details": [
             {
@@ -99,7 +99,7 @@ def test_permit2_batch_integration():
         "spender": UNIVERSAL_ROUTER,
         "sigDeadline": sig_deadline
     }
-    
+
     # Create EIP-712 signable message
     print("\n1. Creating EIP-712 signable message...")
     signable_message = codec.create_permit2_batch_signable_message(
@@ -107,39 +107,39 @@ def test_permit2_batch_integration():
         permit2_address=PERMIT2_CONTRACT,
         chain_id=CHAIN_ID
     )
-    
+
     print(f"Domain: {signable_message['domain']}")
     print(f"Message types: {list(signable_message['types'].keys())}")
     print(f"Primary type: {signable_message['primaryType']}")
-    
+
     # Encode the typed data
     encoded_message = encode_typed_data(full_message=signable_message)
-    
+
     # Sign the message
     print("\n2. Signing EIP-712 message...")
     signed_message = test_account.sign_message(encoded_message)
     signature = signed_message.signature.hex()
     print(f"Signature: {signature}")
     print(f"Signature length: {len(signature)} chars ({len(signed_message.signature)} bytes)")
-    
+
     # Encode the PERMIT2_PERMIT_BATCH command
     print("\n3. Encoding PERMIT2_PERMIT_BATCH command...")
     encoded_input = codec.encode.chain().permit2_permit_batch(
-        permit_batch, 
+        permit_batch,
         signed_message.signature
     ).build(
         encoded_message.address,  # recipient (the signer)
         value=Decimal(0),
         deadline=sig_deadline
     )
-    
+
     print(f"Encoded input length: {len(encoded_input)} chars")
     print(f"Encoded input (first 100 chars): {encoded_input[:100]}...")
-    
+
     # Prepare transaction
     print("\n4. Preparing transaction...")
     nonce = w3.eth.get_transaction_count(test_account.address)
-    
+
     tx = {
         'from': test_account.address,
         'to': UNIVERSAL_ROUTER,
@@ -150,68 +150,70 @@ def test_permit2_batch_integration():
         'chainId': CHAIN_ID,
         'data': encoded_input
     }
-    
+
     print(f"Transaction: {tx}")
-    
+
     # Sign and send transaction
     print("\n5. Signing and sending transaction...")
     signed_tx = test_account.sign_transaction(tx)
     tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
     print(f"Transaction hash: {tx_hash.hex()}")
-    
+
     # Wait for transaction receipt
     print("\n6. Waiting for transaction receipt...")
     receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
-    
+
     print("Transaction receipt:")
     print(f"  Status: {receipt['status']}")
     print(f"  Block number: {receipt['blockNumber']}")
     print(f"  Gas used: {receipt['gasUsed']}")
     print(f"  Logs: {len(receipt['logs'])} events emitted")
-    
+
     # Verify transaction succeeded
     assert receipt['status'] == 1, "Transaction failed"
-    
+
     # Decode the transaction to verify
     print("\n7. Decoding transaction to verify...")
     codec_w3 = RouterCodec(w3=w3)
     decoded_tx = codec_w3.decode.transaction(tx_hash.hex())
-    
+
     print("Decoded transaction:")
     print(f"  Function: {decoded_tx['function']}")
     print(f"  Number of commands: {len(decoded_tx['decoded_input']['inputs'])}")
 
-    
     # Verify decoded commands
     command_inputs = decoded_tx['decoded_input']['inputs']
     assert len(command_inputs) == 1, "Expected 1 command"
-    
+
     # Verify it's PERMIT2_PERMIT_BATCH
     command = command_inputs[0]
     assert command[0].fn_name == "PERMIT2_PERMIT_BATCH", f"Expected PERMIT2_PERMIT_BATCH, got {command[0].fn_name}"
-    
+
     # Verify parameters
     params = command[1]
     assert "struct" in params
     assert "data" in params
-    
+
+    # Verify signature is present
+    assert len(params["data"]) == 65  # Standard Ethereum signature length
+
     struct_data = params["struct"]
     assert "details" in struct_data
     assert "spender" in struct_data
     assert "sigDeadline" in struct_data
-    
+
     # Verify batch details
     details = struct_data["details"]
     assert len(details) == 3, f"Expected 3 permits in batch, got {len(details)}"
-    
+
     # Verify token addresses
     assert details[0]["token"].lower() == DAI_ADDRESS.lower()
     assert details[1]["token"].lower() == USDC_ADDRESS.lower()
     assert details[2]["token"].lower() == USDT_ADDRESS.lower()
-    
+
     # Verify spender
     assert struct_data["spender"].lower() == UNIVERSAL_ROUTER.lower()
-    
+
     print("\n✓ Integration test passed!")
     print("✓ Successfully executed PERMIT2_PERMIT_BATCH for 3 tokens")
     print(f"✓ Transaction: {tx_hash.hex()}")

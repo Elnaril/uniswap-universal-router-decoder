@@ -234,7 +234,7 @@ def test_chain_permit2_permit_batch(codec):
     signed_message: SignedMessage = account.sign_message(signable_message)
 
     encoded_input = codec.encode.chain().permit2_permit_batch(permit_batch, signed_message).build(deadline)
-    
+
     # Verify the structure is correct
     assert isinstance(encoded_input, str)
     assert encoded_input.startswith('0x3593564c')

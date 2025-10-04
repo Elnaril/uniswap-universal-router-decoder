@@ -177,7 +177,7 @@ class RouterCodec:
         domain_data = dict(_permit2_domain_data)
         domain_data["chainId"] = chain_id
         domain_data["verifyingContract"] = verifying_contract
-        
+
         # PermitBatch types for EIP-712
         permit_batch_types = {
             "PermitBatch": [
@@ -192,7 +192,7 @@ class RouterCodec:
                 {"name": "nonce", "type": "uint48"},
             ],
         }
-        
+
         signable_message = encode_typed_data(
             domain_data=domain_data,
             message_types=permit_batch_types,
