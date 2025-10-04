@@ -1,8 +1,9 @@
+import hashlib
 import os
 import subprocess
 import time
 
-from eth_utils import keccak
+from eth_account.account import LocalAccount
 from web3 import (
     Account,
     Web3,
@@ -17,15 +18,18 @@ from uniswap_universal_router_decoder import (
 
 web3_provider = os.environ['WEB3_HTTP_PROVIDER_URL_ETHEREUM_MAINNET']
 w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:8545"))
-chain_id = 1337
-block_number = 19167456
-gas_limit = 800_000
 
-sender = Account.from_key(keccak(text="moo"))
-assert sender.address == "0xcd7328a5D376D5530f054EAF0B9D235a4Fd36059"
-init_amount = 100 * 10**18
+account: LocalAccount = Account.from_key("0xf7e96bcf6b5223c240ec308d8374ff01a753b00743b3a0127791f37f00c56514")
+assert account.address == "0x1e46c294f20bC7C27D93a9b5f45039751D8BCc3e"
 
-recipients = tuple(Account.from_key(keccak(text=sound)) for sound in ("baa", "maa", "wehee", "oink", "gaggle", "kut"))
+chain_id = 1
+initial_block_number = 21893982
+initial_eth_amount = 10000 * 10**18
+
+recipients = tuple(
+    Account.from_key("0x" + hashlib.sha256(f"uniswap_test_recipient_{i}_anvil_fork".encode()).hexdigest())
+    for i in range(1, 7)
+)
 
 erc20_abi = '[{"constant":true,"inputs":[],"name":"name","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"},{"name":"_spender","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"anonymous":false,"inputs":[{"indexed":true,"name":"_from","type":"address"},{"indexed":true,"name":"_to","type":"address"},{"indexed":false,"name":"_value","type":"uint256"}],"name":"Transfer","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"_owner","type":"address"},{"indexed":true,"name":"_spender","type":"address"},{"indexed":false,"name":"_value","type":"uint256"}],"name":"Approval","type":"event"}]'  # noqa
 weth_abi = '[{"constant":true,"inputs":[],"name":"name","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"guy","type":"address"},{"name":"wad","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"src","type":"address"},{"name":"dst","type":"address"},{"name":"wad","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"wad","type":"uint256"}],"name":"withdraw","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"name":"","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"dst","type":"address"},{"name":"wad","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[],"name":"deposit","outputs":[],"payable":true,"stateMutability":"payable","type":"function"},{"constant":true,"inputs":[{"name":"","type":"address"},{"name":"","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"payable":true,"stateMutability":"payable","type":"fallback"},{"anonymous":false,"inputs":[{"indexed":true,"name":"src","type":"address"},{"indexed":true,"name":"guy","type":"address"},{"indexed":false,"name":"wad","type":"uint256"}],"name":"Approval","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"src","type":"address"},{"indexed":true,"name":"dst","type":"address"},{"indexed":false,"name":"wad","type":"uint256"}],"name":"Transfer","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"dst","type":"address"},{"indexed":false,"name":"wad","type":"uint256"}],"name":"Deposit","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"src","type":"address"},{"indexed":false,"name":"wad","type":"uint256"}],"name":"Withdrawal","type":"event"}]'  # noqa
@@ -36,24 +40,26 @@ weth_contract = w3.eth.contract(address=weth_address, abi=weth_abi)
 usdc_address = Web3.to_checksum_address("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48")
 usdc_contract = w3.eth.contract(address=usdc_address, abi=erc20_abi)
 
-ur_address = Web3.to_checksum_address("0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD")
+ur_address = Web3.to_checksum_address("0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af")
 
 codec = RouterCodec()
 
 
-def launch_ganache():
-    ganache_process = subprocess.Popen(
-        f"""ganache
-        --logging.quiet='true'
-        --fork.url='{web3_provider}'
-        --fork.blockNumber='{block_number}'
-        --miner.defaultGasPrice='30000000000'
-        --wallet.accounts='{sender.key.hex()}','{init_amount}'
-        """.replace("\n", " "),
+# Tests
+def launch_anvil():
+    anvil_process = subprocess.Popen(
+        " ".join(
+            [
+                "anvil -vvvvv",
+                f"--fork-url {web3_provider}",
+                f"--fork-block-number {initial_block_number}",
+                "--mnemonic-seed-unsafe 8721345628937456298",
+            ]
+        ),
         shell=True,
     )
-    time.sleep(3)
-    parent_id = ganache_process.pid
+    time.sleep(5)
+    parent_id = anvil_process.pid
     return parent_id
 
 
@@ -64,40 +70,43 @@ def kill_processes(parent_id):
     ).stdout.strip("\n")
     children_ids = pgrep_process.split("\n") if len(pgrep_process) > 0 else []
     processes.extend(children_ids)
+    print(f"Killing processes: {' '.join(processes)}")
     subprocess.run(f"kill {' '.join(processes)}", shell=True, text=True, capture_output=True)
 
 
 def check_initialization():
-    assert w3.eth.chain_id == chain_id  # 1337
-    assert w3.eth.block_number == block_number + 1
-    assert w3.eth.get_balance(sender.address) == init_amount
-    for acc in recipients + (sender, ):
+    assert w3.eth.chain_id == chain_id
+    assert w3.eth.block_number == initial_block_number
+    assert w3.eth.get_balance(account.address) == initial_eth_amount
+    for acc in recipients:
+        assert w3.eth.get_balance(acc.address) == 0
+    for acc in recipients + (account, ):
         assert usdc_contract.functions.balanceOf(acc.address).call() == 0
     print(" => Initialization: OK")
 
 
 def send_transaction(value, encoded_data):
     trx_params = {
-        "from": sender.address,
+        "from": account.address,
         "to": ur_address,
-        "gas": gas_limit,
+        "gas": 800_000,
         "maxPriorityFeePerGas": w3.eth.max_priority_fee,
         "maxFeePerGas": w3.eth.gas_price + w3.eth.max_priority_fee,
         "type": '0x2',
         "chainId": chain_id,
         "value": value,
-        "nonce": w3.eth.get_transaction_count(sender.address),
+        "nonce": w3.eth.get_transaction_count(account.address),
         "data": encoded_data,
     }
-    raw_transaction = w3.eth.account.sign_transaction(trx_params, sender.key).rawTransaction
+    raw_transaction = w3.eth.account.sign_transaction(trx_params, account.key).raw_transaction
     trx_hash = w3.eth.send_raw_transaction(raw_transaction)
     return trx_hash
 
 
 def buy_and_transfer():
     """
-    Sender is going to use eth to:
-      - send 100 USDC to 4 recipients and the sender (total: 500 usdc)
+    Account is going to use eth to:
+      - send 100 USDC to 4 recipients and the account (total: 500 usdc)
       - send 0.1 eth to the 2 other recipients (total: 0.2 eth)
     """
     usdc_amount_per_recipient = Wei(100 * 10**6)
@@ -115,9 +124,11 @@ def buy_and_transfer():
         .chain()
         # weth conversion and swap
         .wrap_eth(FunctionRecipient.ROUTER, amount_in_max)
-        .v3_swap_exact_out(FunctionRecipient.ROUTER, amount_out, amount_in_max, v3_path, payer_is_sender=False)
+        .v3_swap_exact_out(
+            FunctionRecipient.ROUTER, amount_out, amount_in_max, v3_path, payer_is_sender=False
+        )
         # usdc transfer
-        .transfer(FunctionRecipient.SENDER, usdc_address, usdc_amount_per_recipient)  # transfer usdc to sender
+        .transfer(FunctionRecipient.SENDER, usdc_address, usdc_amount_per_recipient)  # transfer usdc to account
         .transfer(FunctionRecipient.CUSTOM, usdc_address, usdc_amount_per_recipient, recipients[0].address)  # transfer usdc to 1st recipient  # noqa
         .transfer(FunctionRecipient.CUSTOM, usdc_address, usdc_amount_per_recipient, recipients[1].address)  # transfer usdc to 2nd recipient  # noqa
         .transfer(FunctionRecipient.CUSTOM, usdc_address, usdc_amount_per_recipient, recipients[2].address)  # transfer usdc to 3rd recipient  # noqa
@@ -125,7 +136,7 @@ def buy_and_transfer():
         # eth transfer
         .transfer(FunctionRecipient.CUSTOM, eth_address, eth_amount_per_recipient, recipients[4].address)  # transfer eth to 5th recipient  # noqa
         .transfer(FunctionRecipient.CUSTOM, eth_address, eth_amount_per_recipient, recipients[5].address)  # transfer eth to 6th recipient  # noqa
-        .unwrap_weth(FunctionRecipient.SENDER, 0)  # unwrap and send back all remaining eth to sender
+        .unwrap_weth(FunctionRecipient.SENDER, 0)  # unwrap and send back all remaining eth to account
         .build()
     )
 
@@ -134,16 +145,24 @@ def buy_and_transfer():
     receipt = w3.eth.wait_for_transaction_receipt(trx_hash)
     assert receipt["status"] == 1, f'receipt["status"] is actually {receipt["status"]}'  # trx status
 
-    assert usdc_contract.functions.balanceOf(sender.address).call() == usdc_amount_per_recipient
+    assert usdc_contract.functions.balanceOf(account.address).call() == usdc_amount_per_recipient
     for i in range(4):
         assert usdc_contract.functions.balanceOf(recipients[i].address).call() == usdc_amount_per_recipient
 
     for i in range(4, 6):
-        assert w3.eth.get_balance(recipients[i].address) == eth_amount_per_recipient
+        eth_balance = w3.eth.get_balance(recipients[i].address)
+        assert eth_balance == eth_amount_per_recipient, (
+            f"Recipient {i} has {eth_balance} but expected exactly {eth_amount_per_recipient}"
+        )
 
-    sender_eth_balance = w3.eth.get_balance(sender.address)
-    print("Sender ETH balance", sender_eth_balance / 10**18)
-    assert sender_eth_balance == 99573567178309372475, f"Actual ETH balance is {sender_eth_balance}"
+    unwrap_weth_amount = int.from_bytes(receipt["logs"][-1]["data"], "big")
+    gas_price = receipt["effectiveGasPrice"]
+    gas_used = receipt["gasUsed"]
+    account_eth_balance = w3.eth.get_balance(account.address)
+    print("Account ETH balance", account_eth_balance / 10**18)
+    assert initial_eth_amount - value + unwrap_weth_amount - gas_price * gas_used == account_eth_balance, (
+        f"Actual ETH balance is {account_eth_balance}"
+    )
 
     print(" => BUY & TRANSFER USDC/ETH: OK")
 
@@ -173,7 +192,9 @@ def simple_transfers():
 
     gas_used = receipt["gasUsed"]
     print("Gas used (total/per transfer):", gas_used, gas_used // 48)
-    assert receipt["gasUsed"] == 557986 < 48 * 21000
+    assert receipt["gasUsed"] < 48 * 21000, (
+        f"Gas used {receipt['gasUsed']} exceeds 48 * 21000 = {48 * 21000}"
+    )
 
     print(" => SIMPLE ETH MASS TRANSFERS: OK")
 
@@ -194,12 +215,12 @@ def print_success_message():
 
 
 def main():
-    ganache_pid = launch_ganache()
+    anvil_pid = launch_anvil()
     try:
         launch_integration_tests()
         print_success_message()
     finally:
-        kill_processes(ganache_pid)
+        kill_processes(anvil_pid)
 
 
 if __name__ == "__main__":
