@@ -65,7 +65,7 @@ def kill_processes(parent_id):
 
 def check_initialization():
     assert w3.eth.chain_id == chain_id
-    assert w3.eth.block_number in [block_number, block_number + 1]
+    assert w3.eth.block_number in [block_number, block_number]
     assert w3.eth.get_balance(account.address) == init_amount
     assert w3.eth.get_balance(account_2.address) == init_amount
 
@@ -96,26 +96,15 @@ def buy_uni_with_fees():
     # Buying for 1 eth of uni from v2 and send 1% of out_amount to account_2
     v2_path = [weth_address, uni_address]
     v2_in_amount = 1 * 10**18  # 1 eth
-    v2_out_amount = 0  # Accept any amount (removes hardcoded dependency)
+    v2_out_amount = 1
     fees = 100  # 1%
     encoded_input = (
         codec
         .encode
         .chain()
         .wrap_eth(FunctionRecipient.ROUTER, v2_in_amount)
-        .v2_swap_exact_in(
-            FunctionRecipient.ROUTER,
-            v2_in_amount,
-            v2_out_amount,
-            v2_path,
-            payer_is_sender=False
-        )
-        .pay_portion(
-            FunctionRecipient.CUSTOM,
-            uni_address,
-            fees,
-            account_2.address
-        )
+        .v2_swap_exact_in(FunctionRecipient.ROUTER, v2_in_amount, v2_out_amount, v2_path, payer_is_sender=False)
+        .pay_portion(FunctionRecipient.CUSTOM, uni_address, fees, account_2.address)
         .sweep(FunctionRecipient.SENDER, uni_address, 0)
         .build(codec.get_default_deadline())
     )
