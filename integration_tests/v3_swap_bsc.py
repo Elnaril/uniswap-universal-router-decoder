@@ -17,7 +17,7 @@ from uniswap_universal_router_decoder import (
 )
 
 
-w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:8545"))
+w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:8546"))
 chain_id = 56
 block_number = 43999999
 gas_limit = 800_000
@@ -42,11 +42,11 @@ codec = RouterCodec()
 
 def launch_anvil():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    port_in_use = sock.connect_ex(('127.0.0.1', 8545)) == 0
+    port_in_use = sock.connect_ex(('127.0.0.1', 8546)) == 0
     sock.close()
     if port_in_use:
-        raise RuntimeError("Port 8545 is already in use. Please ensure no other Anvil instance is running.")
-    anvil_process = subprocess.Popen(["anvil", "--fork-url", "https://bsc-dataseed1.ninicoin.io", "--chain-id", "56", "--port", "8545", "--block-time", "3"])
+        raise RuntimeError("Port 8546 is already in use. Please ensure no other Anvil instance is running.")
+    anvil_process = subprocess.Popen(["anvil", "--fork-url", "https://bsc-dataseed1.ninicoin.io", "--chain-id", "56", "--port", "8546", "--block-time", "3"])
     time.sleep(3)
     parent_id = anvil_process.pid
     return parent_id
@@ -94,7 +94,9 @@ def buy_usdt():
         .encode
         .chain()
         .wrap_eth(FunctionRecipient.ROUTER, amount_in)
+         # can chain one of the 2 following v3 swap functions:
         .v3_swap_exact_in_from_balance(FunctionRecipient.SENDER, amount_out_min, v3_path)
+        # .v3_swap_exact_in(FunctionRecipient.SENDER, amount_in, amount_out_min, v3_path, payer_is_sender=False)
         .build(codec.get_default_deadline())
     )
     trx_hash = send_transaction(amount_in, encoded_input)
@@ -178,13 +180,14 @@ def sell_usdt_part_2():
     v3_path = [usdt_address, 500, wbnb_address]
 
     amount, expiration, nonce = codec.fetch_permit2_allowance(account.address, usdt_address)
-    assert amount == 0, "Wrong Permit2 allowance amount"
+    assert amount == 0, "Wrong Permit2 allowance amount"  # allowance fully used in sell_usdc_part_1()
     assert expiration > 0, "Wrong Permit2 allowance expiration"
     assert nonce == 1, "Wrong Permit2 allowance nonce"
     print("Permit2 allowance before sell part 2:", amount, expiration, nonce)
 
     permit_data, signable_message = codec.create_permit2_signable_message(
         usdt_address,
+        # amount_in,  # max/infinite = 2**160 - 1
         2**160 - 1,
         codec.get_default_expiration(40 * 24 * 3600),  # 30 days
         nonce,  # Permit2 nonce
@@ -214,7 +217,7 @@ def sell_usdt_part_2():
     assert wbnb_balance > 0, f"WBNB balance was actually: {wbnb_balance}"
 
     amount, expiration, nonce = codec.fetch_permit2_allowance(account.address, usdt_address)
-    assert amount == 2**160 - 1, "Wrong Permit2 allowance amount"
+    assert amount == 2**160 - 1, "Wrong Permit2 allowance amount"  # infinite allowance
     assert expiration > 0, "Wrong Permit2 allowance expiration"
     assert nonce == 2, "Wrong Permit2 allowance nonce"
     print("Permit2 allowance after sell part 2:", amount, expiration, nonce)
