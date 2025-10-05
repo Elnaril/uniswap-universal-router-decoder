@@ -1,7 +1,7 @@
-import subprocess
-import time
 import psutil
 import socket
+import subprocess
+import time
 
 
 from web3 import Web3
