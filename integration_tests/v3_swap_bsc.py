@@ -1,14 +1,10 @@
-import os
 import subprocess
 import time
 import psutil
 import socket
 
-from eth_utils import keccak
-from web3 import (
-    Account,
-    Web3,
-)
+
+from web3 import Web3
 from web3.types import Wei
 
 from uniswap_universal_router_decoder import (
@@ -46,7 +42,8 @@ def launch_anvil():
     sock.close()
     if port_in_use:
         raise RuntimeError("Port 8546 is already in use. Please ensure no other Anvil instance is running.")
-    anvil_process = subprocess.Popen(["anvil", "--fork-url", "https://bsc-dataseed1.ninicoin.io", "--chain-id", "56", "--port", "8546", "--block-time", "3"])
+    anvil_process = subprocess.Popen(["anvil", "--fork-url", "https://bsc-dataseed1.ninicoin.io", 
+    "--chain-id", "56", "--port", "8546", "--block-time", "3"])
     time.sleep(3)
     parent_id = anvil_process.pid
     return parent_id
@@ -96,7 +93,7 @@ def buy_usdt():
         .wrap_eth(FunctionRecipient.ROUTER, amount_in)
          # can chain one of the 2 following v3 swap functions:
         .v3_swap_exact_in_from_balance(FunctionRecipient.SENDER, amount_out_min, v3_path)
-        # .v3_swap_exact_in(FunctionRecipient.SENDER, amount_in, amount_out_min, v3_path, payer_is_sender=False)
+         # .v3_swap_exact_in(FunctionRecipient.SENDER, amount_in, amount_out_min, v3_path, payer_is_sender=False)
         .build(codec.get_default_deadline())
     )
     trx_hash = send_transaction(amount_in, encoded_input)
