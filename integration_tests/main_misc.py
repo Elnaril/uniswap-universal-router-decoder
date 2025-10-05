@@ -65,7 +65,7 @@ def kill_processes(parent_id):
 
 def check_initialization():
     assert w3.eth.chain_id == chain_id
-    assert w3.eth.block_number in [block_number, block_number]
+    assert w3.eth.block_number == block_number
     assert w3.eth.get_balance(account.address) == init_amount
     assert w3.eth.get_balance(account_2.address) == init_amount
 
@@ -96,7 +96,7 @@ def buy_uni_with_fees():
     # Buying for 1 eth of uni from v2 and send 1% of out_amount to account_2
     v2_path = [weth_address, uni_address]
     v2_in_amount = 1 * 10**18  # 1 eth
-    v2_out_amount = 1
+    v2_out_amount = 267 * 10**18
     fees = 100  # 1%
     encoded_input = (
         codec
