@@ -7,6 +7,6 @@ mypy
 pytest
 pytest-mock
 tox
-
+psutil
 build
 twine
