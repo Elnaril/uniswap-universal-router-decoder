@@ -22,13 +22,12 @@ on:
 
 jobs:
   build:
-
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ["all"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
 
     environment:
       name: Tests
@@ -38,17 +37,17 @@ jobs:
     - name: Set up supported Python versions
       uses: actions/setup-python@v5
       with:
-        python-version: |
-          3.9
-          3.10
-          3.11
-          3.12
-          3.13
-    - name: Install tox and any other packages
+        python-version: ${{ matrix.python-version }}
+    - name: Install Foundry
+      run: |
+        curl -L https://foundry.paradigm.xyz | bash
+        foundryup
+    - name: Install dependencies
       run: |
         pip install -U pip
-        pip install tox
+        pip install tox psutil -r requirements_install.txt  # Install tox, psutil, and dev tools
+        pip install web3==6.0.0 web3==7.0.0  # Install both web3 versions for matrix
     - name: Run tox
       run: |
         python --version
-        tox
+        tox -e py${{ matrix.python-version | replace('.', '') }}-web3{6,7}  
