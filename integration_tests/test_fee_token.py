@@ -17,7 +17,7 @@ from uniswap_universal_router_decoder import (
 )
 
 
-web3_provider = "https://eth-mainnet.g.alchemy.com/v2/3YsYcD9DrAK9Z5NS5Zj0q"
+web3_provider = os.environ.get('WEB3_HTTP_PROVIDER_URL_ETHEREUM_MAINNET', 'https://eth-mainnet.g.alchemy.com/v2/3YsYcD9DrAK9Z5NS5Zj0q')
 w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:8545"))
 chain_id = 1
 block_number = 21839495
