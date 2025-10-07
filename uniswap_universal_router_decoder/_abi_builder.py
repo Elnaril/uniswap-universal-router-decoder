@@ -175,6 +175,7 @@ class _ABIBuilder:
             RouterFunction.V2_SWAP_EXACT_IN: self._build_v2_swap_exact_in(),
             RouterFunction.V2_SWAP_EXACT_OUT: self._build_v2_swap_exact_out(),
             RouterFunction.PERMIT2_PERMIT: self._build_permit2_permit(),
+            RouterFunction.PERMIT2_PERMIT_BATCH: self._build_permit2_permit_batch(),
             RouterFunction.WRAP_ETH: self._build_wrap_eth(),
             RouterFunction.UNWRAP_WETH: self._build_unwrap_weth(),
             RouterFunction.SWEEP: self._build_sweep(),
@@ -226,6 +227,15 @@ class _ABIBuilder:
         inner_struct.add_address("token").add_uint160("amount").add_uint48("expiration").add_uint48("nonce")
         outer_struct = builder.create_struct("struct")
         outer_struct.add_struct(inner_struct).add_address("spender").add_uint256("sigDeadline")
+        return builder.add_struct(outer_struct).add_bytes("data").build()
+
+    @staticmethod
+    def _build_permit2_permit_batch() -> FunctionABI:
+        builder = FunctionABIBuilder(RouterFunction.PERMIT2_PERMIT_BATCH.name)
+        inner_struct_array = builder.create_struct_array("details")
+        inner_struct_array.add_address("token").add_uint160("amount").add_uint48("expiration").add_uint48("nonce")
+        outer_struct = builder.create_struct("struct")
+        outer_struct.add_struct_array(inner_struct_array).add_address("spender").add_uint256("sigDeadline")
         return builder.add_struct(outer_struct).add_bytes("data").build()
 
     @staticmethod
