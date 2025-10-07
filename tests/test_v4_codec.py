@@ -1,5 +1,6 @@
 from pprint import pp
 
+import pytest
 from web3 import Web3
 from web3.types import (
     HexStr,
@@ -565,3 +566,206 @@ def test_v4_swap_exact_out(w3):
 
     decoded_input = codec.decode.function_input(encoded_input)
     print(decoded_input)
+
+
+@pytest.mark.parametrize(
+    'actions_input, params_input, err_msg',
+    (
+        (b'\x06\x0f', [b'\x00'], 'Number of actions 2 is different from number of params: 1'),
+        (b'\x00', [b'\x00', b'\x06\x0f'], 'Number of actions 1 is different from number of params: 2')
+    )
+)
+def test_decode_v4_actions_unequal_param_len(actions_input, params_input, err_msg):
+    with pytest.raises(ValueError) as err:
+        codec.decode._v4_decoder._decode_v4_actions(actions=actions_input, params=params_input)
+    assert str(err.value) == err_msg
+
+
+@pytest.mark.parametrize(
+    'actions_input, params_input, expected_result',
+    (
+        (b'\x12\x34', [b'\x11\x22', b'\xff'], ['1122', 'ff']),
+        (b'\xff', [b'\x11\x22'], ['1122']),
+    )
+)
+def test_decode_v4_actions(actions_input, params_input, expected_result):
+    result = codec.decode._v4_decoder._decode_v4_actions(actions=actions_input, params=params_input)
+    assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    'currency_0_input, currency_1_input, expected_result_func',
+    (
+        (
+            Web3.to_checksum_address('0x0000000000000000000000000000000000000000'),
+            Web3.to_checksum_address('0xBf5617af623f1863c4abc900c5bebD5415a694e8'),
+            '<Function SETTLE_PAIR(address,address)>',
+        ),
+        (
+            Web3.to_checksum_address('0xBf5617af623f1863c4abc900c5bebD5415a694e8'),
+            Web3.to_checksum_address('0x0000000000000000000000000000000000000000'),
+            '<Function SETTLE_PAIR(address,address)>',
+        )
+    )
+)
+def test_v4_settle_pair(currency_0_input, currency_1_input, expected_result_func):
+    encoded_input = (
+        codec
+        .encode
+        .chain()
+        .v4_posm_call()
+        .settle_pair(currency_0=currency_0_input, currency_1=currency_1_input)
+        .build_v4_posm_call(deadline=codec.get_default_deadline())
+        .build(deadline=1732612928)
+    )
+    result = codec.decode.function_input(input_data=encoded_input)
+    assert repr(result[1]['inputs'][0][1]['unlockData']['params'][0][0]) == expected_result_func
+    assert result[1]['inputs'][0][1]['unlockData']['params'][0][1]['currency0'] == currency_0_input
+    assert result[1]['inputs'][0][1]['unlockData']['params'][0][1]['currency1'] == currency_1_input
+
+
+@pytest.mark.parametrize(
+    'amount_input, expected_result_func',
+    (
+        (Wei(123456789012345678), '<Function WRAP(uint256)>'),
+        (Wei(0), '<Function WRAP(uint256)>')
+    )
+)
+def test_v4_wrap_eth(amount_input, expected_result_func):
+    encoded_input = (
+        codec
+        .encode
+        .chain()
+        .v4_posm_call()
+        .wrap_eth(amount=amount_input)
+        .build_v4_posm_call(deadline=codec.get_default_deadline())
+        .build(deadline=1732612928)
+    )
+    result = codec.decode.function_input(input_data=encoded_input)
+    assert repr(result[1]['inputs'][0][1]['unlockData']['params'][0][0]) == expected_result_func
+    assert result[1]['inputs'][0][1]['unlockData']['params'][0][1]['amount'] == amount_input
+
+
+@pytest.mark.parametrize(
+    'amount_input, expected_result_func',
+    (
+        (Wei(123456789012345678), '<Function UNWRAP(uint256)>'),
+        (Wei(0), '<Function UNWRAP(uint256)>')
+    )
+)
+def test_v4_unwrap_weth(amount_input, expected_result_func):
+    encoded_input = (
+        codec
+        .encode
+        .chain()
+        .v4_posm_call()
+        .unwrap_weth(amount=amount_input)
+        .build_v4_posm_call(deadline=codec.get_default_deadline())
+        .build(deadline=1732612928)
+    )
+    result = codec.decode.function_input(input_data=encoded_input)
+    assert repr(result[1]['inputs'][0][1]['unlockData']['params'][0][0]) == expected_result_func
+    assert result[1]['inputs'][0][1]['unlockData']['params'][0][1]['amount'] == amount_input
+
+
+@pytest.mark.parametrize(
+    'currency_0_input, currency_1_input, recipient_input, expected_result_func',
+    (
+        (
+            Web3.to_checksum_address('0x0000000000000000000000000000000000000000'),
+            Web3.to_checksum_address('0xBf5617af623f1863c4abc900c5bebD5415a694e8'),
+            Web3.to_checksum_address('0x29F08a27911bbCd0E01E8B1D97ec3cA187B6351D'),
+            '<Function TAKE_PAIR(address,address,address)>'
+        ),
+        (
+            Web3.to_checksum_address('0xBf5617af623f1863c4abc900c5bebD5415a694e8'),
+            Web3.to_checksum_address('0x0000000000000000000000000000000000000000'),
+            Web3.to_checksum_address('0x0000000000000000000000000000000000000000'),
+            '<Function TAKE_PAIR(address,address,address)>'
+        )
+    )
+)
+def test_v4_take_pair(currency_0_input, currency_1_input, recipient_input, expected_result_func):
+    encoded_input = (
+        codec
+        .encode
+        .chain()
+        .v4_posm_call()
+        .take_pair(
+            currency_0=currency_0_input,
+            currency_1=currency_1_input,
+            recipient=recipient_input
+        )
+        .build_v4_posm_call(deadline=codec.get_default_deadline())
+        .build(deadline=1732612928)
+    )
+    result = codec.decode.function_input(input_data=encoded_input)
+    assert repr(result[1]['inputs'][0][1]['unlockData']['params'][0][0]) == expected_result_func
+    assert result[1]['inputs'][0][1]['unlockData']['params'][0][1]['currency0'] == currency_0_input
+    assert result[1]['inputs'][0][1]['unlockData']['params'][0][1]['currency1'] == currency_1_input
+    assert result[1]['inputs'][0][1]['unlockData']['params'][0][1]['recipient'] == recipient_input
+
+
+@pytest.mark.parametrize(
+    'currency_input, amount_max_input, expected_result_func',
+    (
+        (
+            Web3.to_checksum_address('0x0000000000000000000000000000000000000000'),
+            1,
+            '<Function CLEAR_OR_TAKE(address,uint256)>'
+        ),
+        (
+            Web3.to_checksum_address('0xBf5617af623f1863c4abc900c5bebD5415a694e8'),
+            2,
+            '<Function CLEAR_OR_TAKE(address,uint256)>'
+        )
+    )
+)
+def test_v4_clear_or_take(currency_input, amount_max_input, expected_result_func):
+    encoded_input = (
+        codec
+        .encode
+        .chain()
+        .v4_posm_call()
+        .clear_or_take(currency=currency_input, amount_max=amount_max_input)
+        .build_v4_posm_call(deadline=codec.get_default_deadline())
+        .build(deadline=1732612928)
+    )
+    result = codec.decode.function_input(input_data=encoded_input)
+    assert repr(result[1]['inputs'][0][1]['unlockData']['params'][0][0]) == expected_result_func
+    assert result[1]['inputs'][0][1]['unlockData']['params'][0][1]['currency'] == currency_input
+    assert result[1]['inputs'][0][1]['unlockData']['params'][0][1]['amountMax'] == amount_max_input
+
+
+@pytest.mark.parametrize(
+    'currency_input, recipient_input, bips_input, expected_result_func',
+    (
+        (
+            Web3.to_checksum_address('0x0000000000000000000000000000000000000000'),
+            Web3.to_checksum_address('0xBf5617af623f1863c4abc900c5bebD5415a694e8'),
+            1,
+            '<Function TAKE_PORTION(address,address,uint256)>'
+        ),
+        (
+            Web3.to_checksum_address('0xBf5617af623f1863c4abc900c5bebD5415a694e8'),
+            Web3.to_checksum_address('0x0000000000000000000000000000000000000000'),
+            2,
+            '<Function TAKE_PORTION(address,address,uint256)>'
+        )
+    )
+)
+def test_v4_take_portion(currency_input, recipient_input, bips_input, expected_result_func):
+    encoded_input = (
+        codec
+        .encode
+        .chain()
+        .v4_swap()
+        .take_portion(currency=currency_input, recipient=recipient_input, bips=bips_input)
+        .build_v4_swap()
+        .build(deadline=1732612928)
+    )
+    result = codec.decode.function_input(input_data=encoded_input)
+    assert repr(result[1]['inputs'][0][1]['params'][0][0]) == expected_result_func
+    assert result[1]['inputs'][0][1]['params'][0][1]['currency'] == currency_input
+    assert result[1]['inputs'][0][1]['params'][0][1]['recipient'] == recipient_input
+    assert result[1]['inputs'][0][1]['params'][0][1]['bips'] == bips_input

@@ -18,3 +18,14 @@ notes/
 
 venv_ur_tutorial/
 media/temp
+
+# Anvil and blockchain testing files
+*.db
+*.db-shm
+*.db-wal
+anvil_state/
+anvil.log
+chain_data/
+
+# Ignore vscode AI rules
+.github/instructions/codacy.instructions.md
