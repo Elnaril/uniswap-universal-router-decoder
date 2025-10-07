@@ -31,10 +31,108 @@ trx_hash_08 = HexStr("0x62176a906ef7f178814a0924d390082053bd8992c2902f4367561946
 expected_function_names_08 = ("WRAP_ETH", "V2_SWAP_EXACT_OUT", "PAY_PORTION", "SWEEP", "UNWRAP_WETH")
 
 trx_hash_09 = HexStr("0x2b6af8ef8fe18829a0fcf2b0f391c55daf76f53bb68369ecaefdb1f38045f919")
-expected_function_names_09 = ("PERMIT2_PERMIT", "V2_SWAP_EXACT_IN", "V2_SWAP_EXACT_IN", "V3_SWAP_EXACT_IN", "V2_SWAP_EXACT_IN", "V3_SWAP_EXACT_IN", "SWEEP")  # noqa
+expected_function_names_09 = (
+    "PERMIT2_PERMIT",
+    "V2_SWAP_EXACT_IN",
+    "V2_SWAP_EXACT_IN",
+    "V3_SWAP_EXACT_IN",
+    "V2_SWAP_EXACT_IN",
+    "V3_SWAP_EXACT_IN",
+    "SWEEP",
+)  # noqa
 
 trx_hash_10 = HexStr("0x586d51e2f92bd16573f0e7e302755ed02b7c2a4b721d63f46bcdcf7179d2f40e")
-expected_function_names_10 = ("WRAP_ETH", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OUT", None, "UNWRAP_WETH", "SWEEP")  # noqa
+expected_function_names_10 = (
+    "WRAP_ETH",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    "V3_SWAP_EXACT_OUT",
+    None,
+    "UNWRAP_WETH",
+    "SWEEP",
+)  # noqa
 
 
 @pytest.mark.parametrize(
@@ -50,7 +148,7 @@ expected_function_names_10 = ("WRAP_ETH", "V3_SWAP_EXACT_OUT", "V3_SWAP_EXACT_OU
         (trx_hash_08, True, expected_function_names_08),
         (trx_hash_09, True, expected_function_names_09),
         (trx_hash_10, True, expected_function_names_10),
-    )
+    ),
 )
 def test_decode_transaction(trx_hash, use_w3, expected_fct_names, w3, rpc_url):
     if use_w3:
@@ -64,7 +162,7 @@ def test_decode_transaction(trx_hash, use_w3, expected_fct_names, w3, rpc_url):
     for i, expected_name in enumerate(expected_fct_names):
         if expected_name:
             assert expected_name == command_inputs[i][0].fn_name
-            assert command_inputs[i][2]['revert_on_fail'] is True
+            assert command_inputs[i][2]["revert_on_fail"] is True
         else:
             assert isinstance(command_inputs[i], str)
             int(command_inputs[i], 16)  # check the str is actually a hex
@@ -111,7 +209,7 @@ expected_parsed_path_07 = (
         (trx_hash_04, "V2_SWAP_EXACT_OUT", None, ValueError),
         (trx_hash_06, "V3_SWAP_EXACT_OUT", expected_parsed_path_06, None),
         (trx_hash_07, "V3_SWAP_EXACT_IN", expected_parsed_path_07, None),
-    )
+    ),
 )
 def test_decode_v3_path(trx_hash, fn_name, expected_parsed_path, expected_exception, codec_rpc):
     decoded_trx = codec_rpc.decode.transaction(trx_hash)
@@ -134,7 +232,7 @@ contract_error_0 = "0x00000000"
 contract_error_1 = "0x2c4029e9000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000"  # noqa
 contract_error_2 = "0x5d1d0f9f"
 contract_error_3 = "0x2c4029e9000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000024bfb22adf000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"  # noqa
-contract_sub_error_3 = b'\xbf\xb2*\xdf\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'.hex()  # noqa
+contract_sub_error_3 = b"\xbf\xb2*\xdf\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00".hex()  # noqa
 contract_error_4 = "0xf801e5250000000000000000000000000000000000000000000000000000000000000000"
 
 
@@ -142,12 +240,21 @@ contract_error_4 = "0xf801e52500000000000000000000000000000000000000000000000000
     "contract_error, expected",
     (
         (contract_error_0, ("Unknown error", {})),
-        (contract_error_1, ("ExecutionFailed(uint256,bytes)", {'commandIndex': 0, 'message': b''})),
+        (contract_error_1, ("ExecutionFailed(uint256,bytes)", {"commandIndex": 0, "message": b""})),
         (contract_error_2, ("OnlyMintAllowed()", {})),
-        (contract_error_3, ("ExecutionFailed(uint256,bytes)", {'commandIndex': 0, 'message': b'\xbf\xb2*\xdf\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'})),  # noqa
-        (contract_sub_error_3, ("DeadlinePassed(uint256)", {'deadline': 0})),
-        (contract_error_4, ("InvalidAction(bytes4)", {'action': b'\x00\x00\x00\x00'})),
-    )
+        (
+            contract_error_3,
+            (
+                "ExecutionFailed(uint256,bytes)",
+                {
+                    "commandIndex": 0,
+                    "message": b"\xbf\xb2*\xdf\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
+                },
+            ),
+        ),  # noqa
+        (contract_sub_error_3, ("DeadlinePassed(uint256)", {"deadline": 0})),
+        (contract_error_4, ("InvalidAction(bytes4)", {"action": b"\x00\x00\x00\x00"})),
+    ),
 )
 def test_contract_error(contract_error, expected):
     codec = RouterCodec()

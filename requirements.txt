@@ -1,12 +1,10 @@
 -r requirements_install.txt
 
 coverage
-flake8
-isort
-mypy
 pytest
 pytest-mock
 tox
+ruff
 
 build
 twine

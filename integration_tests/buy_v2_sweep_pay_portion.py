@@ -14,18 +14,18 @@ from uniswap_universal_router_decoder import (
 )
 
 
-web3_provider = os.environ['WEB3_HTTP_PROVIDER_URL_ETHEREUM_MAINNET']
+web3_provider = os.environ["WEB3_HTTP_PROVIDER_URL_ETHEREUM_MAINNET"]
 w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:8545"))
 chain_id = 1
 block_number = 21839495
 init_amount = 10000 * 10**18
 gas_limit = 800_000
 
-account = Account.from_key('0xf7e96bcf6b5223c240ec308d8374ff01a753b00743b3a0127791f37f00c56514')
-assert account.address == '0x1e46c294f20bC7C27D93a9b5f45039751D8BCc3e'
+account = Account.from_key("0xf7e96bcf6b5223c240ec308d8374ff01a753b00743b3a0127791f37f00c56514")
+assert account.address == "0x1e46c294f20bC7C27D93a9b5f45039751D8BCc3e"
 
-account_2 = Account.from_key('0x75b69019be9c48a713678b028ee4dbafd81949126357b28ced1f616581ade9ac')
-assert account_2.address == '0x7b0ecEa560726C1c3FA0be132017c6f6C51526F2'
+account_2 = Account.from_key("0x75b69019be9c48a713678b028ee4dbafd81949126357b28ced1f616581ade9ac")
+assert account_2.address == "0x7b0ecEa560726C1c3FA0be132017c6f6C51526F2"
 
 erc20_abi = '[{"constant":true,"inputs":[],"name":"name","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"},{"name":"_spender","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"anonymous":false,"inputs":[{"indexed":true,"name":"_from","type":"address"},{"indexed":true,"name":"_to","type":"address"},{"indexed":false,"name":"_value","type":"uint256"}],"name":"Transfer","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"_owner","type":"address"},{"indexed":true,"name":"_spender","type":"address"},{"indexed":false,"name":"_value","type":"uint256"}],"name":"Approval","type":"event"}]'  # noqa
 weth_abi = '[{"constant":true,"inputs":[],"name":"name","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"guy","type":"address"},{"name":"wad","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"src","type":"address"},{"name":"dst","type":"address"},{"name":"wad","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"wad","type":"uint256"}],"name":"withdraw","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"name":"","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"dst","type":"address"},{"name":"wad","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[],"name":"deposit","outputs":[],"payable":true,"stateMutability":"payable","type":"function"},{"constant":true,"inputs":[{"name":"","type":"address"},{"name":"","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"payable":true,"stateMutability":"payable","type":"fallback"},{"anonymous":false,"inputs":[{"indexed":true,"name":"src","type":"address"},{"indexed":true,"name":"guy","type":"address"},{"indexed":false,"name":"wad","type":"uint256"}],"name":"Approval","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"src","type":"address"},{"indexed":true,"name":"dst","type":"address"},{"indexed":false,"name":"wad","type":"uint256"}],"name":"Transfer","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"dst","type":"address"},{"indexed":false,"name":"wad","type":"uint256"}],"name":"Deposit","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"src","type":"address"},{"indexed":false,"name":"wad","type":"uint256"}],"name":"Withdrawal","type":"event"}]'  # noqa
@@ -40,12 +40,14 @@ codec = RouterCodec()
 
 def launch_anvil():
     anvil_process = subprocess.Popen(
-        " ".join([
-            "anvil",
-            f"--fork-url {web3_provider}",
-            f"--fork-block-number {block_number}",
-            "--mnemonic-seed-unsafe 8721345628937456298",
-        ]),
+        " ".join(
+            [
+                "anvil",
+                f"--fork-url {web3_provider}",
+                f"--fork-block-number {block_number}",
+                "--mnemonic-seed-unsafe 8721345628937456298",
+            ]
+        ),
         shell=True,
     )
     time.sleep(2)
@@ -54,10 +56,12 @@ def launch_anvil():
 
 
 def kill_processes(parent_id):
-    processes = [str(parent_id), ]
-    pgrep_process = subprocess.run(
-        f"pgrep -P {parent_id}", shell=True, text=True, capture_output=True
-    ).stdout.strip("\n")
+    processes = [
+        str(parent_id),
+    ]
+    pgrep_process = subprocess.run(f"pgrep -P {parent_id}", shell=True, text=True, capture_output=True).stdout.strip(
+        "\n"
+    )
     children_ids = pgrep_process.split("\n") if len(pgrep_process) > 0 else []
     processes.extend(children_ids)
     subprocess.run(f"kill {' '.join(processes)}", shell=True, text=True, capture_output=True)
@@ -81,7 +85,7 @@ def send_transaction(value, encoded_data):
         "gas": gas_limit,
         "maxPriorityFeePerGas": w3.eth.max_priority_fee,
         "maxFeePerGas": Wei(int(w3.eth.gas_price * 1.1)),
-        "type": '0x2',
+        "type": "0x2",
         "chainId": chain_id,
         "value": value,
         "nonce": w3.eth.get_transaction_count(account.address),
@@ -99,9 +103,7 @@ def buy_uni_with_fees():
     v2_out_amount = 267 * 10**18
     fees = 100  # 1%
     encoded_input = (
-        codec
-        .encode
-        .chain()
+        codec.encode.chain()
         .wrap_eth(FunctionRecipient.ROUTER, v2_in_amount)
         .v2_swap_exact_in(FunctionRecipient.ROUTER, v2_in_amount, v2_out_amount, v2_path, payer_is_sender=False)
         .pay_portion(FunctionRecipient.CUSTOM, uni_address, fees, account_2.address)
@@ -123,8 +125,9 @@ def buy_uni_with_fees():
 
     # Validate 1% fee distribution (with small tolerance for rounding)
     expected_account_2_amount = int(total_uni * 0.01)
-    assert abs(account_2_uni_balance - expected_account_2_amount) < 1000, \
+    assert abs(account_2_uni_balance - expected_account_2_amount) < 1000, (
         f"Account 2 should get ~1% of total. Got {account_2_uni_balance}, expected ~{expected_account_2_amount}"
+    )
 
     print(" => BUY UNI WITH FEES: OK")
 

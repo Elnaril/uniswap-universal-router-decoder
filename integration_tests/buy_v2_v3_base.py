@@ -14,7 +14,7 @@ from uniswap_universal_router_decoder import (
 )
 
 
-web3_provider = os.environ['WEB3_HTTP_PROVIDER_URL_BASE_MAINNET']
+web3_provider = os.environ["WEB3_HTTP_PROVIDER_URL_BASE_MAINNET"]
 w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:8545"))
 chain_id = 8453
 block_number = 36307425  # More recent Base block
@@ -54,10 +54,12 @@ def launch_anvil():
 
 
 def kill_processes(parent_id):
-    processes = [str(parent_id), ]
-    pgrep_process = subprocess.run(
-        f"pgrep -P {parent_id}", shell=True, text=True, capture_output=True
-    ).stdout.strip("\n")
+    processes = [
+        str(parent_id),
+    ]
+    pgrep_process = subprocess.run(f"pgrep -P {parent_id}", shell=True, text=True, capture_output=True).stdout.strip(
+        "\n"
+    )
     children_ids = pgrep_process.split("\n") if len(pgrep_process) > 0 else []
     processes.extend(children_ids)
     subprocess.run(f"kill {' '.join(processes)}", shell=True, text=True, capture_output=True)
@@ -77,8 +79,8 @@ def send_transaction(value, encoded_data):
         "to": ur_address,
         "gas": gas_limit,
         "maxPriorityFeePerGas": 1 * 10**9,
-        "maxFeePerGas":  1 * 10**9,
-        "type": '0x2',
+        "maxFeePerGas": 1 * 10**9,
+        "type": "0x2",
         "chainId": chain_id,
         "value": value,
         "nonce": w3.eth.get_transaction_count(account.address),
@@ -95,13 +97,11 @@ def buy_usdc_from_v2_and_v3():
     v2_in_amount = 1 * 10**18
     v2_out_amount = 3200 * 10**6  # with slippage
     v3_path = [weth_address, 500, usdc_address]
-    v3_in_amount = 1 * 10 ** 18
+    v3_in_amount = 1 * 10**18
     v3_out_amount = 3200 * 10**6  # with slippage
     total_in_amount = Wei(v2_in_amount + v3_in_amount)
     encoded_input = (
-        codec
-        .encode
-        .chain()
+        codec.encode.chain()
         .wrap_eth(FunctionRecipient.ROUTER, total_in_amount)
         .v2_swap_exact_in(FunctionRecipient.SENDER, v2_in_amount, v2_out_amount, v2_path, payer_is_sender=False)
         .v3_swap_exact_in(FunctionRecipient.SENDER, v3_in_amount, v3_out_amount, v3_path, payer_is_sender=False)

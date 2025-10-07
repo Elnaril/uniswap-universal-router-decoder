@@ -15,7 +15,7 @@ from uniswap_universal_router_decoder import (
 )
 
 
-web3_provider = os.environ['WEB3_HTTP_PROVIDER_URL_ETHEREUM_MAINNET']
+web3_provider = os.environ["WEB3_HTTP_PROVIDER_URL_ETHEREUM_MAINNET"]
 w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:8545"))
 chain_id = 1337
 block_number = 17621078
@@ -56,10 +56,12 @@ def launch_ganache():
 
 
 def kill_processes(parent_id):
-    processes = [str(parent_id), ]
-    pgrep_process = subprocess.run(
-        f"pgrep -P {parent_id}", shell=True, text=True, capture_output=True
-    ).stdout.strip("\n")
+    processes = [
+        str(parent_id),
+    ]
+    pgrep_process = subprocess.run(f"pgrep -P {parent_id}", shell=True, text=True, capture_output=True).stdout.strip(
+        "\n"
+    )
     children_ids = pgrep_process.split("\n") if len(pgrep_process) > 0 else []
     processes.extend(children_ids)
     subprocess.run(f"kill {' '.join(processes)}", shell=True, text=True, capture_output=True)
@@ -80,7 +82,7 @@ def send_transaction(value, encoded_data):
         "gas": gas_limit,
         "maxPriorityFeePerGas": w3.eth.max_priority_fee,
         "maxFeePerGas": Wei(30 * 10**9),
-        "type": '0x2',
+        "type": "0x2",
         "chainId": chain_id,
         "value": value,
         "nonce": w3.eth.get_transaction_count(account.address),
@@ -95,9 +97,7 @@ def wrap_unwrap():
     global transient_eth_balance
     in_amount = 10**18
     encoded_input = (
-        codec
-        .encode
-        .chain()
+        codec.encode.chain()
         .wrap_eth(FunctionRecipient.ROUTER, in_amount)
         .unwrap_weth(FunctionRecipient.SENDER, in_amount)
         .build(codec.get_default_deadline())
@@ -109,7 +109,9 @@ def wrap_unwrap():
 
     trx_fee = receipt["gasUsed"] * receipt["effectiveGasPrice"]
     eth_balance = w3.eth.get_balance(account.address)
-    assert eth_balance == transient_eth_balance - trx_fee, f"eth_balance: {eth_balance}, transient_eth_balance: {transient_eth_balance},trx_fee: {trx_fee}"  # noqa E501
+    assert eth_balance == transient_eth_balance - trx_fee, (
+        f"eth_balance: {eth_balance}, transient_eth_balance: {transient_eth_balance},trx_fee: {trx_fee}"
+    )  # noqa E501
     transient_eth_balance = eth_balance
 
 
@@ -122,9 +124,7 @@ def buy_usdc_from_v2_and_sell_to_v3():
     v3_path = [usdc_address, 500, weth_address]
     v3_out_amount = int(2.98 * 10**17)  # with slippage
     encoded_input = (
-        codec
-        .encode
-        .chain()
+        codec.encode.chain()
         .wrap_eth(FunctionRecipient.ROUTER, v2_in_amount)
         .v2_swap_exact_in(FunctionRecipient.ROUTER, v2_in_amount, v2_out_amount, v2_path, payer_is_sender=False)
         .v3_swap_exact_in_from_balance(FunctionRecipient.ROUTER, v3_out_amount, v3_path)
@@ -138,7 +138,9 @@ def buy_usdc_from_v2_and_sell_to_v3():
 
     trx_fee = receipt["gasUsed"] * receipt["effectiveGasPrice"]
     eth_balance = w3.eth.get_balance(account.address)
-    assert transient_eth_balance - v2_in_amount * 0.01 - trx_fee < eth_balance < transient_eth_balance - trx_fee, f"eth_balance: {eth_balance}, transient_eth_balance: {transient_eth_balance},trx_fee: {trx_fee}"  # noqa E501
+    assert transient_eth_balance - v2_in_amount * 0.01 - trx_fee < eth_balance < transient_eth_balance - trx_fee, (
+        f"eth_balance: {eth_balance}, transient_eth_balance: {transient_eth_balance},trx_fee: {trx_fee}"
+    )  # noqa E501
     transient_eth_balance = eth_balance
 
     usdc_balance = usdc_contract.functions.balanceOf(account.address).call()
@@ -154,16 +156,14 @@ def buy_usdc_from_v3_and_sell_to_v2():
     global transient_eth_balance
     # Wrap, Buy for 0.3 eth of usdc from v3, Sell to v2 and Unwrap
     v3_path = [weth_address, 500, usdc_address]
-    v3_in_amount = 3 * 10 ** 17
+    v3_in_amount = 3 * 10**17
     v3_out_amount = 581526000  # with slippage
 
     v2_path = [usdc_address, weth_address]
-    v2_out_amount = int(2.98 * 10 ** 17)  # with slippage
+    v2_out_amount = int(2.98 * 10**17)  # with slippage
 
     encoded_input = (
-        codec
-        .encode
-        .chain()
+        codec.encode.chain()
         .wrap_eth(FunctionRecipient.ROUTER, v3_in_amount)
         .v3_swap_exact_in(FunctionRecipient.ROUTER, v3_in_amount, v3_out_amount, v3_path, payer_is_sender=False)
         .v2_swap_exact_in_from_balance(FunctionRecipient.ROUTER, v2_out_amount, v2_path)
@@ -177,7 +177,9 @@ def buy_usdc_from_v3_and_sell_to_v2():
 
     trx_fee = receipt["gasUsed"] * receipt["effectiveGasPrice"]
     eth_balance = w3.eth.get_balance(account.address)
-    assert transient_eth_balance - v3_in_amount * 0.01 - trx_fee < eth_balance < transient_eth_balance - trx_fee, f"eth_balance: {eth_balance}, transient_eth_balance: {transient_eth_balance},trx_fee: {trx_fee}"  # noqa E501
+    assert transient_eth_balance - v3_in_amount * 0.01 - trx_fee < eth_balance < transient_eth_balance - trx_fee, (
+        f"eth_balance: {eth_balance}, transient_eth_balance: {transient_eth_balance},trx_fee: {trx_fee}"
+    )  # noqa E501
     transient_eth_balance = eth_balance
 
     usdc_balance = usdc_contract.functions.balanceOf(account.address).call()

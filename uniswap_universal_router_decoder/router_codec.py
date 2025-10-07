@@ -5,6 +5,7 @@ Decode and encode data sent to Uniswap universal router functions.
 * License: MIT.
 * Doc: https://github.com/Elnaril/uniswap-universal-router-decoder
 """
+
 from datetime import datetime
 from typing import (
     Any,
@@ -14,8 +15,8 @@ from typing import (
 )
 
 from eth_account.messages import (
-    encode_typed_data,
     SignableMessage,
+    encode_typed_data,
 )
 from web3 import Web3
 from web3.types import (
@@ -73,18 +74,19 @@ class RouterCodec:
         """
         :return: max timestamp allowed for permit expiration
         """
-        return 2 ** 48 - 1
+        return 2**48 - 1
 
     @staticmethod
     def create_permit2_signable_message(
-            token_address: ChecksumAddress,
-            amount: Wei,
-            expiration: int,
-            nonce: int,
-            spender: ChecksumAddress,
-            deadline: int,
-            chain_id: int = 1,
-            verifying_contract: ChecksumAddress = _permit2_address) -> Tuple[Dict[str, Any], SignableMessage]:
+        token_address: ChecksumAddress,
+        amount: Wei,
+        expiration: int,
+        nonce: int,
+        spender: ChecksumAddress,
+        deadline: int,
+        chain_id: int = 1,
+        verifying_contract: ChecksumAddress = _permit2_address,
+    ) -> Tuple[Dict[str, Any], SignableMessage]:
         """
         Create a eth_account.messages.SignableMessage that will be sent to the UR/Permit2 contracts
         to set token permissions through signature validation.
@@ -130,13 +132,14 @@ class RouterCodec:
         return permit_single, signable_message
 
     def fetch_permit2_allowance(
-            self,
-            wallet: ChecksumAddress,
-            token: ChecksumAddress,
-            spender: ChecksumAddress = _ur_address,
-            permit2: ChecksumAddress = _permit2_address,
-            permit2_abi: str = _permit2_abi,
-            block_identifier: BlockIdentifier = "latest") -> Tuple[Wei, int, Nonce]:
+        self,
+        wallet: ChecksumAddress,
+        token: ChecksumAddress,
+        spender: ChecksumAddress = _ur_address,
+        permit2: ChecksumAddress = _permit2_address,
+        permit2_abi: str = _permit2_abi,
+        block_identifier: BlockIdentifier = "latest",
+    ) -> Tuple[Wei, int, Nonce]:
         """
         Request the permit2 allowance function to know if the UR has enough valid allowance,
         and to get the current permit2 nonce for a given wallet and token.

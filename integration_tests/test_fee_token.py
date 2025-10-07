@@ -1,6 +1,7 @@
 """
 Test token with buy and sell fees
 """
+
 import os
 import subprocess
 import time
@@ -18,7 +19,7 @@ from uniswap_universal_router_decoder import (
 )
 
 
-web3_provider = os.environ['WEB3_HTTP_PROVIDER_URL_ETHEREUM_MAINNET']
+web3_provider = os.environ["WEB3_HTTP_PROVIDER_URL_ETHEREUM_MAINNET"]
 w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:8545"))
 chain_id = 1337
 block_number = 17734373
@@ -63,10 +64,12 @@ def launch_ganache():
 
 
 def kill_processes(parent_id):
-    processes = [str(parent_id), ]
-    pgrep_process = subprocess.run(
-        f"pgrep -P {parent_id}", shell=True, text=True, capture_output=True
-    ).stdout.strip("\n")
+    processes = [
+        str(parent_id),
+    ]
+    pgrep_process = subprocess.run(f"pgrep -P {parent_id}", shell=True, text=True, capture_output=True).stdout.strip(
+        "\n"
+    )
     children_ids = pgrep_process.split("\n") if len(pgrep_process) > 0 else []
     processes.extend(children_ids)
     subprocess.run(f"kill {' '.join(processes)}", shell=True, text=True, capture_output=True)
@@ -87,7 +90,7 @@ def send_transaction(value, encoded_data):
         "gas": gas_limit,
         "maxPriorityFeePerGas": w3.eth.max_priority_fee,
         "maxFeePerGas": Wei(int(w3.eth.gas_price * 2) + w3.eth.max_priority_fee),
-        "type": '0x2',
+        "type": "0x2",
         "chainId": chain_id,
         "value": value,
         "nonce": w3.eth.get_transaction_count(account.address),
@@ -105,9 +108,7 @@ def buy_token_from_v2():
     v2_out_amount = 0  # with slippage
 
     encoded_input = (
-        codec
-        .encode
-        .chain()
+        codec.encode.chain()
         .wrap_eth(FunctionRecipient.ROUTER, v2_in_amount)
         .v2_swap_exact_in(FunctionRecipient.SENDER, v2_in_amount, v2_out_amount, v2_path, payer_is_sender=False)
         .build(codec.get_default_deadline())
@@ -132,7 +133,7 @@ def sell_token_from_v2():
     permit_data, signable_message = codec.create_permit2_signable_message(
         token_address,
         # amount_in,  # max/infinite = 2**160 - 1
-        2 ** 160 - 1,
+        2**160 - 1,
         codec.get_default_expiration(40 * 24 * 3600),  # 30 days
         0,  # Permit2 nonce
         ur_address,
@@ -142,9 +143,7 @@ def sell_token_from_v2():
     signed_message = account.sign_message(signable_message)
 
     encoded_input = (
-        codec
-        .encode
-        .chain()
+        codec.encode.chain()
         .permit2_permit(permit_data, signed_message)
         .v2_swap_exact_in(FunctionRecipient.SENDER, v2_in_amount, v2_out_amount, v2_path, payer_is_sender=True)
         .build(codec.get_default_deadline())
@@ -168,8 +167,8 @@ def approve_permit2_for_token():
             "from": account.address,
             "gas": gas_limit,
             "maxPriorityFeePerGas": w3.eth.max_priority_fee,
-            "maxFeePerGas": Wei(30 * 10 ** 9),
-            "type": '0x2',
+            "maxFeePerGas": Wei(30 * 10**9),
+            "type": "0x2",
             "chainId": chain_id,
             "value": 0,
             "nonce": w3.eth.get_transaction_count(account.address),

@@ -15,7 +15,7 @@ from uniswap_universal_router_decoder import (
 )
 
 
-web3_provider = os.environ['WEB3_HTTP_PROVIDER_URL_ETHEREUM_MAINNET']
+web3_provider = os.environ["WEB3_HTTP_PROVIDER_URL_ETHEREUM_MAINNET"]
 w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:8545"))
 chain_id = 1337
 block_number = 17621078
@@ -57,10 +57,12 @@ def launch_ganache():
 
 
 def kill_processes(parent_id):
-    processes = [str(parent_id), ]
-    pgrep_process = subprocess.run(
-        f"pgrep -P {parent_id}", shell=True, text=True, capture_output=True
-    ).stdout.strip("\n")
+    processes = [
+        str(parent_id),
+    ]
+    pgrep_process = subprocess.run(f"pgrep -P {parent_id}", shell=True, text=True, capture_output=True).stdout.strip(
+        "\n"
+    )
     children_ids = pgrep_process.split("\n") if len(pgrep_process) > 0 else []
     processes.extend(children_ids)
     subprocess.run(f"kill {' '.join(processes)}", shell=True, text=True, capture_output=True)
@@ -81,7 +83,7 @@ def send_transaction(value, encoded_data):
         "gas": gas_limit,
         "maxPriorityFeePerGas": w3.eth.max_priority_fee,
         "maxFeePerGas": Wei(30 * 10**9),
-        "type": '0x2',
+        "type": "0x2",
         "chainId": chain_id,
         "value": value,
         "nonce": w3.eth.get_transaction_count(account.address),
@@ -97,9 +99,7 @@ def buy_usdc():
     amount_out_min = 0
     v3_path = [weth_address, 500, usdc_address]
     encoded_input = (
-        codec
-        .encode
-        .chain()
+        codec.encode.chain()
         .wrap_eth(FunctionRecipient.ROUTER, amount_in)
         # can chain one of the 2 following v3 swap functions:
         .v3_swap_exact_in_from_balance(FunctionRecipient.SENDER, amount_out_min, v3_path)
@@ -125,7 +125,7 @@ def approve_permit2_for_usdc():
             "gas": gas_limit,
             "maxPriorityFeePerGas": w3.eth.max_priority_fee,
             "maxFeePerGas": Wei(30 * 10**9),
-            "type": '0x2',
+            "type": "0x2",
             "chainId": chain_id,
             "value": 0,
             "nonce": w3.eth.get_transaction_count(account.address),
@@ -161,11 +161,11 @@ def sell_usdc_part_1():
     signed_message = account.sign_message(signable_message)
 
     encoded_input = (
-        codec
-        .encode
-        .chain()
+        codec.encode.chain()
         .permit2_permit(permit_data, signed_message)
-        .v3_swap_exact_in(FunctionRecipient.SENDER, amount_in, amount_out_min, v3_path, payer_is_sender=True)  # /!\  payer is sender  # noqa
+        .v3_swap_exact_in(
+            FunctionRecipient.SENDER, amount_in, amount_out_min, v3_path, payer_is_sender=True
+        )  # /!\  payer is sender  # noqa
         .build(codec.get_default_deadline())
     )
     trx_hash = send_transaction(0, encoded_input)
@@ -206,11 +206,11 @@ def sell_usdc_part_2():
     signed_message = account.sign_message(signable_message)
 
     encoded_input = (
-        codec
-        .encode
-        .chain()
+        codec.encode.chain()
         .permit2_permit(permit_data, signed_message)
-        .v3_swap_exact_in(FunctionRecipient.SENDER, amount_in, amount_out_min, v3_path, payer_is_sender=True)  # /!\  payer is sender  # noqa
+        .v3_swap_exact_in(
+            FunctionRecipient.SENDER, amount_in, amount_out_min, v3_path, payer_is_sender=True
+        )  # /!\  payer is sender  # noqa
         .build(codec.get_default_deadline())
     )
     trx_hash = send_transaction(0, encoded_input)
