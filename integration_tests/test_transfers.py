@@ -16,7 +16,7 @@ from uniswap_universal_router_decoder import (
 )
 
 
-web3_provider = os.environ['WEB3_HTTP_PROVIDER_URL_ETHEREUM_MAINNET']
+web3_provider = os.environ["WEB3_HTTP_PROVIDER_URL_ETHEREUM_MAINNET"]
 w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:8545"))
 
 account: LocalAccount = Account.from_key("0xf7e96bcf6b5223c240ec308d8374ff01a753b00743b3a0127791f37f00c56514")
@@ -64,10 +64,12 @@ def launch_anvil():
 
 
 def kill_processes(parent_id):
-    processes = [str(parent_id), ]
-    pgrep_process = subprocess.run(
-        f"pgrep -P {parent_id}", shell=True, text=True, capture_output=True
-    ).stdout.strip("\n")
+    processes = [
+        str(parent_id),
+    ]
+    pgrep_process = subprocess.run(f"pgrep -P {parent_id}", shell=True, text=True, capture_output=True).stdout.strip(
+        "\n"
+    )
     children_ids = pgrep_process.split("\n") if len(pgrep_process) > 0 else []
     processes.extend(children_ids)
     print(f"Killing processes: {' '.join(processes)}")
@@ -80,7 +82,7 @@ def check_initialization():
     assert w3.eth.get_balance(account.address) == initial_eth_amount
     for acc in recipients:
         assert w3.eth.get_balance(acc.address) == 0
-    for acc in recipients + (account, ):
+    for acc in recipients + (account,):
         assert usdc_contract.functions.balanceOf(acc.address).call() == 0
     print(" => Initialization: OK")
 
@@ -92,7 +94,7 @@ def send_transaction(value, encoded_data):
         "gas": 800_000,
         "maxPriorityFeePerGas": w3.eth.max_priority_fee,
         "maxFeePerGas": w3.eth.gas_price + w3.eth.max_priority_fee,
-        "type": '0x2',
+        "type": "0x2",
         "chainId": chain_id,
         "value": value,
         "nonce": w3.eth.get_transaction_count(account.address),
@@ -119,23 +121,31 @@ def buy_and_transfer():
     eth_address = Web3.to_checksum_address("0x0000000000000000000000000000000000000000")
 
     encoded_input = (
-        codec
-        .encode
-        .chain()
+        codec.encode.chain()
         # weth conversion and swap
         .wrap_eth(FunctionRecipient.ROUTER, amount_in_max)
-        .v3_swap_exact_out(
-            FunctionRecipient.ROUTER, amount_out, amount_in_max, v3_path, payer_is_sender=False
-        )
+        .v3_swap_exact_out(FunctionRecipient.ROUTER, amount_out, amount_in_max, v3_path, payer_is_sender=False)
         # usdc transfer
         .transfer(FunctionRecipient.SENDER, usdc_address, usdc_amount_per_recipient)  # transfer usdc to account
-        .transfer(FunctionRecipient.CUSTOM, usdc_address, usdc_amount_per_recipient, recipients[0].address)  # transfer usdc to 1st recipient  # noqa
-        .transfer(FunctionRecipient.CUSTOM, usdc_address, usdc_amount_per_recipient, recipients[1].address)  # transfer usdc to 2nd recipient  # noqa
-        .transfer(FunctionRecipient.CUSTOM, usdc_address, usdc_amount_per_recipient, recipients[2].address)  # transfer usdc to 3rd recipient  # noqa
-        .transfer(FunctionRecipient.CUSTOM, usdc_address, usdc_amount_per_recipient, recipients[3].address)  # transfer usdc to 4th recipient  # noqa
+        .transfer(
+            FunctionRecipient.CUSTOM, usdc_address, usdc_amount_per_recipient, recipients[0].address
+        )  # transfer usdc to 1st recipient  # noqa
+        .transfer(
+            FunctionRecipient.CUSTOM, usdc_address, usdc_amount_per_recipient, recipients[1].address
+        )  # transfer usdc to 2nd recipient  # noqa
+        .transfer(
+            FunctionRecipient.CUSTOM, usdc_address, usdc_amount_per_recipient, recipients[2].address
+        )  # transfer usdc to 3rd recipient  # noqa
+        .transfer(
+            FunctionRecipient.CUSTOM, usdc_address, usdc_amount_per_recipient, recipients[3].address
+        )  # transfer usdc to 4th recipient  # noqa
         # eth transfer
-        .transfer(FunctionRecipient.CUSTOM, eth_address, eth_amount_per_recipient, recipients[4].address)  # transfer eth to 5th recipient  # noqa
-        .transfer(FunctionRecipient.CUSTOM, eth_address, eth_amount_per_recipient, recipients[5].address)  # transfer eth to 6th recipient  # noqa
+        .transfer(
+            FunctionRecipient.CUSTOM, eth_address, eth_amount_per_recipient, recipients[4].address
+        )  # transfer eth to 5th recipient  # noqa
+        .transfer(
+            FunctionRecipient.CUSTOM, eth_address, eth_amount_per_recipient, recipients[5].address
+        )  # transfer eth to 6th recipient  # noqa
         .unwrap_weth(FunctionRecipient.SENDER, 0)  # unwrap and send back all remaining eth to account
         .build()
     )
@@ -192,9 +202,7 @@ def simple_transfers():
 
     gas_used = receipt["gasUsed"]
     print("Gas used (total/per transfer):", gas_used, gas_used // 48)
-    assert receipt["gasUsed"] < 48 * 21000, (
-        f"Gas used {receipt['gasUsed']} exceeds 48 * 21000 = {48 * 21000}"
-    )
+    assert receipt["gasUsed"] < 48 * 21000, f"Gas used {receipt['gasUsed']} exceeds 48 * 21000 = {48 * 21000}"
 
     print(" => SIMPLE ETH MASS TRANSFERS: OK")
 

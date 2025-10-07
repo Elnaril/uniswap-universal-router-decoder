@@ -5,13 +5,14 @@ Decoding part of the Uniswap Universal Router Codec
 * License: MIT.
 * Doc: https://github.com/Elnaril/uniswap-universal-router-decoder
 """
+
+from collections.abc import Sequence
 from itertools import chain
 import json
 from typing import (
     Any,
     Dict,
     List,
-    Sequence,
     Tuple,
     Union,
 )
@@ -39,9 +40,9 @@ from uniswap_universal_router_decoder._constants import (
     _router_abi,
 )
 from uniswap_universal_router_decoder._enums import (
-    _RouterConstant,
     RouterFunction,
     V4Actions,
+    _RouterConstant,
 )
 
 
@@ -52,9 +53,8 @@ class _V4Decoder:
         self._pm_contract = w3.eth.contract(abi=_position_manager_abi)
 
     def _decode_v4_actions(
-            self,
-            actions: bytes,
-            params: List[bytes]) -> List[Tuple[BaseContractFunction, Dict[str, Any]]]:
+        self, actions: bytes, params: List[bytes]
+    ) -> List[Tuple[BaseContractFunction, Dict[str, Any]]]:
         if len(actions) != len(params):
             raise ValueError(f"Number of actions {len(actions)} is different from number of params: {len(params)}")
 
@@ -128,18 +128,14 @@ class _Decoder:
                             decoded_fct_name,
                             {
                                 "unlockData": self._v4_decoder.decode_v4_pm_call(decoded_fct_params["unlockData"]),
-                                "deadline": decoded_fct_params["deadline"]
+                                "deadline": decoded_fct_params["deadline"],
                             },
                             {"revert_on_fail": revert_on_fail},
                         )
                     )
                 else:
                     decoded_command_input.append(
-                        (
-                            decoded_fct_name,
-                            decoded_fct_params,
-                            {"revert_on_fail": revert_on_fail}
-                        )
+                        (decoded_fct_name, decoded_fct_params, {"revert_on_fail": revert_on_fail})
                     )
 
             except (ValueError, KeyError, DecodingError):
@@ -180,11 +176,13 @@ class _Decoder:
             raise ValueError(f"v3_fn_name must be in {valid_fn_names}")
         path_str = path.hex() if isinstance(path, bytes) else str(path)
         path_str = path_str[2:] if path_str.startswith("0x") else path_str
-        path_list: List[Union[int, ChecksumAddress]] = [Web3.to_checksum_address(path_str[0:40]), ]
+        path_list: List[Union[int, ChecksumAddress]] = [
+            Web3.to_checksum_address(path_str[0:40]),
+        ]
         parsed_remaining_path: List[List[Union[int, ChecksumAddress]]] = [
             [
-                int(path_str[40:][i:i + 6], 16),
-                Web3.to_checksum_address(path_str[40:][i + 6:i + 46]),
+                int(path_str[40:][i : i + 6], 16),
+                Web3.to_checksum_address(path_str[40:][i + 6 : i + 46]),
             ]
             for i in range(0, len(path_str[40:]), 46)
         ]
@@ -196,9 +194,9 @@ class _Decoder:
         return tuple(path_list)
 
     def contract_error(
-            self,
-            contract_error: Union[str, HexStr],
-            abis: Sequence[str] = (_permit2_abi, _pool_manager_abi, _position_manager_abi, _router_abi),
+        self,
+        contract_error: Union[str, HexStr],
+        abis: Sequence[str] = (_permit2_abi, _pool_manager_abi, _position_manager_abi, _router_abi),
     ) -> Tuple[str, Dict[str, Any]]:
         """
         Decode contract custom errors.

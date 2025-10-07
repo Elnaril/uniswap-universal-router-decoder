@@ -41,3 +41,104 @@ packages = ["uniswap_universal_router_decoder"]
 "Buy Me A Coffee" = "https://www.buymeacoffee.com/elnaril"
 "Malt" = "https://www.malt.com/profile/elnaril"
 "𝕏" = "https://twitter.com/ElnarilDev"
+
+# ============================================================================
+# Ruff Configuration
+# ============================================================================
+[tool.ruff]
+# Set the maximum line length to 120 (matching previous flake8 config)
+line-length = 120
+
+# Target Python 3.9+ (minimum supported version)
+target-version = "py39"
+
+# Exclude common directories
+exclude = [
+    ".git",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".tox",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+    "venv",
+    "virtualenv",
+    "*.egg-info",
+]
+
+[tool.ruff.lint]
+# Enable the following rule categories:
+# E/W: pycodestyle errors and warnings
+# F: Pyflakes
+# I: isort (import sorting)
+# N: pep8-naming
+# UP: pyupgrade (modern Python syntax)
+# B: flake8-bugbear (bug and design problems)
+# C4: flake8-comprehensions
+# SIM: flake8-simplify
+# PIE: flake8-pie (misc lints)
+# RET: flake8-return
+# PTH: flake8-use-pathlib
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # Pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+    "PIE", # flake8-pie
+    "RET", # flake8-return
+    "PTH", # flake8-use-pathlib
+]
+
+# Ignore specific rules if needed (add as you find conflicts)
+ignore = [
+    "E501",  # Line too long (handled by formatter)
+]
+
+# Allow autofix for all enabled rules
+fixable = ["ALL"]
+unfixable = []
+
+# Allow unused variables when underscore-prefixed
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.per-file-ignores]
+# Ignore certain rules in test files
+"tests/**/*.py" = [
+    "N802",  # Function name should be lowercase (pytest fixtures can be camelCase)
+    "N803",  # Argument name should be lowercase
+]
+"integration_tests/**/*.py" = [
+    "N802",
+    "N803",
+]
+
+[tool.ruff.lint.isort]
+# Configure import sorting to match previous isort config
+force-sort-within-sections = true
+force-wrap-aliases = true
+combine-as-imports = true
+split-on-trailing-comma = true
+lines-after-imports = 2
+
+[tool.ruff.format]
+# Use double quotes for strings
+quote-style = "double"
+
+# Indent with spaces
+indent-style = "space"
+
+# Respect magic trailing commas
+skip-magic-trailing-comma = false
+
+# Format docstrings
+docstring-code-format = true
+
+# Use Unix line endings
+line-ending = "auto"

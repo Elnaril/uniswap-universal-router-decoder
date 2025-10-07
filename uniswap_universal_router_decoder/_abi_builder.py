@@ -5,17 +5,18 @@ Factory that builds the UR function ABIs used by the Uniswap Universal Router Co
 * License: MIT.
 * Doc: https://github.com/Elnaril/uniswap-universal-router-decoder
 """
+
 from __future__ import annotations
 
+from collections.abc import Sequence
 from io import BytesIO
 from typing import (
     Any,
-    cast,
     Dict,
     List,
     Optional,
-    Sequence,
     Union,
+    cast,
 )
 
 from eth_abi import encode
@@ -184,7 +185,6 @@ class _ABIBuilder:
             RouterFunction.V4_INITIALIZE_POOL: self._build_v4_initialize_pool(),
             RouterFunction.V4_POSITION_MANAGER_CALL: self._build_modify_liquidities(),
             RouterFunction.PERMIT2_TRANSFER_FROM: self._build_permit2_transfer_from(),
-
             V4Actions.SWAP_EXACT_IN_SINGLE: self._build_v4_swap_exact_in_single(),
             V4Actions.MINT_POSITION: self._build_v4_mint_position(),
             V4Actions.SETTLE_PAIR: self._build_v4_settle_pair(),
@@ -203,7 +203,6 @@ class _ABIBuilder:
             V4Actions.CLEAR_OR_TAKE: self._build_v4_clear_or_take(),
             V4Actions.TAKE_PORTION: self._build_v4_take_portion(),
             V4Actions.TAKE: self._build_v4_take(),
-
             MiscFunctions.EXECUTE: self._build_execute(),
             MiscFunctions.EXECUTE_WITH_DEADLINE: self._build_execute_with_deadline(),
             MiscFunctions.UNLOCK_DATA: self._build_unlock_data(),

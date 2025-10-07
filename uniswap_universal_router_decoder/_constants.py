@@ -5,6 +5,7 @@ Constants used by the Uniswap Universal Router Codec
 * License: MIT.
 * Doc: https://github.com/Elnaril/uniswap-universal-router-decoder
 """
+
 from web3 import Web3
 
 
@@ -17,17 +18,17 @@ _position_manager_abi = '[{"inputs":[{"internalType":"contract IPoolManager","na
 _permit2_address = Web3.to_checksum_address("0x000000000022D473030F116dDEE9F6B43aC78BA3")
 _ur_address = Web3.to_checksum_address("0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af")
 
-_permit2_domain_data = {'name': 'Permit2', 'chainId': 1, 'verifyingContract': _permit2_address}
+_permit2_domain_data = {"name": "Permit2", "chainId": 1, "verifyingContract": _permit2_address}
 _permit2_types = {
-    'PermitDetails': [
-        {'name': 'token', 'type': 'address'},
-        {'name': 'amount', 'type': 'uint160'},
-        {'name': 'expiration', 'type': 'uint48'},
-        {'name': 'nonce', 'type': 'uint48'},
+    "PermitDetails": [
+        {"name": "token", "type": "address"},
+        {"name": "amount", "type": "uint160"},
+        {"name": "expiration", "type": "uint48"},
+        {"name": "nonce", "type": "uint48"},
     ],
-    'PermitSingle': [
-        {'name': 'details', 'type': 'PermitDetails'},
-        {'name': 'spender', 'type': 'address'},
-        {'name': 'sigDeadline', 'type': 'uint256'},
+    "PermitSingle": [
+        {"name": "details", "type": "PermitDetails"},
+        {"name": "spender", "type": "address"},
+        {"name": "sigDeadline", "type": "uint256"},
     ],
 }

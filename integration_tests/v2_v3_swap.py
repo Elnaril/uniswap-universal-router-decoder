@@ -15,7 +15,7 @@ from uniswap_universal_router_decoder import (
 )
 
 
-web3_provider = os.environ['WEB3_HTTP_PROVIDER_URL_ETHEREUM_MAINNET']
+web3_provider = os.environ["WEB3_HTTP_PROVIDER_URL_ETHEREUM_MAINNET"]
 w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:8545"))
 
 account: LocalAccount = Account.from_key("0xf7e96bcf6b5223c240ec308d8374ff01a753b00743b3a0127791f37f00c56514")
@@ -54,10 +54,12 @@ def launch_anvil():
 
 
 def kill_processes(parent_id):
-    processes = [str(parent_id), ]
-    pgrep_process = subprocess.run(
-        f"pgrep -P {parent_id}", shell=True, text=True, capture_output=True
-    ).stdout.strip("\n")
+    processes = [
+        str(parent_id),
+    ]
+    pgrep_process = subprocess.run(f"pgrep -P {parent_id}", shell=True, text=True, capture_output=True).stdout.strip(
+        "\n"
+    )
     children_ids = pgrep_process.split("\n") if len(pgrep_process) > 0 else []
     processes.extend(children_ids)
     print(f"Killing processes: {' '.join(processes)}")
@@ -78,20 +80,18 @@ def buy_usdc_from_v2_and_v3():
     v2_in_amount = Wei(3 * 10**17)
     v2_out_amount = Wei(817968342)  # with slippage
     v3_path = [weth_address, 500, usdc_address]
-    v3_in_amount = Wei(7 * 10 ** 17)
+    v3_in_amount = Wei(7 * 10**17)
     v3_out_amount = Wei(1908592798)  # with slippage
     total_in_amount = Wei(v2_in_amount + v3_in_amount)
     trx_params = (
-        codec
-        .encode
-        .chain()
+        codec.encode.chain()
         .wrap_eth(FunctionRecipient.ROUTER, total_in_amount)
         .v2_swap_exact_in(FunctionRecipient.SENDER, v2_in_amount, v2_out_amount, v2_path, payer_is_sender=False)
         .v3_swap_exact_in(FunctionRecipient.SENDER, v3_in_amount, v3_out_amount, v3_path, payer_is_sender=False)
         .build_transaction(
             account.address,
             total_in_amount,
-            block_identifier=w3.eth.block_number  # because test is on local Anvil fork
+            block_identifier=w3.eth.block_number,  # because test is on local Anvil fork
         )
     )
 

@@ -6,10 +6,9 @@ Enums used by the Uniswap Universal Router Codec
 * Doc: https://github.com/Elnaril/uniswap-universal-router-decoder
 """
 
-
 from enum import (
-    auto,
     Enum,
+    auto,
 )
 
 from web3 import Web3
@@ -42,6 +41,7 @@ class FunctionRecipient(Enum):
 
     CUSTOM: When the function recipient is neither the trx sender nor the router
     """
+
     SENDER = "recipient is transaction sender"
     ROUTER = "recipient is universal router"
     CUSTOM = "recipient is custom"
@@ -53,7 +53,7 @@ class _RouterConstant(Enum):
     ADDRESS_THIS = Web3.to_checksum_address("0x0000000000000000000000000000000000000002")
     ROUTER_BALANCE = Wei(2**255)
     FLAG_ALLOW_REVERT = 0x80
-    COMMAND_TYPE_MASK = 0x3f
+    COMMAND_TYPE_MASK = 0x3F
 
 
 class TransactionSpeed(Enum):
@@ -68,7 +68,7 @@ class V4Actions(Enum):
     # Positions
     MINT_POSITION = 0x02
     MINT_POSITION_FROM_DELTAS = 0x05
-    SETTLE_PAIR = 0x0d
+    SETTLE_PAIR = 0x0D
     TAKE_PAIR = 0x11
     CLOSE_CURRENCY = 0x12
     CLEAR_OR_TAKE = 0x13
@@ -81,13 +81,13 @@ class V4Actions(Enum):
     SWAP_EXACT_IN = 0x07
     SWAP_EXACT_OUT_SINGLE = 0x08
     SWAP_EXACT_OUT = 0x09
-    SETTLE_ALL = 0x0c
-    TAKE_ALL = 0x0f
+    SETTLE_ALL = 0x0C
+    TAKE_ALL = 0x0F
     TAKE_PORTION = 0x10
 
     # Common
-    SETTLE = 0x0b
-    TAKE = 0x0e
+    SETTLE = 0x0B
+    TAKE = 0x0E
 
 
 class V4Constants(Enum):
