@@ -15,7 +15,7 @@ notes/
 .mypy_cache
 .pytest_cache
 .tox
-
+.venv/
 venv_ur_tutorial/
 media/temp
 

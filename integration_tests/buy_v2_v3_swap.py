@@ -15,10 +15,12 @@ from uniswap_universal_router_decoder import (
 )
 
 
-web3_provider = os.environ['WEB3_HTTP_PROVIDER_URL_ETHEREUM_MAINNET']
+web3_provider = os.environ["WEB3_HTTP_PROVIDER_URL_ETHEREUM_MAINNET"]
 w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:8545"))
 
-account: LocalAccount = Account.from_key("0xf7e96bcf6b5223c240ec308d8374ff01a753b00743b3a0127791f37f00c56514")
+account: LocalAccount = Account.from_key(
+    "0xf7e96bcf6b5223c240ec308d8374ff01a753b00743b3a0127791f37f00c56514"
+)
 assert account.address == "0x1e46c294f20bC7C27D93a9b5f45039751D8BCc3e"
 
 chain_id = 1
@@ -42,12 +44,14 @@ codec = RouterCodec()
 
 def launch_anvil():
     anvil_process = subprocess.Popen(
-        " ".join([
-            "anvil",
-            f"--fork-url {web3_provider}",
-            f"--fork-block-number {initial_block_number}",
-            "--mnemonic-seed-unsafe 8721345628937456298",
-        ]),
+        " ".join(
+            [
+                "anvil",
+                f"--fork-url {web3_provider}",
+                f"--fork-block-number {initial_block_number}",
+                "--mnemonic-seed-unsafe 8721345628937456298",
+            ]
+        ),
         shell=True,
     )
     time.sleep(5)  # Increased wait time for anvil to fully start
@@ -56,13 +60,17 @@ def launch_anvil():
 
 
 def kill_processes(parent_id):
-    processes = [str(parent_id), ]
+    processes = [
+        str(parent_id),
+    ]
     pgrep_process = subprocess.run(
         f"pgrep -P {parent_id}", shell=True, text=True, capture_output=True
     ).stdout.strip("\n")
     children_ids = pgrep_process.split("\n") if len(pgrep_process) > 0 else []
     processes.extend(children_ids)
-    subprocess.run(f"kill {' '.join(processes)}", shell=True, text=True, capture_output=True)
+    subprocess.run(
+        f"kill {' '.join(processes)}", shell=True, text=True, capture_output=True
+    )
 
 
 def check_initialization():
@@ -75,11 +83,11 @@ def check_initialization():
 
 def send_transaction(encoded_input, value):
     trx_params = encoded_input.build_transaction(
-        account.address,
-        value,
-        block_identifier=w3.eth.block_number
+        account.address, value, block_identifier=w3.eth.block_number
     )
-    raw_transaction = w3.eth.account.sign_transaction(trx_params, account.key).raw_transaction
+    raw_transaction = w3.eth.account.sign_transaction(
+        trx_params, account.key
+    ).raw_transaction
     trx_hash = w3.eth.send_raw_transaction(raw_transaction)
     return trx_hash
 
@@ -88,20 +96,22 @@ def wrap_unwrap():
     global transient_eth_balance
     in_amount = Wei(10**18)
     encoded_input = (
-        codec
-        .encode
-        .chain()
+        codec.encode.chain()
         .wrap_eth(FunctionRecipient.ROUTER, in_amount)
         .unwrap_weth(FunctionRecipient.SENDER, in_amount)
     )
     trx_hash = send_transaction(encoded_input, in_amount)
 
     receipt = w3.eth.wait_for_transaction_receipt(trx_hash)
-    assert receipt["status"] == 1, f'receipt["status"] is actually {receipt["status"]}'  # trx success
+    assert (
+        receipt["status"] == 1
+    ), f'receipt["status"] is actually {receipt["status"]}'  # trx success
 
     trx_fee = receipt["gasUsed"] * receipt["effectiveGasPrice"]
     eth_balance = w3.eth.get_balance(account.address)
-    assert eth_balance == transient_eth_balance - trx_fee, f"eth_balance: {eth_balance}, transient_eth_balance: {transient_eth_balance},trx_fee: {trx_fee}"  # noqa E501
+    assert (
+        eth_balance == transient_eth_balance - trx_fee
+    ), f"eth_balance: {eth_balance}, transient_eth_balance: {transient_eth_balance},trx_fee: {trx_fee}"  # noqa E501
     transient_eth_balance = eth_balance
     print(" => WRAP ETH and UNWRAP WETH: OK")
 
@@ -115,22 +125,32 @@ def buy_usdc_from_v2_and_sell_to_v3():
     v3_path = [usdc_address, 500, weth_address]
     v3_out_amount = Wei(int(2.98 * 10**17))  # with slippage
     encoded_input = (
-        codec
-        .encode
-        .chain()
+        codec.encode.chain()
         .wrap_eth(FunctionRecipient.ROUTER, v2_in_amount)
-        .v2_swap_exact_in(FunctionRecipient.ROUTER, v2_in_amount, v2_out_amount, v2_path, payer_is_sender=False)
+        .v2_swap_exact_in(
+            FunctionRecipient.ROUTER,
+            v2_in_amount,
+            v2_out_amount,
+            v2_path,
+            payer_is_sender=False,
+        )
         .v3_swap_exact_in_from_balance(FunctionRecipient.ROUTER, v3_out_amount, v3_path)
         .unwrap_weth(FunctionRecipient.SENDER, 0)
     )
     trx_hash = send_transaction(encoded_input, v2_in_amount)
 
     receipt = w3.eth.wait_for_transaction_receipt(trx_hash)
-    assert receipt["status"] == 1, f'receipt["status"] is actually {receipt["status"]}'  # trx success
+    assert (
+        receipt["status"] == 1
+    ), f'receipt["status"] is actually {receipt["status"]}'  # trx success
 
     trx_fee = receipt["gasUsed"] * receipt["effectiveGasPrice"]
     eth_balance = w3.eth.get_balance(account.address)
-    assert transient_eth_balance - v2_in_amount * 0.01 - trx_fee < eth_balance < transient_eth_balance - trx_fee, f"eth_balance: {eth_balance}, transient_eth_balance: {transient_eth_balance},trx_fee: {trx_fee}"  # noqa E501
+    assert (
+        transient_eth_balance - v2_in_amount * 0.01 - trx_fee
+        < eth_balance
+        < transient_eth_balance - trx_fee
+    ), f"eth_balance: {eth_balance}, transient_eth_balance: {transient_eth_balance},trx_fee: {trx_fee}"  # noqa E501
     transient_eth_balance = eth_balance
 
     usdc_balance = usdc_contract.functions.balanceOf(account.address).call()
@@ -146,29 +166,39 @@ def buy_usdc_from_v3_and_sell_to_v2():
     global transient_eth_balance
     # Wrap, Buy for 0.3 eth of usdc from v3, Sell to v2 and Unwrap
     v3_path = [weth_address, 500, usdc_address]
-    v3_in_amount = Wei(3 * 10 ** 17)
+    v3_in_amount = Wei(3 * 10**17)
     v3_out_amount = Wei(817968342)  # with slippage
 
     v2_path = [usdc_address, weth_address]
-    v2_out_amount = Wei(int(2.98 * 10 ** 17))  # with slippage
+    v2_out_amount = Wei(int(2.98 * 10**17))  # with slippage
 
     encoded_input = (
-        codec
-        .encode
-        .chain()
+        codec.encode.chain()
         .wrap_eth(FunctionRecipient.ROUTER, v3_in_amount)
-        .v3_swap_exact_in(FunctionRecipient.ROUTER, v3_in_amount, v3_out_amount, v3_path, payer_is_sender=False)
+        .v3_swap_exact_in(
+            FunctionRecipient.ROUTER,
+            v3_in_amount,
+            v3_out_amount,
+            v3_path,
+            payer_is_sender=False,
+        )
         .v2_swap_exact_in_from_balance(FunctionRecipient.ROUTER, v2_out_amount, v2_path)
         .unwrap_weth(FunctionRecipient.SENDER, 0)
     )
     trx_hash = send_transaction(encoded_input, v3_in_amount)
 
     receipt = w3.eth.wait_for_transaction_receipt(trx_hash)
-    assert receipt["status"] == 1, f'receipt["status"] is actually {receipt["status"]}'  # trx success
+    assert (
+        receipt["status"] == 1
+    ), f'receipt["status"] is actually {receipt["status"]}'  # trx success
 
     trx_fee = receipt["gasUsed"] * receipt["effectiveGasPrice"]
     eth_balance = w3.eth.get_balance(account.address)
-    assert transient_eth_balance - v3_in_amount * 0.01 - trx_fee < eth_balance < transient_eth_balance - trx_fee, f"eth_balance: {eth_balance}, transient_eth_balance: {transient_eth_balance},trx_fee: {trx_fee}"  # noqa E501
+    assert (
+        transient_eth_balance - v3_in_amount * 0.01 - trx_fee
+        < eth_balance
+        < transient_eth_balance - trx_fee
+    ), f"eth_balance: {eth_balance}, transient_eth_balance: {transient_eth_balance},trx_fee: {trx_fee}"  # noqa E501
     transient_eth_balance = eth_balance
 
     usdc_balance = usdc_contract.functions.balanceOf(account.address).call()

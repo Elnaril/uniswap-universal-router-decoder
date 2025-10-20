@@ -15,13 +15,15 @@ from uniswap_universal_router_decoder import (
 )
 
 
-web3_provider = os.environ['QUICKNODE_BSC_MAINNET']
+web3_provider = os.environ["QUICKNODE_BSC_MAINNET"]
 w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:8545"))
 chain_id = 56
 block_number = 63929588
 gas_limit = 800_000
 
-account: LocalAccount = Account.from_key("0xf7e96bcf6b5223c240ec308d8374ff01a753b00743b3a0127791f37f00c56514")
+account: LocalAccount = Account.from_key(
+    "0xf7e96bcf6b5223c240ec308d8374ff01a753b00743b3a0127791f37f00c56514"
+)
 assert account.address == "0x1e46c294f20bC7C27D93a9b5f45039751D8BCc3e"
 init_amount = 10000 * 10**18
 transient_eth_balance = init_amount
@@ -58,14 +60,18 @@ def launch_anvil():
 
 
 def kill_processes(parent_id):
-    processes = [str(parent_id), ]
+    processes = [
+        str(parent_id),
+    ]
     pgrep_process = subprocess.run(
         f"pgrep -P {parent_id}", shell=True, text=True, capture_output=True
     ).stdout.strip("\n")
     children_ids = pgrep_process.split("\n") if len(pgrep_process) > 0 else []
     processes.extend(children_ids)
     print(f"Killing processes: {' '.join(processes)}")
-    subprocess.run(f"kill {' '.join(processes)}", shell=True, text=True, capture_output=True)
+    subprocess.run(
+        f"kill {' '.join(processes)}", shell=True, text=True, capture_output=True
+    )
 
 
 def check_initialization():
@@ -83,13 +89,15 @@ def send_transaction(value, encoded_data):
         "gas": gas_limit,
         "maxPriorityFeePerGas": w3.eth.max_priority_fee,
         "maxFeePerGas": Wei(30 * 10**9),
-        "type": '0x2',
+        "type": "0x2",
         "chainId": chain_id,
         "value": value,
         "nonce": w3.eth.get_transaction_count(account.address),
         "data": encoded_data,
     }
-    raw_transaction = w3.eth.account.sign_transaction(trx_params, account.key).raw_transaction
+    raw_transaction = w3.eth.account.sign_transaction(
+        trx_params, account.key
+    ).raw_transaction
     trx_hash = w3.eth.send_raw_transaction(raw_transaction)
     return trx_hash
 
@@ -99,22 +107,25 @@ def buy_usdt():
     amount_out_min = 0
     v3_path = [wbnb_address, 500, usdt_address]
     encoded_input = (
-        codec
-        .encode
-        .chain()
-        .wrap_eth(FunctionRecipient.ROUTER, amount_in)
+        codec.encode.chain().wrap_eth(FunctionRecipient.ROUTER, amount_in)
         # can chain one of the 2 following v3 swap functions:
-        .v3_swap_exact_in_from_balance(FunctionRecipient.SENDER, amount_out_min, v3_path)
+        .v3_swap_exact_in_from_balance(
+            FunctionRecipient.SENDER, amount_out_min, v3_path
+        )
         # .v3_swap_exact_in(FunctionRecipient.SENDER, amount_in, amount_out_min, v3_path, payer_is_sender=False)
         .build(codec.get_default_deadline())
     )
     trx_hash = send_transaction(amount_in, encoded_input)
 
     receipt = w3.eth.wait_for_transaction_receipt(trx_hash)
-    assert receipt["status"] == 1, f'receipt["status"] is actually {receipt["status"]}'  # trx success
+    assert (
+        receipt["status"] == 1
+    ), f'receipt["status"] is actually {receipt["status"]}'  # trx success
 
     usdt_balance = usdt_contract.functions.balanceOf(account.address).call()
-    assert usdt_balance == 1309572675460077202940, f"USDT balance was actually: {usdt_balance}"
+    assert (
+        usdt_balance == 1309572675460077202940
+    ), f"USDT balance was actually: {usdt_balance}"
 
     print(" => BUY USDT: OK")
 
@@ -127,17 +138,21 @@ def approve_permit2_for_usdt():
             "gas": gas_limit,
             "maxPriorityFeePerGas": w3.eth.max_priority_fee,
             "maxFeePerGas": Wei(30 * 10**9),
-            "type": '0x2',
+            "type": "0x2",
             "chainId": chain_id,
             "value": 0,
             "nonce": w3.eth.get_transaction_count(account.address),
         }
     )
-    raw_transaction = w3.eth.account.sign_transaction(trx_params, account.key).raw_transaction
+    raw_transaction = w3.eth.account.sign_transaction(
+        trx_params, account.key
+    ).raw_transaction
     trx_hash = w3.eth.send_raw_transaction(raw_transaction)
 
     receipt = w3.eth.wait_for_transaction_receipt(trx_hash)
-    assert receipt["status"] == 1, f'receipt["status"] is actually {receipt["status"]}'  # trx success
+    assert (
+        receipt["status"] == 1
+    ), f'receipt["status"] is actually {receipt["status"]}'  # trx success
     print(" => APPROVE PERMIT2 FOR USDT: OK")
 
 
@@ -146,7 +161,9 @@ def sell_usdt_part_1():
     amount_out_min = 0
     v3_path = [usdt_address, 500, wbnb_address]
 
-    amount, expiration, nonce = codec.fetch_permit2_allowance(account.address, usdt_address)
+    amount, expiration, nonce = codec.fetch_permit2_allowance(
+        account.address, usdt_address
+    )
     assert amount == expiration == nonce == 0, "Wrong Permit2 allowance"
     print("Permit2 allowance before sell part 1:", amount, expiration, nonce)
 
@@ -163,23 +180,33 @@ def sell_usdt_part_1():
     signed_message = account.sign_message(signable_message)
 
     encoded_input = (
-        codec
-        .encode
-        .chain()
+        codec.encode.chain()
         .permit2_permit(permit_data, signed_message)
-        .v3_swap_exact_in(FunctionRecipient.SENDER, amount_in, amount_out_min, v3_path, payer_is_sender=True)  # /!\  payer is sender  # noqa
+        .v3_swap_exact_in(
+            FunctionRecipient.SENDER,
+            amount_in,
+            amount_out_min,
+            v3_path,
+            payer_is_sender=True,
+        )  # /!\  payer is sender  # noqa
         .build(codec.get_default_deadline())
     )
     trx_hash = send_transaction(0, encoded_input)
 
     receipt = w3.eth.wait_for_transaction_receipt(trx_hash)
-    assert receipt["status"] == 1, f'receipt["status"] is actually {receipt["status"]}'  # trx success
+    assert (
+        receipt["status"] == 1
+    ), f'receipt["status"] is actually {receipt["status"]}'  # trx success
 
     usdt_balance = usdt_contract.functions.balanceOf(account.address).call()
-    assert usdt_balance == 1209572675460077202940, f"USDT balance was actually: {usdt_balance}"
+    assert (
+        usdt_balance == 1209572675460077202940
+    ), f"USDT balance was actually: {usdt_balance}"
 
     wbnb_balance = wbnb_contract.functions.balanceOf(account.address).call()
-    assert wbnb_balance == 76395672864257517, f"WBNB balance was actually: {wbnb_balance}"
+    assert (
+        wbnb_balance == 76395672864257517
+    ), f"WBNB balance was actually: {wbnb_balance}"
 
     print(" => SELL USDT for WBNB PART 1: OK")
 
@@ -189,8 +216,12 @@ def sell_usdt_part_2():
     amount_out_min = 0
     v3_path = [usdt_address, 500, wbnb_address]
 
-    amount, expiration, nonce = codec.fetch_permit2_allowance(account.address, usdt_address, ur_address)
-    assert amount == 0, "Wrong Permit2 allowance amount"  # allowance fully used in sell_usdc_part_1()
+    amount, expiration, nonce = codec.fetch_permit2_allowance(
+        account.address, usdt_address, ur_address
+    )
+    assert (
+        amount == 0
+    ), "Wrong Permit2 allowance amount"  # allowance fully used in sell_usdc_part_1()
     assert expiration > 0, "Wrong Permit2 allowance expiration"
     assert nonce == 1, "Wrong Permit2 allowance nonce"
     print("Permit2 allowance before sell part 2:", amount, expiration, nonce)
@@ -208,25 +239,37 @@ def sell_usdt_part_2():
     signed_message = account.sign_message(signable_message)
 
     encoded_input = (
-        codec
-        .encode
-        .chain()
+        codec.encode.chain()
         .permit2_permit(permit_data, signed_message)
-        .v3_swap_exact_in(FunctionRecipient.SENDER, amount_in, amount_out_min, v3_path, payer_is_sender=True)  # /!\  payer is sender  # noqa
+        .v3_swap_exact_in(
+            FunctionRecipient.SENDER,
+            amount_in,
+            amount_out_min,
+            v3_path,
+            payer_is_sender=True,
+        )  # /!\  payer is sender  # noqa
         .build(codec.get_default_deadline())
     )
     trx_hash = send_transaction(0, encoded_input)
 
     receipt = w3.eth.wait_for_transaction_receipt(trx_hash)
-    assert receipt["status"] == 1, f'receipt["status"] is actually {receipt["status"]}'  # trx success
+    assert (
+        receipt["status"] == 1
+    ), f'receipt["status"] is actually {receipt["status"]}'  # trx success
 
     usdt_balance = usdt_contract.functions.balanceOf(account.address).call()
-    assert usdt_balance == 1109572675460077202940, f"USDT balance was actually: {usdt_balance}"
+    assert (
+        usdt_balance == 1109572675460077202940
+    ), f"USDT balance was actually: {usdt_balance}"
 
     wbnb_balance = wbnb_contract.functions.balanceOf(account.address).call()
-    assert wbnb_balance == 152772939867854785, f"WBNB balance was actually: {wbnb_balance}"
+    assert (
+        wbnb_balance == 152772939867854785
+    ), f"WBNB balance was actually: {wbnb_balance}"
 
-    amount, expiration, nonce = codec.fetch_permit2_allowance(account.address, usdt_address, ur_address)
+    amount, expiration, nonce = codec.fetch_permit2_allowance(
+        account.address, usdt_address, ur_address
+    )
     assert amount == 2**160 - 1, "Wrong Permit2 allowance amount"  # infinite allowance
     assert expiration > 0, "Wrong Permit2 allowance expiration"
     assert nonce == 2, "Wrong Permit2 allowance nonce"

@@ -5,18 +5,12 @@ Factory that builds the UR function ABIs used by the Uniswap Universal Router Co
 * License: MIT.
 * Doc: https://github.com/Elnaril/uniswap-universal-router-decoder
 """
+
 from __future__ import annotations
 
 from io import BytesIO
-from typing import (
-    Any,
-    cast,
-    Dict,
-    List,
-    Optional,
-    Sequence,
-    Union,
-)
+from typing import Any, cast, Optional, Union
+from collections.abc import Sequence
 
 from eth_abi import encode
 from eth_abi.registry import registry
@@ -30,39 +24,41 @@ from uniswap_universal_router_decoder._enums import (
 )
 
 
-def _get_types_from_list(type_list: List[Any]) -> List[str]:
+def _get_types_from_list(type_list: list[Any]) -> list[str]:
     types = []
     for item in type_list:
         if item["type"][:5] == "tuple":
             brackets = item["type"][5:]
-            types.append(f"({','.join(_get_types_from_list(item['components']))}){brackets}")
+            types.append(
+                f"({','.join(_get_types_from_list(item['components']))}){brackets}"
+            )
         else:
             types.append(item["type"])
     return types
 
 
-def build_abi_type_list(abi_dict: Dict[str, Any]) -> List[str]:
+def build_abi_type_list(abi_dict: dict[str, Any]) -> list[str]:
     return _get_types_from_list(abi_dict["inputs"])
 
 
 class FunctionABI:
-    def __init__(self, inputs: List[Any], name: str, _type: str) -> None:
+    def __init__(self, inputs: list[Any], name: str, _type: str) -> None:
         self.inputs = inputs
         self.name = name
         self.type = _type
 
-    def get_abi(self) -> Dict[str, Any]:
+    def get_abi(self) -> dict[str, Any]:
         return {"inputs": self.inputs, "name": self.name, "type": self.type}
 
-    def get_struct_abi(self) -> Dict[str, Any]:
+    def get_struct_abi(self) -> dict[str, Any]:
         result = self.get_abi()
         result["components"] = result.pop("inputs")
         return result
 
-    def get_full_abi(self) -> List[Dict[str, Any]]:
+    def get_full_abi(self) -> list[dict[str, Any]]:
         return [self.get_abi()]
 
-    def get_abi_types(self) -> List[str]:
+    def get_abi_types(self) -> list[str]:
         return build_abi_type_list(self.get_abi())
 
     def get_signature(self) -> str:
@@ -75,7 +71,7 @@ class FunctionABI:
         return encode(self.get_abi_types(), args)
 
 
-ABIMap = Dict[Union[MiscFunctions, RouterFunction, V4Actions], FunctionABI]
+ABIMap = dict[Union[MiscFunctions, RouterFunction, V4Actions], FunctionABI]
 
 
 class FunctionABIBuilder:
@@ -149,7 +145,9 @@ class FunctionABIBuilder:
         self.abi.inputs.append({"name": arg_name, "type": "ExactInputParams"})
         return self
 
-    def add_v4_exact_output_params(self, arg_name: str = "params") -> FunctionABIBuilder:
+    def add_v4_exact_output_params(
+        self, arg_name: str = "params"
+    ) -> FunctionABIBuilder:
         self.abi.inputs.append({"name": arg_name, "type": "ExactOutputParams"})
         return self
 
@@ -159,7 +157,11 @@ class _ABIBuilder:
         self.w3 = w3 if w3 else Web3()
         self.abi_map = self.build_abi_map()
         if not registry.has_encoder("ExactInputParams"):
-            registry.register("ExactInputParams", self.encode_v4_exact_input_params, self.decode_v4_exact_input_params)
+            registry.register(
+                "ExactInputParams",
+                self.encode_v4_exact_input_params,
+                self.decode_v4_exact_input_params,
+            )
         if not registry.has_encoder("ExactOutputParams"):
             registry.register(
                 "ExactOutputParams",
@@ -184,7 +186,6 @@ class _ABIBuilder:
             RouterFunction.V4_INITIALIZE_POOL: self._build_v4_initialize_pool(),
             RouterFunction.V4_POSITION_MANAGER_CALL: self._build_modify_liquidities(),
             RouterFunction.PERMIT2_TRANSFER_FROM: self._build_permit2_transfer_from(),
-
             V4Actions.SWAP_EXACT_IN_SINGLE: self._build_v4_swap_exact_in_single(),
             V4Actions.MINT_POSITION: self._build_v4_mint_position(),
             V4Actions.SETTLE_PAIR: self._build_v4_settle_pair(),
@@ -203,7 +204,6 @@ class _ABIBuilder:
             V4Actions.CLEAR_OR_TAKE: self._build_v4_clear_or_take(),
             V4Actions.TAKE_PORTION: self._build_v4_take_portion(),
             V4Actions.TAKE: self._build_v4_take(),
-
             MiscFunctions.EXECUTE: self._build_execute(),
             MiscFunctions.EXECUTE_WITH_DEADLINE: self._build_execute_with_deadline(),
             MiscFunctions.UNLOCK_DATA: self._build_unlock_data(),
@@ -216,16 +216,22 @@ class _ABIBuilder:
     @staticmethod
     def _build_v2_swap_exact_in() -> FunctionABI:
         builder = FunctionABIBuilder(RouterFunction.V2_SWAP_EXACT_IN.name)
-        builder.add_address("recipient").add_uint256("amountIn").add_uint256("amountOutMin").add_address_array("path")
+        builder.add_address("recipient").add_uint256("amountIn").add_uint256(
+            "amountOutMin"
+        ).add_address_array("path")
         return builder.add_bool("payerIsSender").build()
 
     @staticmethod
     def _build_permit2_permit() -> FunctionABI:
         builder = FunctionABIBuilder(RouterFunction.PERMIT2_PERMIT.name)
         inner_struct = builder.create_struct("details")
-        inner_struct.add_address("token").add_uint160("amount").add_uint48("expiration").add_uint48("nonce")
+        inner_struct.add_address("token").add_uint160("amount").add_uint48(
+            "expiration"
+        ).add_uint48("nonce")
         outer_struct = builder.create_struct("struct")
-        outer_struct.add_struct(inner_struct).add_address("spender").add_uint256("sigDeadline")
+        outer_struct.add_struct(inner_struct).add_address("spender").add_uint256(
+            "sigDeadline"
+        )
         return builder.add_struct(outer_struct).add_bytes("data").build()
 
     @staticmethod
@@ -236,7 +242,9 @@ class _ABIBuilder:
     @staticmethod
     def _build_v3_swap_exact_in() -> FunctionABI:
         builder = FunctionABIBuilder(RouterFunction.V3_SWAP_EXACT_IN.name)
-        builder.add_address("recipient").add_uint256("amountIn").add_uint256("amountOutMin").add_bytes("path")
+        builder.add_address("recipient").add_uint256("amountIn").add_uint256(
+            "amountOutMin"
+        ).add_bytes("path")
         return builder.add_bool("payerIsSender").build()
 
     @staticmethod
@@ -247,29 +255,48 @@ class _ABIBuilder:
     @staticmethod
     def _build_v2_swap_exact_out() -> FunctionABI:
         builder = FunctionABIBuilder(RouterFunction.V2_SWAP_EXACT_OUT.name)
-        builder.add_address("recipient").add_uint256("amountOut").add_uint256("amountInMax").add_address_array("path")
+        builder.add_address("recipient").add_uint256("amountOut").add_uint256(
+            "amountInMax"
+        ).add_address_array("path")
         return builder.add_bool("payerIsSender").build()
 
     @staticmethod
     def _build_v3_swap_exact_out() -> FunctionABI:
         builder = FunctionABIBuilder(RouterFunction.V3_SWAP_EXACT_OUT.name)
-        builder.add_address("recipient").add_uint256("amountOut").add_uint256("amountInMax").add_bytes("path")
+        builder.add_address("recipient").add_uint256("amountOut").add_uint256(
+            "amountInMax"
+        ).add_bytes("path")
         return builder.add_bool("payerIsSender").build()
 
     @staticmethod
     def _build_sweep() -> FunctionABI:
         builder = FunctionABIBuilder(RouterFunction.SWEEP.name)
-        return builder.add_address("token").add_address("recipient").add_uint256("amountMin").build()
+        return (
+            builder.add_address("token")
+            .add_address("recipient")
+            .add_uint256("amountMin")
+            .build()
+        )
 
     @staticmethod
     def _build_pay_portion() -> FunctionABI:
         builder = FunctionABIBuilder(RouterFunction.PAY_PORTION.name)
-        return builder.add_address("token").add_address("recipient").add_uint256("bips").build()
+        return (
+            builder.add_address("token")
+            .add_address("recipient")
+            .add_uint256("bips")
+            .build()
+        )
 
     @staticmethod
     def _build_transfer() -> FunctionABI:
         builder = FunctionABIBuilder(RouterFunction.TRANSFER.name)
-        return builder.add_address("token").add_address("recipient").add_uint256("value").build()
+        return (
+            builder.add_address("token")
+            .add_address("recipient")
+            .add_uint256("value")
+            .build()
+        )
 
     @staticmethod
     def _build_v4_swap() -> FunctionABI:
@@ -279,7 +306,9 @@ class _ABIBuilder:
     @staticmethod
     def _v4_pool_key_struct_builder() -> FunctionABIBuilder:
         builder = FunctionABIBuilder.create_struct("PoolKey")
-        builder.add_address("currency0").add_address("currency1").add_uint24("fee").add_int24("tickSpacing")
+        builder.add_address("currency0").add_address("currency1").add_uint24(
+            "fee"
+        ).add_int24("tickSpacing")
         return builder.add_address("hooks")
 
     @staticmethod
@@ -287,7 +316,9 @@ class _ABIBuilder:
         builder = FunctionABIBuilder(V4Actions.SWAP_EXACT_IN_SINGLE.name)
         pool_key = _ABIBuilder._v4_pool_key_struct_builder()
         outer_struct = builder.create_struct("exact_in_single_params")
-        outer_struct.add_struct(pool_key).add_bool("zeroForOne").add_uint128("amountIn").add_uint128("amountOutMinimum")
+        outer_struct.add_struct(pool_key).add_bool("zeroForOne").add_uint128(
+            "amountIn"
+        ).add_uint128("amountOutMinimum")
         outer_struct.add_bytes("hookData")
         return builder.add_struct(outer_struct).build()
 
@@ -311,8 +342,12 @@ class _ABIBuilder:
     def _build_v4_mint_position() -> FunctionABI:
         builder = FunctionABIBuilder(V4Actions.MINT_POSITION.name)
         pool_key = _ABIBuilder._v4_pool_key_struct_builder()
-        builder.add_struct(pool_key).add_int24("tickLower").add_int24("tickUpper").add_uint256("liquidity")
-        builder.add_uint128("amount0Max").add_uint128("amount1Max").add_address("recipient").add_bytes("hookData")
+        builder.add_struct(pool_key).add_int24("tickLower").add_int24(
+            "tickUpper"
+        ).add_uint256("liquidity")
+        builder.add_uint128("amount0Max").add_uint128("amount1Max").add_address(
+            "recipient"
+        ).add_bytes("hookData")
         return builder.build()
 
     @staticmethod
@@ -323,7 +358,12 @@ class _ABIBuilder:
     @staticmethod
     def _build_v4_settle() -> FunctionABI:
         builder = FunctionABIBuilder(V4Actions.SETTLE.name)
-        return builder.add_address("currency").add_uint256("amount").add_bool("payerIsUser").build()
+        return (
+            builder.add_address("currency")
+            .add_uint256("amount")
+            .add_bool("payerIsUser")
+            .build()
+        )
 
     @staticmethod
     def _build_v4_close_currency() -> FunctionABI:
@@ -338,7 +378,12 @@ class _ABIBuilder:
     @staticmethod
     def _build_permit2_transfer_from() -> FunctionABI:
         builder = FunctionABIBuilder(RouterFunction.PERMIT2_TRANSFER_FROM.name)
-        return builder.add_address("token").add_address("recipient").add_uint256("amount").build()
+        return (
+            builder.add_address("token")
+            .add_address("recipient")
+            .add_uint256("amount")
+            .build()
+        )
 
     @staticmethod
     def _build_v4_take_all() -> FunctionABI:
@@ -358,7 +403,12 @@ class _ABIBuilder:
     @staticmethod
     def _build_execute_with_deadline() -> FunctionABI:
         builder = FunctionABIBuilder("execute")
-        return builder.add_bytes("commands").add_bytes_array("inputs").add_uint256("deadline").build()
+        return (
+            builder.add_bytes("commands")
+            .add_bytes_array("inputs")
+            .add_uint256("deadline")
+            .build()
+        )
 
     @staticmethod
     def _build_v4_pool_id() -> FunctionABI:
@@ -369,7 +419,9 @@ class _ABIBuilder:
     @staticmethod
     def _v4_path_key_struct_array_builder() -> FunctionABIBuilder:
         builder = FunctionABIBuilder.create_struct_array("PathKeys")
-        builder.add_address("intermediateCurrency").add_uint24("fee").add_int24("tickSpacing")
+        builder.add_address("intermediateCurrency").add_uint24("fee").add_int24(
+            "tickSpacing"
+        )
         return builder.add_address("hooks").add_bytes("hookData")
 
     @staticmethod
@@ -384,7 +436,9 @@ class _ABIBuilder:
         builder = FunctionABIBuilder(V4Actions.MINT_POSITION_FROM_DELTAS.name)
         pool_key = _ABIBuilder._v4_pool_key_struct_builder()
         builder.add_struct(pool_key).add_int24("tickLower").add_int24("tickUpper")
-        builder.add_uint128("amount0Max").add_uint128("amount1Max").add_address("recipient").add_bytes("hookData")
+        builder.add_uint128("amount0Max").add_uint128("amount1Max").add_address(
+            "recipient"
+        ).add_bytes("hookData")
         return builder.build()
 
     @staticmethod
@@ -402,7 +456,9 @@ class _ABIBuilder:
         builder = FunctionABIBuilder(V4Actions.SWAP_EXACT_OUT_SINGLE.name)
         pool_key = _ABIBuilder._v4_pool_key_struct_builder()
         outer_struct = builder.create_struct("exact_out_single_params")
-        outer_struct.add_struct(pool_key).add_bool("zeroForOne").add_uint128("amountOut").add_uint128("amountInMaximum")
+        outer_struct.add_struct(pool_key).add_bool("zeroForOne").add_uint128(
+            "amountOut"
+        ).add_uint128("amountInMaximum")
         outer_struct.add_bytes("hookData")
         return builder.add_struct(outer_struct).build()
 
@@ -416,7 +472,12 @@ class _ABIBuilder:
     @staticmethod
     def _build_v4_take_pair() -> FunctionABI:
         builder = FunctionABIBuilder(V4Actions.TAKE_PAIR.name)
-        return builder.add_address("currency0").add_address("currency1").add_address("recipient").build()
+        return (
+            builder.add_address("currency0")
+            .add_address("currency1")
+            .add_address("recipient")
+            .build()
+        )
 
     @staticmethod
     def _build_v4_clear_or_take() -> FunctionABI:
@@ -426,24 +487,36 @@ class _ABIBuilder:
     @staticmethod
     def _build_v4_take_portion() -> FunctionABI:
         builder = FunctionABIBuilder(V4Actions.TAKE_PORTION.name)
-        return builder.add_address("currency").add_address("recipient").add_uint256("bips").build()
+        return (
+            builder.add_address("currency")
+            .add_address("recipient")
+            .add_uint256("bips")
+            .build()
+        )
 
     @staticmethod
     def _build_v4_take() -> FunctionABI:
         builder = FunctionABIBuilder(V4Actions.TAKE.name)
-        return builder.add_address("currency").add_address("recipient").add_uint256("amount").build()
+        return (
+            builder.add_address("currency")
+            .add_address("recipient")
+            .add_uint256("amount")
+            .build()
+        )
 
     @staticmethod
     def _build_v4_swap_exact_in() -> FunctionABI:
         builder = FunctionABIBuilder(V4Actions.SWAP_EXACT_IN.name)
         return builder.add_v4_exact_input_params().build()
 
-    def decode_v4_exact_input_params(self, stream: BytesIO) -> Dict[str, Any]:
+    def decode_v4_exact_input_params(self, stream: BytesIO) -> dict[str, Any]:
         fct_abi = self.abi_map[MiscFunctions.STRICT_V4_SWAP_EXACT_IN]
         raw_data = stream.read()
         sub_contract = self.w3.eth.contract(abi=fct_abi.get_full_abi())
-        fct_name, decoded_params = sub_contract.decode_function_input(fct_abi.get_selector() + raw_data[32:])
-        return cast(Dict[str, Any], decoded_params)
+        fct_name, decoded_params = sub_contract.decode_function_input(
+            fct_abi.get_selector() + raw_data[32:]
+        )
+        return cast(dict[str, Any], decoded_params)
 
     def encode_v4_exact_input_params(self, args: Sequence[Any]) -> bytes:
         fct_abi = self.abi_map[MiscFunctions.STRICT_V4_SWAP_EXACT_IN]
@@ -455,12 +528,14 @@ class _ABIBuilder:
         builder = FunctionABIBuilder(V4Actions.SWAP_EXACT_OUT.name)
         return builder.add_v4_exact_output_params().build()
 
-    def decode_v4_exact_output_params(self, stream: BytesIO) -> Dict[str, Any]:
+    def decode_v4_exact_output_params(self, stream: BytesIO) -> dict[str, Any]:
         fct_abi = self.abi_map[MiscFunctions.STRICT_V4_SWAP_EXACT_OUT]
         raw_data = stream.read()
         sub_contract = self.w3.eth.contract(abi=fct_abi.get_full_abi())
-        fct_name, decoded_params = sub_contract.decode_function_input(fct_abi.get_selector() + raw_data[32:])
-        return cast(Dict[str, Any], decoded_params)
+        fct_name, decoded_params = sub_contract.decode_function_input(
+            fct_abi.get_selector() + raw_data[32:]
+        )
+        return cast(dict[str, Any], decoded_params)
 
     def encode_v4_exact_output_params(self, args: Sequence[Any]) -> bytes:
         fct_abi = self.abi_map[MiscFunctions.STRICT_V4_SWAP_EXACT_OUT]

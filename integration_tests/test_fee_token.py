@@ -1,6 +1,7 @@
 """
 Test token with buy and sell fees
 """
+
 import os
 import subprocess
 import time
@@ -17,14 +18,16 @@ from uniswap_universal_router_decoder import (
 )
 
 
-web3_provider = os.environ.get('WEB3_HTTP_PROVIDER_URL_ETHEREUM_MAINNET')
+web3_provider = os.environ.get("WEB3_HTTP_PROVIDER_URL_ETHEREUM_MAINNET")
 w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:8545"))
 chain_id = 1
 block_number = 21839495
 gas_limit = 800_000
 
-account = Account.from_key('0xf7e96bcf6b5223c240ec308d8374ff01a753b00743b3a0127791f37f00c56514')
-assert account.address == '0x1e46c294f20bC7C27D93a9b5f45039751D8BCc3e'
+account = Account.from_key(
+    "0xf7e96bcf6b5223c240ec308d8374ff01a753b00743b3a0127791f37f00c56514"
+)
+assert account.address == "0x1e46c294f20bC7C27D93a9b5f45039751D8BCc3e"
 init_amount = 10000 * 10**18
 
 erc20_abi = '[{"constant":true,"inputs":[],"name":"name","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"},{"name":"_spender","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"anonymous":false,"inputs":[{"indexed":true,"name":"_from","type":"address"},{"indexed":true,"name":"_to","type":"address"},{"indexed":false,"name":"_value","type":"uint256"}],"name":"Transfer","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"_owner","type":"address"},{"indexed":true,"name":"_spender","type":"address"},{"indexed":false,"name":"_value","type":"uint256"}],"name":"Approval","type":"event"}]'  # noqa
@@ -63,13 +66,17 @@ def launch_anvil():
 
 
 def kill_processes(parent_id):
-    processes = [str(parent_id), ]
+    processes = [
+        str(parent_id),
+    ]
     pgrep_process = subprocess.run(
         f"pgrep -P {parent_id}", shell=True, text=True, capture_output=True
     ).stdout.strip("\n")
     children_ids = pgrep_process.split("\n") if len(pgrep_process) > 0 else []
     processes.extend(children_ids)
-    subprocess.run(f"kill {' '.join(processes)}", shell=True, text=True, capture_output=True)
+    subprocess.run(
+        f"kill {' '.join(processes)}", shell=True, text=True, capture_output=True
+    )
 
 
 def check_initialization():
@@ -87,13 +94,15 @@ def send_transaction(value, encoded_data):
         "gas": gas_limit,
         "maxPriorityFeePerGas": w3.eth.max_priority_fee,
         "maxFeePerGas": Wei(int(w3.eth.gas_price * 2) + w3.eth.max_priority_fee),
-        "type": '0x2',
+        "type": "0x2",
         "chainId": chain_id,
         "value": value,
         "nonce": w3.eth.get_transaction_count(account.address),
         "data": encoded_data,
     }
-    raw_transaction = w3.eth.account.sign_transaction(trx_params, account.key).raw_transaction
+    raw_transaction = w3.eth.account.sign_transaction(
+        trx_params, account.key
+    ).raw_transaction
     trx_hash = w3.eth.send_raw_transaction(raw_transaction)
     return trx_hash
 
@@ -105,11 +114,15 @@ def buy_token_from_v2():
     v2_out_amount = 0  # with slippage
 
     encoded_input = (
-        codec
-        .encode
-        .chain()
+        codec.encode.chain()
         .wrap_eth(FunctionRecipient.ROUTER, v2_in_amount)
-        .v2_swap_exact_in(FunctionRecipient.SENDER, v2_in_amount, v2_out_amount, v2_path, payer_is_sender=False)
+        .v2_swap_exact_in(
+            FunctionRecipient.SENDER,
+            v2_in_amount,
+            v2_out_amount,
+            v2_path,
+            payer_is_sender=False,
+        )
         .build(codec.get_default_deadline())
     )
     trx_hash = send_transaction(v2_in_amount, encoded_input)
@@ -118,7 +131,9 @@ def buy_token_from_v2():
     assert receipt["status"] == 1  # trx success
     assert w3.eth.get_balance(account.address) < init_amount - v2_in_amount
     assert token_contract.functions.balanceOf(account.address).call() > 0
-    print("Balance after buy:", token_contract.functions.balanceOf(account.address).call())
+    print(
+        "Balance after buy:", token_contract.functions.balanceOf(account.address).call()
+    )
 
     print(" => BUY TOKEN: OK")
 
@@ -132,7 +147,7 @@ def sell_token_from_v2():
     permit_data, signable_message = codec.create_permit2_signable_message(
         token_address,
         # amount_in,  # max/infinite = 2**160 - 1
-        2 ** 160 - 1,
+        2**160 - 1,
         codec.get_default_expiration(40 * 24 * 3600),  # 30 days
         0,  # Permit2 nonce
         ur_address,
@@ -142,11 +157,15 @@ def sell_token_from_v2():
     signed_message = account.sign_message(signable_message)
 
     encoded_input = (
-        codec
-        .encode
-        .chain()
+        codec.encode.chain()
         .permit2_permit(permit_data, signed_message)
-        .v2_swap_exact_in(FunctionRecipient.SENDER, v2_in_amount, v2_out_amount, v2_path, payer_is_sender=True)
+        .v2_swap_exact_in(
+            FunctionRecipient.SENDER,
+            v2_in_amount,
+            v2_out_amount,
+            v2_path,
+            payer_is_sender=True,
+        )
         .build(codec.get_default_deadline())
     )
     trx_hash = send_transaction(0, encoded_input)
@@ -156,7 +175,9 @@ def sell_token_from_v2():
 
     assert weth_contract.functions.balanceOf(account.address).call() > 0
     assert token_contract.functions.balanceOf(account.address).call() == 0
-    print("Balance after sell", token_contract.functions.balanceOf(account.address).call())
+    print(
+        "Balance after sell", token_contract.functions.balanceOf(account.address).call()
+    )
 
     print(" => SELL TOKEN: OK")
 
@@ -168,18 +189,22 @@ def approve_permit2_for_token():
             "from": account.address,
             "gas": gas_limit,
             "maxPriorityFeePerGas": w3.eth.max_priority_fee,
-            "maxFeePerGas": Wei(30 * 10 ** 9),
-            "type": '0x2',
+            "maxFeePerGas": Wei(30 * 10**9),
+            "type": "0x2",
             "chainId": chain_id,
             "value": 0,
             "nonce": w3.eth.get_transaction_count(account.address),
         }
     )
-    raw_transaction = w3.eth.account.sign_transaction(trx_params, account.key).raw_transaction
+    raw_transaction = w3.eth.account.sign_transaction(
+        trx_params, account.key
+    ).raw_transaction
     trx_hash = w3.eth.send_raw_transaction(raw_transaction)
 
     receipt = w3.eth.wait_for_transaction_receipt(trx_hash)
-    assert receipt["status"] == 1, f'receipt["status"] is actually {receipt["status"]}'  # trx success
+    assert (
+        receipt["status"] == 1
+    ), f'receipt["status"] is actually {receipt["status"]}'  # trx success
     print(" => APPROVE PERMIT2 FOR TOKEN: OK")
 
 
