@@ -195,7 +195,7 @@ class _Decoder:
         ]
         parsed_remaining_path: list[list[Union[int, ChecksumAddress]]] = [
             [
-                              int(path_str[40:][i:i+6], 16),
+             int(path_str[40:][i:i+6], 16),
              Web3.to_checksum_address(path_str[40:][i+6:i+46]),
             ]
             for i in range(0, len(path_str[40:]), 46)
