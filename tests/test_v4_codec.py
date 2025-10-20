@@ -447,6 +447,14 @@ def test_v4_swap_exact_in_2(w3):
         60,
     )
 
+    pool_key = codec.encode.v4_pool_key(
+        "0x0000000000000000000000000000000000000000",
+        "0xBf5617af623f1863c4abc900c5bebD5415a694e8",
+        3000,
+        50,
+        "0x0123456789012345678901234567890123456789",
+    )
+
     encoded_input = (
         codec.encode.chain()
         .v4_swap()
@@ -469,17 +477,23 @@ def test_v4_swap_exact_in_2(w3):
     )  # noqa
 
     decoded_input = codec.decode.function_input(encoded_input)
-    print(decoded_input)
-
-
-def test_v4_swap_exact_out_single():
-    pool_key = codec.encode.v4_pool_key(
-        "0x0000000000000000000000000000000000000000",
-        "0xBf5617af623f1863c4abc900c5bebD5415a694e8",
-        3000,
-        50,
-        "0x0123456789012345678901234567890123456789",
+    print(encoded_input)
+    expected = (
+        codec.encode.chain()
+        .v4_swap()
+        .swap_exact_in(
+            currency_in=currency_in,
+            path_keys=[path_key_0],
+            amount_in=Wei(1 * 10**6),
+            amount_out_min=Wei(0),
+        )
+        .build_v4_swap()
+        .build(deadline=1737747761)
     )
+    assert encoded_input == expected
+
+    decoded_input = codec.decode.function_input(encoded_input)
+    print(decoded_input)
     encoded_input = (
         codec.encode.chain()
         .v4_swap()
@@ -553,7 +567,7 @@ def test_v4_swap_exact_out_single():
 
 
 """
-<Function execute(bytes,bytes[],uint256)>
+<Function execute(bytes,bytes[])>
 {'commands': b'\x10',
  'inputs': [
     (

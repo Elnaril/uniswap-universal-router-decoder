@@ -1,0 +1,6 @@
+[flake8]
+max-line-length = 120
+exclude = .venv,build,dist,__pycache__,.eggs,integration_tests
+per-file-ignores =
+    tests/*: E501,E131
+    tutorials/*: E501

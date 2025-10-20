@@ -68,7 +68,7 @@ expected_v4_swap_exact_in_signature = "SWAP_EXACT_IN(ExactInputParams)"
             expected_v4_swap_exact_in_abi,
             b"h>~1",
             expected_v4_swap_exact_in_signature,
-        ),  # noqa E501
+            ),  # noqa: E501
     ),
 )
 def test_build_abi_map(

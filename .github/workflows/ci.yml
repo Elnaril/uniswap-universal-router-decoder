@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master, fix/update-typing-127 ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements_install.txt || true
+          pip install -r requirements.txt || true
+          pip install flake8 mypy pytest
+
+      - name: Run flake8 (uses repo .flake8)
+        run: flake8 --config .flake8 --max-line-length=120
+
+      - name: Run mypy (library only via mypy.ini)
+        run: mypy .
+
+      - name: Run tests
+        run: pytest -q
