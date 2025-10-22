@@ -73,8 +73,8 @@ class PathKey(TypedDict):
     hook_data: bytes
 
 
-Permit2TransferDetail = TypedDict(
-    'Permit2TransferDetail',
+AllowanceTransferDetails = TypedDict(
+    'AllowanceTransferDetails',
     {
         'from': ChecksumAddress,
         'to': ChecksumAddress,
@@ -885,12 +885,12 @@ class _ChainedFunctionBuilder:
 
     def permit2_transfer_from_batch(
             self,
-            transfer_details: List[Permit2TransferDetail]) -> _ChainedFunctionBuilder:
+            batch_details: List[AllowanceTransferDetails]) -> _ChainedFunctionBuilder:
         """
         Encode the batch transfer of multiple tokens from the caller address to recipients.
         The UR must have been permit2'ed for all tokens first.
 
-        :param transfer_details: List of dictionaries with keys: 'from', 'to', 'amount', 'token'
+        :param batch_details: List of dictionaries with keys: 'from', 'to', 'amount', 'token'
             Each dict should contain:
             - 'from': The address to transfer tokens from (usually the caller)
             - 'to': The recipient address
@@ -898,24 +898,12 @@ class _ChainedFunctionBuilder:
             - 'token': The token address
         :return: The chain link corresponding to this function call.
         """
-        # Validate input structure
-        if not transfer_details:
-            raise ValueError("transfer_details cannot be empty")
-        for i, detail in enumerate(transfer_details):
-            required_keys = {"from", "to", "amount", "token"}
-            if not all(key in detail for key in required_keys):
-                raise ValueError(f"Transfer detail {i} missing required keys: {required_keys}")
-
-            # Validate that amounts are positive (Wei is an int-like type)
-            if int(detail["amount"]) <= 0:
-                raise ValueError(f"Transfer detail {i} has non-positive amount: {detail['amount']}")
-
         # Convert dictionaries to tuples in the correct order: (from, to, amount, token)
-        transfer_details_tuples = [
+        batch_details_tuples = [
             (detail["from"], detail["to"], detail["amount"], detail["token"])
-            for detail in transfer_details
+            for detail in batch_details
         ]
-        args = (transfer_details_tuples,)
+        args = (batch_details_tuples,)
         self._add_command(RouterFunction.PERMIT2_TRANSFER_FROM_BATCH, args)
         return self
 

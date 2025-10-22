@@ -465,7 +465,7 @@ def test_permit2_transfer_from(
 
 
 @pytest.mark.parametrize(
-    'transfer_details_input, expected_result',
+    'batch_details_input, expected_result',
     (
         (
             [
@@ -488,14 +488,14 @@ def test_permit2_transfer_from(
 )
 def test_permit2_transfer_from_batch(
         codec,
-        transfer_details_input,
+        batch_details_input,
         expected_result
 ):
     result = (
         codec
         .encode
         .chain()
-        .permit2_transfer_from_batch(transfer_details_input)
+        .permit2_transfer_from_batch(batch_details_input)
         .build()
     )
     assert result == expected_result

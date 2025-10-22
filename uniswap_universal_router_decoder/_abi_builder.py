@@ -349,7 +349,7 @@ class _ABIBuilder:
     @staticmethod
     def _allowance_transfer_details_struct_array_builder() -> FunctionABIBuilder:
         builder = FunctionABIBuilder.create_struct_array("AllowanceTransferDetails")
-        return builder.add_address("from").add_address("to").add_uint256("amount").add_address("token")
+        return builder.add_address("from").add_address("to").add_uint160("amount").add_address("token")
 
     @staticmethod
     def _build_v4_take_all() -> FunctionABI:
