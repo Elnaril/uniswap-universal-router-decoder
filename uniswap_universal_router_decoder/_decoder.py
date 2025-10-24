@@ -5,14 +5,11 @@ Decoding part of the Uniswap Universal Router Codec
 * License: MIT.
 * Doc: https://github.com/Elnaril/uniswap-universal-router-decoder
 """
+from collections.abc import Sequence
 from itertools import chain
 import json
 from typing import (
     Any,
-    Dict,
-    List,
-    Sequence,
-    Tuple,
     Union,
 )
 
@@ -54,7 +51,7 @@ class _V4Decoder:
     def _decode_v4_actions(
             self,
             actions: bytes,
-            params: List[bytes]) -> List[Tuple[BaseContractFunction, Dict[str, Any]]]:
+            params: list[bytes]) -> list[tuple[BaseContractFunction, dict[str, Any]]]:
         if len(actions) != len(params):
             raise ValueError(f"Number of actions {len(actions)} is different from number of params: {len(params)}")
 
@@ -69,10 +66,10 @@ class _V4Decoder:
                 decoded_params.append(params[i].hex())
         return decoded_params
 
-    def decode_v4_swap(self, actions: bytes, params: List[bytes]) -> List[Tuple[BaseContractFunction, Dict[str, Any]]]:
+    def decode_v4_swap(self, actions: bytes, params: list[bytes]) -> list[tuple[BaseContractFunction, dict[str, Any]]]:
         return self._decode_v4_actions(actions, params)
 
-    def decode_v4_pm_call(self, encoded_input: bytes) -> Dict[str, Any]:
+    def decode_v4_pm_call(self, encoded_input: bytes) -> dict[str, Any]:
         actions, params = decode(["bytes", "bytes[]"], encoded_input)
         return {"actions": actions, "params": self._decode_v4_actions(actions, params)}
 
@@ -84,7 +81,7 @@ class _Decoder:
         self._abi_map = abi_map
         self._v4_decoder = _V4Decoder(w3, abi_map)
 
-    def function_input(self, input_data: Union[HexStr, HexBytes]) -> Tuple[BaseContractFunction, Dict[str, Any]]:
+    def function_input(self, input_data: Union[HexStr, HexBytes]) -> tuple[BaseContractFunction, dict[str, Any]]:
         """
         Decode the data sent to an UR function
 
@@ -147,7 +144,7 @@ class _Decoder:
         decoded_input["inputs"] = decoded_command_input
         return fct_name, decoded_input
 
-    def transaction(self, trx_hash: Union[HexBytes, HexStr]) -> Dict[str, Any]:
+    def transaction(self, trx_hash: Union[HexBytes, HexStr]) -> dict[str, Any]:
         """
         Get transaction details and decode the data used to call a UR function.
 
@@ -166,7 +163,7 @@ class _Decoder:
         return self._w3.eth.get_transaction(trx_hash)
 
     @staticmethod
-    def v3_path(v3_fn_name: str, path: Union[bytes, str]) -> Tuple[Union[int, ChecksumAddress], ...]:
+    def v3_path(v3_fn_name: str, path: Union[bytes, str]) -> tuple[Union[int, ChecksumAddress], ...]:
         """
         Decode a V3 router path
 
@@ -180,8 +177,8 @@ class _Decoder:
             raise ValueError(f"v3_fn_name must be in {valid_fn_names}")
         path_str = path.hex() if isinstance(path, bytes) else str(path)
         path_str = path_str[2:] if path_str.startswith("0x") else path_str
-        path_list: List[Union[int, ChecksumAddress]] = [Web3.to_checksum_address(path_str[0:40]), ]
-        parsed_remaining_path: List[List[Union[int, ChecksumAddress]]] = [
+        path_list: list[Union[int, ChecksumAddress]] = [Web3.to_checksum_address(path_str[0:40]), ]
+        parsed_remaining_path: list[list[Union[int, ChecksumAddress]]] = [
             [
                 int(path_str[40:][i:i + 6], 16),
                 Web3.to_checksum_address(path_str[40:][i + 6:i + 46]),
@@ -199,7 +196,7 @@ class _Decoder:
             self,
             contract_error: Union[str, HexStr],
             abis: Sequence[str] = (_permit2_abi, _pool_manager_abi, _position_manager_abi, _router_abi),
-    ) -> Tuple[str, Dict[str, Any]]:
+    ) -> tuple[str, dict[str, Any]]:
         """
         Decode contract custom errors.
 

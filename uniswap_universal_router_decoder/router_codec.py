@@ -8,9 +8,7 @@ Decode and encode data sent to Uniswap universal router functions.
 from datetime import datetime
 from typing import (
     Any,
-    Dict,
     Optional,
-    Tuple,
 )
 
 from eth_account.messages import (
@@ -84,7 +82,7 @@ class RouterCodec:
             spender: ChecksumAddress,
             deadline: int,
             chain_id: int = 1,
-            verifying_contract: ChecksumAddress = _permit2_address) -> Tuple[Dict[str, Any], SignableMessage]:
+            verifying_contract: ChecksumAddress = _permit2_address) -> tuple[dict[str, Any], SignableMessage]:
         """
         Create a eth_account.messages.SignableMessage that will be sent to the UR/Permit2 contracts
         to set token permissions through signature validation.
@@ -136,7 +134,7 @@ class RouterCodec:
             spender: ChecksumAddress = _ur_address,
             permit2: ChecksumAddress = _permit2_address,
             permit2_abi: str = _permit2_abi,
-            block_identifier: BlockIdentifier = "latest") -> Tuple[Wei, int, Nonce]:
+            block_identifier: BlockIdentifier = "latest") -> tuple[Wei, int, Nonce]:
         """
         Request the permit2 allowance function to know if the UR has enough valid allowance,
         and to get the current permit2 nonce for a given wallet and token.
