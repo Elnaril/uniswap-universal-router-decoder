@@ -7,15 +7,12 @@ Factory that builds the UR function ABIs used by the Uniswap Universal Router Co
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
 from io import BytesIO
 from typing import (
     Any,
     cast,
-    Dict,
-    List,
     Optional,
-    Sequence,
-    Union,
 )
 
 from eth_abi import encode
@@ -30,7 +27,7 @@ from uniswap_universal_router_decoder._enums import (
 )
 
 
-def _get_types_from_list(type_list: List[Any]) -> List[str]:
+def _get_types_from_list(type_list: list[Any]) -> list[str]:
     types = []
     for item in type_list:
         if item["type"][:5] == "tuple":
@@ -41,28 +38,28 @@ def _get_types_from_list(type_list: List[Any]) -> List[str]:
     return types
 
 
-def build_abi_type_list(abi_dict: Dict[str, Any]) -> List[str]:
+def build_abi_type_list(abi_dict: dict[str, Any]) -> list[str]:
     return _get_types_from_list(abi_dict["inputs"])
 
 
 class FunctionABI:
-    def __init__(self, inputs: List[Any], name: str, _type: str) -> None:
+    def __init__(self, inputs: list[Any], name: str, _type: str) -> None:
         self.inputs = inputs
         self.name = name
         self.type = _type
 
-    def get_abi(self) -> Dict[str, Any]:
+    def get_abi(self) -> dict[str, Any]:
         return {"inputs": self.inputs, "name": self.name, "type": self.type}
 
-    def get_struct_abi(self) -> Dict[str, Any]:
+    def get_struct_abi(self) -> dict[str, Any]:
         result = self.get_abi()
         result["components"] = result.pop("inputs")
         return result
 
-    def get_full_abi(self) -> List[Dict[str, Any]]:
+    def get_full_abi(self) -> list[dict[str, Any]]:
         return [self.get_abi()]
 
-    def get_abi_types(self) -> List[str]:
+    def get_abi_types(self) -> list[str]:
         return build_abi_type_list(self.get_abi())
 
     def get_signature(self) -> str:
@@ -75,7 +72,7 @@ class FunctionABI:
         return encode(self.get_abi_types(), args)
 
 
-ABIMap = Dict[Union[MiscFunctions, RouterFunction, V4Actions], FunctionABI]
+ABIMap = dict[MiscFunctions | RouterFunction | V4Actions, FunctionABI]
 
 
 class FunctionABIBuilder:
@@ -438,12 +435,12 @@ class _ABIBuilder:
         builder = FunctionABIBuilder(V4Actions.SWAP_EXACT_IN.name)
         return builder.add_v4_exact_input_params().build()
 
-    def decode_v4_exact_input_params(self, stream: BytesIO) -> Dict[str, Any]:
+    def decode_v4_exact_input_params(self, stream: BytesIO) -> dict[str, Any]:
         fct_abi = self.abi_map[MiscFunctions.STRICT_V4_SWAP_EXACT_IN]
         raw_data = stream.read()
         sub_contract = self.w3.eth.contract(abi=fct_abi.get_full_abi())
         fct_name, decoded_params = sub_contract.decode_function_input(fct_abi.get_selector() + raw_data[32:])
-        return cast(Dict[str, Any], decoded_params)
+        return cast(dict[str, Any], decoded_params)
 
     def encode_v4_exact_input_params(self, args: Sequence[Any]) -> bytes:
         fct_abi = self.abi_map[MiscFunctions.STRICT_V4_SWAP_EXACT_IN]
@@ -455,12 +452,12 @@ class _ABIBuilder:
         builder = FunctionABIBuilder(V4Actions.SWAP_EXACT_OUT.name)
         return builder.add_v4_exact_output_params().build()
 
-    def decode_v4_exact_output_params(self, stream: BytesIO) -> Dict[str, Any]:
+    def decode_v4_exact_output_params(self, stream: BytesIO) -> dict[str, Any]:
         fct_abi = self.abi_map[MiscFunctions.STRICT_V4_SWAP_EXACT_OUT]
         raw_data = stream.read()
         sub_contract = self.w3.eth.contract(abi=fct_abi.get_full_abi())
         fct_name, decoded_params = sub_contract.decode_function_input(fct_abi.get_selector() + raw_data[32:])
-        return cast(Dict[str, Any], decoded_params)
+        return cast(dict[str, Any], decoded_params)
 
     def encode_v4_exact_output_params(self, args: Sequence[Any]) -> bytes:
         fct_abi = self.abi_map[MiscFunctions.STRICT_V4_SWAP_EXACT_OUT]
