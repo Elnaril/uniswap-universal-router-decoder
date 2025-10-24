@@ -8,7 +8,10 @@ Decoding part of the Uniswap Universal Router Codec
 from collections.abc import Sequence
 from itertools import chain
 import json
-from typing import Any
+from typing import (
+    Any,
+    Union,
+)
 
 from eth_abi import decode
 from eth_abi.exceptions import DecodingError
@@ -78,7 +81,7 @@ class _Decoder:
         self._abi_map = abi_map
         self._v4_decoder = _V4Decoder(w3, abi_map)
 
-    def function_input(self, input_data: HexStr | HexBytes) -> tuple[BaseContractFunction, dict[str, Any]]:
+    def function_input(self, input_data: Union[HexStr, HexBytes]) -> tuple[BaseContractFunction, dict[str, Any]]:
         """
         Decode the data sent to an UR function
 
@@ -141,7 +144,7 @@ class _Decoder:
         decoded_input["inputs"] = decoded_command_input
         return fct_name, decoded_input
 
-    def transaction(self, trx_hash: HexBytes | HexStr) -> dict[str, Any]:
+    def transaction(self, trx_hash: Union[HexBytes, HexStr]) -> dict[str, Any]:
         """
         Get transaction details and decode the data used to call a UR function.
 
@@ -156,11 +159,11 @@ class _Decoder:
         result_trx["decoded_input"] = decoded_input
         return result_trx
 
-    def _get_transaction(self, trx_hash: HexBytes | HexStr) -> TxData:
+    def _get_transaction(self, trx_hash: Union[HexBytes, HexStr]) -> TxData:
         return self._w3.eth.get_transaction(trx_hash)
 
     @staticmethod
-    def v3_path(v3_fn_name: str, path: bytes | str) -> tuple[int | ChecksumAddress, ...]:
+    def v3_path(v3_fn_name: str, path: Union[bytes, str]) -> tuple[Union[int, ChecksumAddress], ...]:
         """
         Decode a V3 router path
 
@@ -174,8 +177,8 @@ class _Decoder:
             raise ValueError(f"v3_fn_name must be in {valid_fn_names}")
         path_str = path.hex() if isinstance(path, bytes) else str(path)
         path_str = path_str[2:] if path_str.startswith("0x") else path_str
-        path_list: list[int | ChecksumAddress] = [Web3.to_checksum_address(path_str[0:40]), ]
-        parsed_remaining_path: list[list[int | ChecksumAddress]] = [
+        path_list: list[Union[int, ChecksumAddress]] = [Web3.to_checksum_address(path_str[0:40]), ]
+        parsed_remaining_path: list[list[Union[int, ChecksumAddress]]] = [
             [
                 int(path_str[40:][i:i + 6], 16),
                 Web3.to_checksum_address(path_str[40:][i + 6:i + 46]),
@@ -191,7 +194,7 @@ class _Decoder:
 
     def contract_error(
             self,
-            contract_error: str | HexStr,
+            contract_error: Union[str, HexStr],
             abis: Sequence[str] = (_permit2_abi, _pool_manager_abi, _position_manager_abi, _router_abi),
     ) -> tuple[str, dict[str, Any]]:
         """

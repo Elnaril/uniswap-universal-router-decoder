@@ -72,7 +72,9 @@ class FunctionABI:
     def encode(self, args: Sequence[Any]) -> bytes:
         return encode(self.get_abi_types(), args)
 
+
 ABIMap = dict[Union[MiscFunctions, RouterFunction, V4Actions], FunctionABI]
+
 
 class FunctionABIBuilder:
     def __init__(self, fct_name: str, _type: str = "function") -> None:

@@ -15,6 +15,7 @@ from typing import (
     Optional,
     TypedDict,
     TypeVar,
+    Union,
 )
 
 from eth_account.account import SignedMessage
@@ -77,7 +78,7 @@ class _Encoder:
         self._abi_map = abi_map
 
     @staticmethod
-    def v3_path(v3_fn_name: str, path_seq: Sequence[int | ChecksumAddress]) -> bytes:
+    def v3_path(v3_fn_name: str, path_seq: Sequence[Union[int, ChecksumAddress]]) -> bytes:
         """
         Encode a V3 path
         :param v3_fn_name: 'V3_SWAP_EXACT_IN' or 'V3_SWAP_EXACT_OUT'
@@ -102,11 +103,11 @@ class _Encoder:
 
     @staticmethod
     def v4_pool_key(
-            currency_0: str | HexStr | ChecksumAddress,
-            currency_1: str | HexStr | ChecksumAddress,
+            currency_0: Union[str, HexStr, ChecksumAddress],
+            currency_1: Union[str, HexStr, ChecksumAddress],
             fee: int,
             tick_spacing: int,
-            hooks: str | HexStr | ChecksumAddress = "0x0000000000000000000000000000000000000000") -> PoolKey:
+            hooks: Union[str, HexStr, ChecksumAddress] = "0x0000000000000000000000000000000000000000") -> PoolKey:
         """
         Make sure currency_0 < currency_1 and returns the v4 pool key
 
@@ -143,7 +144,7 @@ class _Encoder:
             intermediate_currency: ChecksumAddress,
             fee: int,
             tick_spacing: int,
-            hooks: str | HexStr | ChecksumAddress = "0x0000000000000000000000000000000000000000",
+            hooks: Union[str, HexStr, ChecksumAddress] = "0x0000000000000000000000000000000000000000",
             hook_data: bytes = b"") -> PathKey:
         """
         Build a PathKey which is used by multi-hop swap encoding
@@ -673,7 +674,7 @@ class _ChainedFunctionBuilder:
             function_recipient: FunctionRecipient,
             amount_in: Wei,
             amount_out_min: Wei,
-            path: Sequence[int | ChecksumAddress],
+            path: Sequence[Union[int, ChecksumAddress]],
             custom_recipient: Optional[ChecksumAddress] = None,
             payer_is_sender: bool = True) -> _ChainedFunctionBuilder:
         """
@@ -700,7 +701,7 @@ class _ChainedFunctionBuilder:
             self,
             function_recipient: FunctionRecipient,
             amount_out_min: Wei,
-            path: Sequence[int | ChecksumAddress],
+            path: Sequence[Union[int, ChecksumAddress]],
             custom_recipient: Optional[ChecksumAddress] = None) -> _ChainedFunctionBuilder:
         """
         Encode the call to the function V3_SWAP_EXACT_IN, using the router balance as amount_in,
@@ -730,7 +731,7 @@ class _ChainedFunctionBuilder:
             function_recipient: FunctionRecipient,
             amount_out: Wei,
             amount_in_max: Wei,
-            path: Sequence[int | ChecksumAddress],
+            path: Sequence[Union[int, ChecksumAddress]],
             custom_recipient: Optional[ChecksumAddress] = None,
             payer_is_sender: bool = True) -> _ChainedFunctionBuilder:
         """
@@ -928,7 +929,7 @@ class _ChainedFunctionBuilder:
             max_fee_per_gas_limit: Wei = Wei(100 * 10 ** 9),
             gas_limit: Optional[int] = None,
             chain_id: Optional[int] = None,
-            nonce: Optional[int | Nonce] = None,
+            nonce: Optional[Union[int, Nonce]] = None,
             ur_address: ChecksumAddress = _ur_address,
             deadline: Optional[int] = None,
             block_identifier: BlockIdentifier = "latest") -> TxParams:
