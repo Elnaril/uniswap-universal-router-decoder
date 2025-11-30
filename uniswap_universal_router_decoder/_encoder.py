@@ -12,6 +12,7 @@ from collections.abc import Sequence
 from typing import (
     Any,
     cast,
+    Dict,
     Optional,
     TypedDict,
     TypeVar,
