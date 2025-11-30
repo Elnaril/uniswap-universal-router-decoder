@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import (
     Any,
     Dict,
+    List,
     Optional,
     Tuple,
 )
@@ -132,7 +133,7 @@ class RouterCodec:
 
     @staticmethod
     def create_permit2_batch_signable_message(
-            tokens_and_amounts: list[Tuple[ChecksumAddress, Wei, int, int]],
+            tokens_and_amounts: List[Tuple[ChecksumAddress, Wei, int, int]],
             spender: ChecksumAddress,
             deadline: int,
             chain_id: int = 1,
