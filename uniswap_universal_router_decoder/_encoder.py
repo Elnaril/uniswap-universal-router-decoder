@@ -73,6 +73,17 @@ class PathKey(TypedDict):
     hook_data: bytes
 
 
+class PermitDetails(TypedDict):
+    """
+    TypedDict representing the details for a single token permit in PERMIT2_PERMIT_BATCH.
+    Used with create_permit2_batch_signable_message().
+    """
+    token: ChecksumAddress
+    amount: Wei
+    expiration: int
+    nonce: int
+
+
 class _Encoder:
     def __init__(self, w3: Web3, abi_map: ABIMap) -> None:
         self._w3 = w3

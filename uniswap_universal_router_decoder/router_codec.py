@@ -29,6 +29,7 @@ from uniswap_universal_router_decoder._abi_builder import _ABIBuilder
 from uniswap_universal_router_decoder._constants import (
     _permit2_abi,
     _permit2_address,
+    _permit2_batch_types,
     _permit2_domain_data,
     _permit2_types,
     _ur_address,
@@ -178,24 +179,9 @@ class RouterCodec:
         domain_data["chainId"] = chain_id
         domain_data["verifyingContract"] = verifying_contract
 
-        # PermitBatch types for EIP-712
-        permit_batch_types = {
-            "PermitBatch": [
-                {"name": "details", "type": "PermitDetails[]"},
-                {"name": "spender", "type": "address"},
-                {"name": "sigDeadline", "type": "uint256"},
-            ],
-            "PermitDetails": [
-                {"name": "token", "type": "address"},
-                {"name": "amount", "type": "uint160"},
-                {"name": "expiration", "type": "uint48"},
-                {"name": "nonce", "type": "uint48"},
-            ],
-        }
-
         signable_message = encode_typed_data(
             domain_data=domain_data,
-            message_types=permit_batch_types,
+            message_types=_permit2_batch_types,
             message_data=permit_batch,
         )
         return permit_batch, signable_message
