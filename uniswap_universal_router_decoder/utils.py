@@ -1,9 +1,6 @@
+from collections.abc import Sequence
 from statistics import quantiles
-from typing import (
-    cast,
-    Sequence,
-    Tuple,
-)
+from typing import cast
 
 from web3 import Web3
 from web3.types import (
@@ -26,7 +23,7 @@ _speed_multiplier = {
 def compute_gas_fees(
         w3: Web3,
         trx_speed: TransactionSpeed = TransactionSpeed.FAST,
-        block_identifier: BlockIdentifier = "latest") -> Tuple[Wei, Wei]:
+        block_identifier: BlockIdentifier = "latest") -> tuple[Wei, Wei]:
     """
     Compute the priority_fee (maxPriorityFeePerGas) and max_fee_per_gas (maxFeePerGas) according to the given
     transaction 'speed'. All speeds will compute gas fees in order to try to place the transaction in the next block

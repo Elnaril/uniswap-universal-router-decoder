@@ -8,13 +8,11 @@ Encoding part of the Uniswap Universal Router Codec
 from __future__ import annotations
 
 from abc import ABC
+from collections.abc import Sequence
 from typing import (
     Any,
     cast,
-    Dict,
-    List,
     Optional,
-    Sequence,
     TypedDict,
     TypeVar,
     Union,
@@ -193,7 +191,7 @@ class _V4ChainedCommonFunctionBuilder(ABC):
         self._w3 = w3
         self._abi_map = abi_map
         self.actions: bytearray = bytearray()
-        self.arguments: List[bytes] = []
+        self.arguments: list[bytes] = []
 
     def _add_action(self, action: V4Actions, args: Sequence[Any]) -> None:
         abi = self._abi_map[action]
@@ -534,7 +532,7 @@ class _ChainedFunctionBuilder:
         self._router_contract = self._w3.eth.contract(abi=_router_abi)
         self._abi_map = abi_map
         self.commands: bytearray = bytearray()
-        self.arguments: List[bytes] = []
+        self.arguments: list[bytes] = []
 
     def _add_command(self, command: RouterFunction, args: Sequence[Any], add_selector: bool = False) -> None:
         abi = self._abi_map[command]
@@ -769,7 +767,7 @@ class _ChainedFunctionBuilder:
 
     def permit2_permit(
             self,
-            permit_single: Dict[str, Any],
+            permit_single: dict[str, Any],
             signed_permit_single: SignedMessage) -> _ChainedFunctionBuilder:
         """
         Encode the call to the function PERMIT2_PERMIT, which gives token allowances to the Permit2 contract.

@@ -2,7 +2,7 @@ import os
 import subprocess
 import time
 
-from eth_utils import keccak
+from eth_account.account import LocalAccount
 from web3 import (
     Account,
     Web3,
@@ -17,13 +17,13 @@ from uniswap_universal_router_decoder import (
 
 web3_provider = os.environ['QUICKNODE_BSC_MAINNET']
 w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:8545"))
-chain_id = 1337
-block_number = 31096415
+chain_id = 56
+block_number = 63929588
 gas_limit = 800_000
 
-account = Account.from_key(keccak(text="moo"))
-assert account.address == "0xcd7328a5D376D5530f054EAF0B9D235a4Fd36059"
-init_amount = 100 * 10**18
+account: LocalAccount = Account.from_key("0xf7e96bcf6b5223c240ec308d8374ff01a753b00743b3a0127791f37f00c56514")
+assert account.address == "0x1e46c294f20bC7C27D93a9b5f45039751D8BCc3e"
+init_amount = 10000 * 10**18
 transient_eth_balance = init_amount
 
 erc20_abi = '[{"constant":true,"inputs":[],"name":"name","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"},{"name":"_spender","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"anonymous":false,"inputs":[{"indexed":true,"name":"_from","type":"address"},{"indexed":true,"name":"_to","type":"address"},{"indexed":false,"name":"_value","type":"uint256"}],"name":"Transfer","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"_owner","type":"address"},{"indexed":true,"name":"_spender","type":"address"},{"indexed":false,"name":"_value","type":"uint256"}],"name":"Approval","type":"event"}]'  # noqa
@@ -34,25 +34,26 @@ wbnb_contract = w3.eth.contract(address=wbnb_address, abi=wbnb_abi)
 usdt_address = Web3.to_checksum_address("0x55d398326f99059fF775485246999027B3197955")
 usdt_contract = w3.eth.contract(address=usdt_address, abi=erc20_abi)
 
-ur_address = Web3.to_checksum_address("0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD")
+ur_address = Web3.to_checksum_address("0x1906c1d672b88cd1b9ac7593301ca990f94eae07")
 permit2_address = Web3.to_checksum_address("0x000000000022D473030F116dDEE9F6B43aC78BA3")
 
 codec = RouterCodec()
 
 
-def launch_ganache():
-    ganache_process = subprocess.Popen(
-        f"""ganache
-        --logging.quiet='true'
-        --fork.url='{web3_provider}'
-        --fork.blockNumber='{block_number}'
-        --miner.defaultGasPrice='15000000000'
-        --wallet.accounts='{account.key.hex()}','{init_amount}'
-        """.replace("\n", " "),
+def launch_anvil():
+    anvil_process = subprocess.Popen(
+        " ".join(
+            [
+                "anvil -vvvvv",
+                f"--fork-url {web3_provider}",
+                f"--fork-block-number {block_number}",
+                "--mnemonic-seed-unsafe 8721345628937456298",
+            ]
+        ),
         shell=True,
     )
     time.sleep(3)
-    parent_id = ganache_process.pid
+    parent_id = anvil_process.pid
     return parent_id
 
 
@@ -63,12 +64,13 @@ def kill_processes(parent_id):
     ).stdout.strip("\n")
     children_ids = pgrep_process.split("\n") if len(pgrep_process) > 0 else []
     processes.extend(children_ids)
+    print(f"Killing processes: {' '.join(processes)}")
     subprocess.run(f"kill {' '.join(processes)}", shell=True, text=True, capture_output=True)
 
 
 def check_initialization():
-    assert w3.eth.chain_id == chain_id  # 1337
-    assert w3.eth.block_number == block_number + 1
+    assert w3.eth.chain_id == chain_id  # 56
+    assert w3.eth.block_number == block_number
     assert w3.eth.get_balance(account.address) == init_amount
     assert usdt_contract.functions.balanceOf(account.address).call() == 0
     print(" => Initialization: OK")
@@ -87,7 +89,7 @@ def send_transaction(value, encoded_data):
         "nonce": w3.eth.get_transaction_count(account.address),
         "data": encoded_data,
     }
-    raw_transaction = w3.eth.account.sign_transaction(trx_params, account.key).rawTransaction
+    raw_transaction = w3.eth.account.sign_transaction(trx_params, account.key).raw_transaction
     trx_hash = w3.eth.send_raw_transaction(raw_transaction)
     return trx_hash
 
@@ -112,7 +114,7 @@ def buy_usdt():
     assert receipt["status"] == 1, f'receipt["status"] is actually {receipt["status"]}'  # trx success
 
     usdt_balance = usdt_contract.functions.balanceOf(account.address).call()
-    assert usdt_balance == 213931846540111575874, f"USDT balance was actually: {usdt_balance}"
+    assert usdt_balance == 1309572675460077202940, f"USDT balance was actually: {usdt_balance}"
 
     print(" => BUY USDT: OK")
 
@@ -131,7 +133,7 @@ def approve_permit2_for_usdt():
             "nonce": w3.eth.get_transaction_count(account.address),
         }
     )
-    raw_transaction = w3.eth.account.sign_transaction(trx_params, account.key).rawTransaction
+    raw_transaction = w3.eth.account.sign_transaction(trx_params, account.key).raw_transaction
     trx_hash = w3.eth.send_raw_transaction(raw_transaction)
 
     receipt = w3.eth.wait_for_transaction_receipt(trx_hash)
@@ -174,10 +176,10 @@ def sell_usdt_part_1():
     assert receipt["status"] == 1, f'receipt["status"] is actually {receipt["status"]}'  # trx success
 
     usdt_balance = usdt_contract.functions.balanceOf(account.address).call()
-    assert usdt_balance == 113931846540111575874, f"USDT balance was actually: {usdt_balance}"
+    assert usdt_balance == 1209572675460077202940, f"USDT balance was actually: {usdt_balance}"
 
     wbnb_balance = wbnb_contract.functions.balanceOf(account.address).call()
-    assert wbnb_balance == 466978799145556691, f"WBNB balance was actually: {wbnb_balance}"
+    assert wbnb_balance == 76395672864257517, f"WBNB balance was actually: {wbnb_balance}"
 
     print(" => SELL USDT for WBNB PART 1: OK")
 
@@ -187,7 +189,7 @@ def sell_usdt_part_2():
     amount_out_min = 0
     v3_path = [usdt_address, 500, wbnb_address]
 
-    amount, expiration, nonce = codec.fetch_permit2_allowance(account.address, usdt_address)
+    amount, expiration, nonce = codec.fetch_permit2_allowance(account.address, usdt_address, ur_address)
     assert amount == 0, "Wrong Permit2 allowance amount"  # allowance fully used in sell_usdc_part_1()
     assert expiration > 0, "Wrong Permit2 allowance expiration"
     assert nonce == 1, "Wrong Permit2 allowance nonce"
@@ -219,12 +221,12 @@ def sell_usdt_part_2():
     assert receipt["status"] == 1, f'receipt["status"] is actually {receipt["status"]}'  # trx success
 
     usdt_balance = usdt_contract.functions.balanceOf(account.address).call()
-    assert usdt_balance == 13931846540111575874, f"USDT balance was actually: {usdt_balance}"
+    assert usdt_balance == 1109572675460077202940, f"USDT balance was actually: {usdt_balance}"
 
     wbnb_balance = wbnb_contract.functions.balanceOf(account.address).call()
-    assert wbnb_balance == 933944384948957177, f"WBNB balance was actually: {wbnb_balance}"
+    assert wbnb_balance == 152772939867854785, f"WBNB balance was actually: {wbnb_balance}"
 
-    amount, expiration, nonce = codec.fetch_permit2_allowance(account.address, usdt_address)
+    amount, expiration, nonce = codec.fetch_permit2_allowance(account.address, usdt_address, ur_address)
     assert amount == 2**160 - 1, "Wrong Permit2 allowance amount"  # infinite allowance
     assert expiration > 0, "Wrong Permit2 allowance expiration"
     assert nonce == 2, "Wrong Permit2 allowance nonce"
@@ -251,12 +253,12 @@ def print_success_message():
 
 
 def main():
-    ganache_pid = launch_ganache()
+    anvil_pid = launch_anvil()
     try:
         launch_integration_tests()
         print_success_message()
     finally:
-        kill_processes(ganache_pid)
+        kill_processes(anvil_pid)
 
 
 if __name__ == "__main__":
