@@ -21,6 +21,7 @@ class RouterFunction(Enum):
     V3_SWAP_EXACT_IN = 0
     V3_SWAP_EXACT_OUT = 1
     PERMIT2_TRANSFER_FROM = 2
+    PERMIT2_PERMIT_BATCH = 3
     SWEEP = 4
     TRANSFER = 5
     PAY_PORTION = 6

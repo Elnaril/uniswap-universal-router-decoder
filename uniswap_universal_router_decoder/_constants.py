@@ -18,15 +18,28 @@ _permit2_address = Web3.to_checksum_address("0x000000000022D473030F116dDEE9F6B43
 _ur_address = Web3.to_checksum_address("0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af")
 
 _permit2_domain_data = {'name': 'Permit2', 'chainId': 1, 'verifyingContract': _permit2_address}
+
+# Shared PermitDetails type used by both _permit2_types and _permit2_batch_types
+_permit_details_type = [
+    {'name': 'token', 'type': 'address'},
+    {'name': 'amount', 'type': 'uint160'},
+    {'name': 'expiration', 'type': 'uint48'},
+    {'name': 'nonce', 'type': 'uint48'},
+]
+
 _permit2_types = {
-    'PermitDetails': [
-        {'name': 'token', 'type': 'address'},
-        {'name': 'amount', 'type': 'uint160'},
-        {'name': 'expiration', 'type': 'uint48'},
-        {'name': 'nonce', 'type': 'uint48'},
-    ],
+    'PermitDetails': _permit_details_type,
     'PermitSingle': [
         {'name': 'details', 'type': 'PermitDetails'},
+        {'name': 'spender', 'type': 'address'},
+        {'name': 'sigDeadline', 'type': 'uint256'},
+    ],
+}
+
+_permit2_batch_types = {
+    'PermitDetails': _permit_details_type,
+    'PermitBatch': [
+        {'name': 'details', 'type': 'PermitDetails[]'},
         {'name': 'spender', 'type': 'address'},
         {'name': 'sigDeadline', 'type': 'uint256'},
     ],
