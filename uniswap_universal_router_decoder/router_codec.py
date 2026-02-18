@@ -8,10 +8,8 @@ Decode and encode data sent to Uniswap universal router functions.
 from datetime import datetime
 from typing import (
     Any,
-    Dict,
-    List,
     Optional,
-    Tuple,
+    TypedDict,
 )
 
 from eth_account.messages import (
@@ -42,6 +40,17 @@ from uniswap_universal_router_decoder._encoder import _Encoder
 __author__ = "Elnaril"
 __license__ = "MIT"
 __status__ = "Development"
+
+
+class PermitDetails(TypedDict):
+    """
+    TypedDict representing the details for a single token permit in PERMIT2_PERMIT_BATCH.
+    Used with create_permit2_batch_signable_message().
+    """
+    token: ChecksumAddress
+    amount: Wei
+    expiration: int
+    nonce: int
 
 
 class RouterCodec:
@@ -86,7 +95,7 @@ class RouterCodec:
             spender: ChecksumAddress,
             deadline: int,
             chain_id: int = 1,
-            verifying_contract: ChecksumAddress = _permit2_address) -> Tuple[Dict[str, Any], SignableMessage]:
+            verifying_contract: ChecksumAddress = _permit2_address) -> tuple[dict[str, Any], SignableMessage]:
         """
         Create a eth_account.messages.SignableMessage that will be sent to the UR/Permit2 contracts
         to set token permissions through signature validation.
@@ -110,7 +119,7 @@ class RouterCodec:
             The second element must be signed with eth_account.signers.local.LocalAccount.sign_message() in your code
             and the resulting SignedMessage is the 2nd parameter of permit2_permit().
         """
-        permit_details = {
+        permit_details: PermitDetails = {
             "token": token_address,
             "amount": amount,
             "expiration": expiration,
@@ -133,11 +142,11 @@ class RouterCodec:
 
     @staticmethod
     def create_permit2_batch_signable_message(
-            tokens_and_amounts: List[Tuple[ChecksumAddress, Wei, int, int]],
+            permit_details: list[PermitDetails],
             spender: ChecksumAddress,
             deadline: int,
             chain_id: int = 1,
-            verifying_contract: ChecksumAddress = _permit2_address) -> Tuple[Dict[str, Any], SignableMessage]:
+            verifying_contract: ChecksumAddress = _permit2_address) -> tuple[dict[str, Any], SignableMessage]:
         """
         Create a eth_account.messages.SignableMessage for batch permits that will be sent to the UR/Permit2 contracts
         to set token permissions for multiple tokens through signature validation in a single transaction.
@@ -148,7 +157,7 @@ class RouterCodec:
 
         In addition to this step, the Permit2 contract has to be approved through the token contracts.
 
-        :param tokens_and_amounts: A list of tuples, each containing (token_address, amount, expiration, nonce)
+        :param permit_details: A list of PermitDetails, a dict containing (token_address, amount, expiration, nonce)
             - token_address: The address of the token for which an allowance will be given to the UR
             - amount: The allowance amount in Wei. Max = 2 ** 160 - 1
             - expiration: The Unix timestamp at which this token's allowance becomes invalid
@@ -162,15 +171,6 @@ class RouterCodec:
             The second element must be signed with eth_account.signers.local.LocalAccount.sign_message() in your code
             and the resulting SignedMessage is the 2nd parameter of permit2_permit_batch().
         """
-        permit_details = [
-            {
-                "token": token_address,
-                "amount": amount,
-                "expiration": expiration,
-                "nonce": nonce,
-            }
-            for token_address, amount, expiration, nonce in tokens_and_amounts
-        ]
         permit_batch = {
             "details": permit_details,
             "spender": spender,
@@ -194,7 +194,7 @@ class RouterCodec:
             spender: ChecksumAddress = _ur_address,
             permit2: ChecksumAddress = _permit2_address,
             permit2_abi: str = _permit2_abi,
-            block_identifier: BlockIdentifier = "latest") -> Tuple[Wei, int, Nonce]:
+            block_identifier: BlockIdentifier = "latest") -> tuple[Wei, int, Nonce]:
         """
         Request the permit2 allowance function to know if the UR has enough valid allowance,
         and to get the current permit2 nonce for a given wallet and token.

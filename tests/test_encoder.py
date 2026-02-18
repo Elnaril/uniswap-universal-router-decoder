@@ -12,6 +12,7 @@ from web3.types import (
 
 from uniswap_universal_router_decoder import (
     FunctionRecipient,
+    PermitDetails,
     TransactionSpeed,
 )
 from uniswap_universal_router_decoder._constants import _ur_address  # noqa
@@ -204,25 +205,25 @@ def test_chain_permit2_permit(codec):
 
 
 def test_chain_permit2_permit_batch(codec):
-    tokens_and_amounts = [
-        (
-            Web3.to_checksum_address("0x4Fabb145d64652a948d72533023f6E7A623C7C53"),
-            Wei(2**160 - 1),
-            1677767825,
-            0,
-        ),
-        (
-            Web3.to_checksum_address("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"),
-            Wei(2**160 - 1),
-            1677767825,
-            0,
-        ),
+    permit_details: list[PermitDetails] = [
+        {
+            "token": Web3.to_checksum_address("0x4Fabb145d64652a948d72533023f6E7A623C7C53"),
+            "amount": Wei(2**160 - 1),
+            "expiration": 1677767825,
+            "nonce": 0,
+        },
+        {
+            "token": Web3.to_checksum_address("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"),
+            "amount": Wei(2**160 - 1),
+            "expiration": 1677767825,
+            "nonce": 0,
+        },
     ]
     spender = Web3.to_checksum_address("0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B")
     deadline = 1677332121
 
     permit_batch, signable_message = codec.create_permit2_batch_signable_message(
-        tokens_and_amounts,
+        permit_details,
         spender,
         deadline,
     )

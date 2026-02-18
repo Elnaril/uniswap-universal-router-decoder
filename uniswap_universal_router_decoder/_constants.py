@@ -19,8 +19,8 @@ _ur_address = Web3.to_checksum_address("0x66a9893cC07D91D95644AEDD05D03f95e1dBA8
 
 _permit2_domain_data = {'name': 'Permit2', 'chainId': 1, 'verifyingContract': _permit2_address}
 
-# Shared PermitDetails type used by both _permit2_types and _permit2_batch_types
-_permit_details_type = [
+# Shared PermitDetails types used by both _permit2_types and _permit2_batch_types
+_permit_detail_types = [
     {'name': 'token', 'type': 'address'},
     {'name': 'amount', 'type': 'uint160'},
     {'name': 'expiration', 'type': 'uint48'},
@@ -28,7 +28,7 @@ _permit_details_type = [
 ]
 
 _permit2_types = {
-    'PermitDetails': _permit_details_type,
+    'PermitDetails': _permit_detail_types,
     'PermitSingle': [
         {'name': 'details', 'type': 'PermitDetails'},
         {'name': 'spender', 'type': 'address'},
@@ -37,7 +37,7 @@ _permit2_types = {
 }
 
 _permit2_batch_types = {
-    'PermitDetails': _permit_details_type,
+    'PermitDetails': _permit_detail_types,
     'PermitBatch': [
         {'name': 'details', 'type': 'PermitDetails[]'},
         {'name': 'spender', 'type': 'address'},

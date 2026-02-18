@@ -12,7 +12,6 @@ from collections.abc import Sequence
 from typing import (
     Any,
     cast,
-    Dict,
     Optional,
     TypedDict,
     TypeVar,
@@ -70,17 +69,6 @@ class PathKey(TypedDict):
     tick_spacing: int
     hooks: ChecksumAddress
     hook_data: bytes
-
-
-class PermitDetails(TypedDict):
-    """
-    TypedDict representing the details for a single token permit in PERMIT2_PERMIT_BATCH.
-    Used with create_permit2_batch_signable_message().
-    """
-    token: ChecksumAddress
-    amount: Wei
-    expiration: int
-    nonce: int
 
 
 class _Encoder:
@@ -790,7 +778,7 @@ class _ChainedFunctionBuilder:
 
     def permit2_permit_batch(
             self,
-            permit_batch: Dict[str, Any],
+            permit_batch: dict[str, Any],
             signed_permit_batch: SignedMessage) -> _ChainedFunctionBuilder:
         """
         Encode the call to the function PERMIT2_PERMIT_BATCH, which gives token allowances to the Permit2 contract

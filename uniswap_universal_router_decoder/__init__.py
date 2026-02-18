@@ -1,6 +1,5 @@
 from uniswap_universal_router_decoder._encoder import (
     PathKey,
-    PermitDetails,
     PoolKey,
 )
 from uniswap_universal_router_decoder._enums import (
@@ -8,7 +7,10 @@ from uniswap_universal_router_decoder._enums import (
     TransactionSpeed,
     V4Constants,
 )
-from uniswap_universal_router_decoder.router_codec import RouterCodec
+from uniswap_universal_router_decoder.router_codec import (
+    PermitDetails,
+    RouterCodec,
+)
 
 
 __all__ = ["FunctionRecipient", "PathKey", "PermitDetails", "PoolKey", "RouterCodec", "TransactionSpeed", "V4Constants"]
