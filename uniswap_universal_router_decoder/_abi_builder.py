@@ -183,6 +183,7 @@ class _ABIBuilder:
             RouterFunction.V4_INITIALIZE_POOL: self._build_v4_initialize_pool(),
             RouterFunction.V4_POSITION_MANAGER_CALL: self._build_modify_liquidities(),
             RouterFunction.PERMIT2_TRANSFER_FROM: self._build_permit2_transfer_from(),
+            RouterFunction.PERMIT2_TRANSFER_FROM_BATCH: self._build_permit2_transfer_from_batch(),
 
             V4Actions.SWAP_EXACT_IN_SINGLE: self._build_v4_swap_exact_in_single(),
             V4Actions.MINT_POSITION: self._build_v4_mint_position(),
@@ -347,6 +348,16 @@ class _ABIBuilder:
     def _build_permit2_transfer_from() -> FunctionABI:
         builder = FunctionABIBuilder(RouterFunction.PERMIT2_TRANSFER_FROM.name)
         return builder.add_address("token").add_address("recipient").add_uint256("amount").build()
+
+    @staticmethod
+    def _build_permit2_transfer_from_batch() -> FunctionABI:
+        builder = FunctionABIBuilder(RouterFunction.PERMIT2_TRANSFER_FROM_BATCH.name)
+        return builder.add_struct_array(_ABIBuilder._allowance_transfer_details_struct_array_builder()).build()
+
+    @staticmethod
+    def _allowance_transfer_details_struct_array_builder() -> FunctionABIBuilder:
+        builder = FunctionABIBuilder.create_struct_array("AllowanceTransferDetails")
+        return builder.add_address("from").add_address("to").add_uint160("amount").add_address("token")
 
     @staticmethod
     def _build_v4_take_all() -> FunctionABI:
