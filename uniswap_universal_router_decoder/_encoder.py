@@ -776,6 +776,30 @@ class _ChainedFunctionBuilder:
         self._add_command(RouterFunction.PERMIT2_PERMIT, args)
         return self
 
+    def permit2_permit_batch(
+            self,
+            permit_batch: dict[str, Any],
+            signed_permit_batch: SignedMessage) -> _ChainedFunctionBuilder:
+        """
+        Encode the call to the function PERMIT2_PERMIT_BATCH, which gives token allowances to the Permit2 contract
+        for multiple tokens in a single transaction.
+        In addition, the Permit2 must be approved using the token contracts as usual.
+
+        :param permit_batch: The 1st element returned by create_permit2_batch_signable_message()
+        :param signed_permit_batch: The 2nd element returned by create_permit2_batch_signable_message(), once signed.
+
+        :return: The chain link corresponding to this function call.
+        """
+        details_tuples = [tuple(detail.values()) for detail in permit_batch["details"]]
+        struct = (
+            details_tuples,
+            permit_batch["spender"],
+            permit_batch["sigDeadline"],
+        )
+        args = (struct, signed_permit_batch.signature)
+        self._add_command(RouterFunction.PERMIT2_PERMIT_BATCH, args)
+        return self
+
     def sweep(
             self,
             function_recipient: FunctionRecipient,
