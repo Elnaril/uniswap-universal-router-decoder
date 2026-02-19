@@ -905,7 +905,6 @@ class _ChainedFunctionBuilder:
         self._add_command(RouterFunction.PERMIT2_TRANSFER_FROM, args)
         return self
 
-
     def permit2_transfer_from_batch(
             self,
             batch_details: list[AllowanceTransferDetails]) -> _ChainedFunctionBuilder:
@@ -929,7 +928,6 @@ class _ChainedFunctionBuilder:
         args = (batch_details_tuples,)
         self._add_command(RouterFunction.PERMIT2_TRANSFER_FROM_BATCH, args)
         return self
-
 
     def v4_swap(self) -> _V4ChainedSwapFunctionBuilder:
         """
