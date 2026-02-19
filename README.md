@@ -36,54 +36,18 @@
 ---
 
 ## Release Notes
-### v2.0.0
- - Add support for V4 functions and features:
-   - `V4_INITIALIZE_POOL`
-   - `V4_POSITION_MANAGER_CALL`
-     - `MINT_POSITION`
-     - `SETTLE`
-     - `SETTLE_PAIR`
-     - `CLOSE_CURRENCY`
-     - `WRAP`
-     - `UNWRAP`
-     - `TAKE_PAIR`
-     - `CLEAR_OR_TAKE`
-     - `TAKE`
-   - `V4_SWAP`
-     - `SWAP_EXACT_IN_SINGLE`
-     - `SWAP_EXACT_IN`
-     - `SWAP_EXACT_OUT_SINGLE`
-     - `SWAP_EXACT_OUT`
-     - `SETTLE`
-     - `SETTLE_ALL`
-     - `TAKE_ALL` 
-     - `TAKE_PORTION`
-     - `TAKE`
-   - Pool Key, Path and Id encoding
- - Add support for `PERMIT2_TRANSFER_FROM`
- - Custom contract error decoding
- - Encoding refactoring
- - Remove support for Python 3.8
- - Update repository picture
- - Update default router address to Mainnet's one
- - Add integration tests for V4 functions
+See the [release note page](https://github.com/Elnaril/uniswap-universal-router-decoder/wiki/Release_Notes)
 
-### v1.2.1
- - Add support for web3 v7
- - Add support for Python 3.12 & 3.13 
-### v1.2.0
- - Add `compute_gas_fees()`: utility function to compute gas fees
- - Add `build_transaction()` method: It's now possible to build the full transaction i/o just the input data.
- - Add `fetch_permit2_allowance()`: Easy way to check the current Permit2 allowed amount, expiration and nonce. 
- - Make verifying contract (Permit2) configurable (Thanks to @speedssr and @freereaper)
- - Replace deprecated `eth_account.encode_structured_data()` with `eth_account.messages.encode_typed_data()`
+### v2.1.0
+- Add support for PERMIT2_PERMIT_BATCH
+
 
 ---
 
 ## Overview and Points of Attention
 
 The object of this library is to decode & encode transactions sent to the Uniswap universal router (UR)
-(address [`0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD`](https://etherscan.io/address/0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD) 
+(address [`0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af`](https://etherscan.io/address/0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af) 
 on Ethereum Mainnet). It is based on, and is intended to be used with [web3.py](https://github.com/ethereum/web3.py)  
 The target audience is Python developers who are familiar with the Ethereum blockchain concepts and web3.py, and how DEXes work. 
 
@@ -100,7 +64,7 @@ The target audience is Python developers who are familiar with the Ethereum bloc
 | 0x00        | V3_SWAP_EXACT_IN            |                              |     ✅     |
 | 0x01        | V3_SWAP_EXACT_OUT           |                              |     ✅     |
 | 0x02        | PERMIT2_TRANSFER_FROM       |                              |     ✅     |
-| 0x03        | PERMIT2_PERMIT_BATCH        |                              |     ❌     |
+| 0x03        | PERMIT2_PERMIT_BATCH        |                              |     ✅     |
 | 0x04        | SWEEP                       |                              |     ✅     |
 | 0x05        | TRANSFER                    |                              |     ✅     |
 | 0x06        | PAY_PORTION                 |                              |     ✅     |
@@ -633,6 +597,10 @@ Example where 1 `WETH` is transferred from the caller address to the v4 position
 ```python
 .permit2_transfer_from(FunctionRecipient.CUSTOM, weth_address, Wei(1 * 10 ** 18), v4_posm_address)
 ```
+
+### PERMIT2_PERMIT_BATCH
+Check the corresponding integration tests for an example of how to use it.
+
 
 ### How to build directly a transaction to the Uniswap Universal Router
 The SDK provides a handy method to build very easily the full transaction in addition to the input data.

@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import (
     Any,
     Optional,
+    TypedDict,
 )
 
 from eth_account.messages import (
@@ -27,6 +28,7 @@ from uniswap_universal_router_decoder._abi_builder import _ABIBuilder
 from uniswap_universal_router_decoder._constants import (
     _permit2_abi,
     _permit2_address,
+    _permit2_batch_types,
     _permit2_domain_data,
     _permit2_types,
     _ur_address,
@@ -38,6 +40,17 @@ from uniswap_universal_router_decoder._encoder import _Encoder
 __author__ = "Elnaril"
 __license__ = "MIT"
 __status__ = "Development"
+
+
+class PermitDetails(TypedDict):
+    """
+    TypedDict representing the details for a single token permit in PERMIT2_PERMIT_BATCH.
+    Used with create_permit2_batch_signable_message().
+    """
+    token: ChecksumAddress
+    amount: Wei
+    expiration: int
+    nonce: int
 
 
 class RouterCodec:
@@ -106,7 +119,7 @@ class RouterCodec:
             The second element must be signed with eth_account.signers.local.LocalAccount.sign_message() in your code
             and the resulting SignedMessage is the 2nd parameter of permit2_permit().
         """
-        permit_details = {
+        permit_details: PermitDetails = {
             "token": token_address,
             "amount": amount,
             "expiration": expiration,
@@ -126,6 +139,53 @@ class RouterCodec:
             message_data=permit_single,
         )
         return permit_single, signable_message
+
+    @staticmethod
+    def create_permit2_batch_signable_message(
+            permit_details: list[PermitDetails],
+            spender: ChecksumAddress,
+            deadline: int,
+            chain_id: int = 1,
+            verifying_contract: ChecksumAddress = _permit2_address) -> tuple[dict[str, Any], SignableMessage]:
+        """
+        Create a eth_account.messages.SignableMessage for batch permits that will be sent to the UR/Permit2 contracts
+        to set token permissions for multiple tokens through signature validation in a single transaction.
+
+        See https://docs.uniswap.org/contracts/permit2/reference/allowance-transfer#batched-permit
+
+        See https://eips.ethereum.org/EIPS/eip-712 for EIP712 structured data signing.
+
+        In addition to this step, the Permit2 contract has to be approved through the token contracts.
+
+        :param permit_details: A list of PermitDetails, a dict containing (token_address, amount, expiration, nonce)
+            - token_address: The address of the token for which an allowance will be given to the UR
+            - amount: The allowance amount in Wei. Max = 2 ** 160 - 1
+            - expiration: The Unix timestamp at which this token's allowance becomes invalid
+            - nonce: An incrementing value indexed per owner, token, and spender for each signature
+        :param spender: The spender (ie: the UR) address
+        :param deadline: The deadline, as a Unix timestamp, on the permit signature
+        :param chain_id: What it says on the box. Default to 1.
+        :param verifying_contract: the permit2 contract address. Default to uniswap permit2 address.
+        :return: A tuple: (PermitBatch, SignableMessage).
+            The first element is the first parameter of permit2_permit_batch().
+            The second element must be signed with eth_account.signers.local.LocalAccount.sign_message() in your code
+            and the resulting SignedMessage is the 2nd parameter of permit2_permit_batch().
+        """
+        permit_batch = {
+            "details": permit_details,
+            "spender": spender,
+            "sigDeadline": deadline,
+        }
+        domain_data = dict(_permit2_domain_data)
+        domain_data["chainId"] = chain_id
+        domain_data["verifyingContract"] = verifying_contract
+
+        signable_message = encode_typed_data(
+            domain_data=domain_data,
+            message_types=_permit2_batch_types,
+            message_data=permit_batch,
+        )
+        return permit_batch, signable_message
 
     def fetch_permit2_allowance(
             self,
