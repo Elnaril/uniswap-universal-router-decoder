@@ -1,4 +1,5 @@
 from uniswap_universal_router_decoder._encoder import (
+    AllowanceTransferDetails,
     PathKey,
     PoolKey,
 )
@@ -13,4 +14,13 @@ from uniswap_universal_router_decoder.router_codec import (
 )
 
 
-__all__ = ["FunctionRecipient", "PathKey", "PermitDetails", "PoolKey", "RouterCodec", "TransactionSpeed", "V4Constants"]
+__all__ = [
+    "AllowanceTransferDetails",
+    "FunctionRecipient",
+    "PathKey",
+    "PermitDetails",
+    "PoolKey",
+    "RouterCodec",
+    "TransactionSpeed",
+    "V4Constants",
+]

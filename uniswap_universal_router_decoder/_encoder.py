@@ -71,6 +71,17 @@ class PathKey(TypedDict):
     hook_data: bytes
 
 
+AllowanceTransferDetails = TypedDict(
+    'AllowanceTransferDetails',
+    {
+        'from': ChecksumAddress,
+        'to': ChecksumAddress,
+        'amount': Wei,
+        'token': ChecksumAddress,
+    },
+)
+
+
 class _Encoder:
     def __init__(self, w3: Web3, abi_map: ABIMap) -> None:
         self._w3 = w3
@@ -892,6 +903,30 @@ class _ChainedFunctionBuilder:
         recipient = self._get_recipient(function_recipient, custom_recipient)
         args = (token_address, recipient, amount)
         self._add_command(RouterFunction.PERMIT2_TRANSFER_FROM, args)
+        return self
+
+    def permit2_transfer_from_batch(
+            self,
+            batch_details: list[AllowanceTransferDetails]) -> _ChainedFunctionBuilder:
+        """
+        Encode the batch transfer of multiple tokens from the caller address to recipients.
+        The UR must have been permit2'ed for all tokens first.
+
+        :param batch_details: List of dictionaries with keys: 'from', 'to', 'amount', 'token'
+            Each dict should contain:
+            - 'from': The address to transfer tokens from (usually the caller)
+            - 'to': The recipient address
+            - 'amount': The amount to transfer (in Wei)
+            - 'token': The token address
+        :return: The chain link corresponding to this function call.
+        """
+        # Convert dictionaries to tuples in the correct order: (from, to, amount, token)
+        batch_details_tuples = [
+            (detail["from"], detail["to"], detail["amount"], detail["token"])
+            for detail in batch_details
+        ]
+        args = (batch_details_tuples,)
+        self._add_command(RouterFunction.PERMIT2_TRANSFER_FROM_BATCH, args)
         return self
 
     def v4_swap(self) -> _V4ChainedSwapFunctionBuilder:
