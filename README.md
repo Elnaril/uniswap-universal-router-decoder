@@ -40,7 +40,10 @@ See the [release note page](https://github.com/Elnaril/uniswap-universal-router-
 
 ### v2.1.0
 - Add support for PERMIT2_PERMIT_BATCH
-
+- Add support for PERMIT2_TRANSFER_FROM_BATCH
+- Refactor all integration tests to use Anvil i/o Ganache
+- Replace typing features deprecated since Python 3.9
+- Get test coverage back to 100%
 
 ---
 
@@ -74,8 +77,9 @@ The target audience is Python developers who are familiar with the Ethereum bloc
 | 0x0a        | PERMIT2_PERMIT              |                              |     ✅     |
 | 0x0b        | WRAP_ETH                    |                              |     ✅     |
 | 0x0c        | UNWRAP_WETH                 |                              |     ✅     |
-| 0x0d        | PERMIT2_TRANSFER_FROM_BATCH |                              |     ❌     |
-| 0x0e - 0x0f | placeholders                |                              |    N/A    |
+| 0x0d        | PERMIT2_TRANSFER_FROM_BATCH |                              |     ✅     |
+| 0x0e        | BALANCE_CHECK_ERC20         |                              |     ❌     |
+| 0x0f        | placeholder                 |                              |    N/A    |
 | 0x10        | V4_SWAP                     |                              |     ✅     |
 |             |                             | 0x06 - SWAP_EXACT_IN_SINGLE  |     ✅     |
 |             |                             | 0x07 - SWAP_EXACT_IN         |     ✅     |
@@ -86,7 +90,8 @@ The target audience is Python developers who are familiar with the Ethereum bloc
 |             |                             | 0x0e - TAKE                  |     ✅     |
 |             |                             | 0x0f - TAKE_ALL              |     ✅     |
 |             |                             | 0x10 - TAKE_PORTION          |     ✅     |
-| 0x11 - 0x12 |                             |                              |     ❌     |
+| 0x11        | V3_POSITION_MANAGER_PERMIT  |                              |     ❌     |
+| 0x12        | V3_POSITION_MANAGER_CALL    |                              |     ❌     |
 | 0x13        | V4_INITIALIZE_POOL          |                              |     ✅     |
 | 0x14        | V4_POSITION_MANAGER_CALL    |                              |     ✅     |
 |             |                             | 0x02 - MINT_POSITION         |     ✅     |
@@ -99,8 +104,9 @@ The target audience is Python developers who are familiar with the Ethereum bloc
 |             |                             | 0x14 - SWEEP                 |     ✅     |
 |             |                             | 0x15 - WRAP                  |     ✅     |
 |             |                             | 0x16 - UNWRAP                |     ✅     |
-| 0x15 - 0x1d |                             |                              |     ❌     |
-| 0x1e - 0x3f | placeholders                |                              |    N/A    |
+| 0x15 - 0x20 | placeholders                |                              |    N/A    |
+| 0x21        | EXECUTE_SUB_PLAN            |                              |     ❌     |
+| 0x22 - 0x3f | placeholders                |                              |    N/A    |
 
 ---
 
@@ -598,8 +604,8 @@ Example where 1 `WETH` is transferred from the caller address to the v4 position
 .permit2_transfer_from(FunctionRecipient.CUSTOM, weth_address, Wei(1 * 10 ** 18), v4_posm_address)
 ```
 
-### PERMIT2_PERMIT_BATCH
-Check the corresponding integration tests for an example of how to use it.
+### PERMIT2_PERMIT_BATCH & PERMIT2_TRANSFER_FROM_BATCH
+Check the corresponding integration tests for an example of how to use these functions.
 
 
 ### How to build directly a transaction to the Uniswap Universal Router
