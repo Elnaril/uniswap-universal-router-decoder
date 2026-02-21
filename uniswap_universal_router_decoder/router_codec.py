@@ -24,7 +24,7 @@ from web3.types import (
     Wei,
 )
 
-from uniswap_universal_router_decoder._abi_builder import _ABIBuilder
+from uniswap_universal_router_decoder._abi_builder import ABIBuilder
 from uniswap_universal_router_decoder._constants import (
     _permit2_abi,
     _permit2_address,
@@ -61,7 +61,7 @@ class RouterCodec:
             self._w3 = Web3(Web3.HTTPProvider(rpc_endpoint))
         else:
             self._w3 = Web3()
-        self._abi_map = _ABIBuilder(self._w3).abi_map
+        self._abi_map = ABIBuilder(self._w3).abi_map
         self.decode = _Decoder(self._w3, self._abi_map)
         self.encode = _Encoder(self._w3, self._abi_map)
 
