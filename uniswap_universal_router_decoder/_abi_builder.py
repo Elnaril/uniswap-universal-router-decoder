@@ -167,7 +167,7 @@ class ABIRegister:
 
         @wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
-            return func(*args, **kwargs)
+            return func(*args, **kwargs)  # for some reason, coverage reports this line as missed  # pragma: no cover
         return wrapper
 
 
