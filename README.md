@@ -45,6 +45,7 @@ See the [release note page](https://github.com/Elnaril/uniswap-universal-router-
 - Replace typing features deprecated since Python 3.9
 - Get test coverage back to 100%
 - Refactor ABI builder
+- Add support for Python 3.14
 
 ---
 
