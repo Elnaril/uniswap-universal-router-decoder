@@ -131,7 +131,7 @@ pip install uniswap-universal-router-decoder
 
 The library exposes a class, `RouterCodec` with several public methods that can be used to decode or encode UR data.
 
-### How to decode an Uniswap Universal Router transaction input
+### How to decode a Uniswap Universal Router transaction input
 To decode a transaction input, use the `decode.function_input()` method as follows:
 
 ```python
@@ -181,7 +181,7 @@ Example of decoded input returned by `decode.function_input()`:
 ```
 > **Tip**: You can format the decoded input like above with this [Gedit plugin](https://github.com/Elnaril/gedit-plugin-collection?tab=readme-ov-file#prettifier) ;) 
 
-### How to decode an Uniswap Universal Router transaction
+### How to decode a Uniswap Universal Router transaction
 It's also possible to decode the whole transaction, given its hash 
 and providing the codec has been built with either a valid `Web3` instance or the link to a rpc endpoint:
 
@@ -207,7 +207,7 @@ trx_hash = "0x52e63b7 ... 11b979dd9"
 decoded_transaction = codec.decode.transaction(trx_hash)
 ```
 
-### How to decode an Uniswap V3 swap path
+### How to decode a Uniswap V3 swap path
 The `RouterCodec` class exposes also the method `decode.v3_path()` which can be used to decode a given Uniswap V3 path.
 
 ```python
@@ -419,7 +419,7 @@ transaction["data"] = encoded_data
 ```
 
 ### Uniswap V4 Functions
-#### How to build an Uniswap V4 pool key
+#### How to build a Uniswap V4 pool key
 PoolKey is used to identify a pool. 
 ```python
 from uniswap_universal_router_decoder import RouterCodec
@@ -434,7 +434,7 @@ pool_key = codec.encode.v4_pool_key(
 )
 ```
 
-#### How to build an Uniswap V4 path key
+#### How to build a Uniswap V4 path key
 PathKey is used to identify pools in a multi-hop swaps.
 ```python
 from uniswap_universal_router_decoder import RouterCodec
@@ -449,7 +449,7 @@ path_key = codec.encode.v4_path_key(
     )
 ```
 
-#### How to encode an Uniswap V4 pool id
+#### How to encode a Uniswap V4 pool id
 Pool ids are used by V4 contracts to identify pools. For ex, you'll need it to request the `StateView` contract.
 ```python
 from uniswap_universal_router_decoder import RouterCodec
@@ -458,7 +458,7 @@ codec = RouterCodec()
 pool_id = codec.encode.v4_pool_id(pool_key=pool_key)
 ```
 
-#### How to initialize an Uniswap V4 pool with the Universal Router function V4_INITIALIZE_POOL
+#### How to initialize a Uniswap V4 pool with the Universal Router function V4_INITIALIZE_POOL
 ```python
 trx_params = (
         codec
@@ -469,7 +469,7 @@ trx_params = (
     )
 ```
 
-#### How to mint an Uniswap V4 position with the Universal Router function V4_POSITION_MANAGER_CALL
+#### How to mint a Uniswap V4 position with the Universal Router function V4_POSITION_MANAGER_CALL
 Example where a position on a ETH/TOKEN pool is minted between tick_0 and tick_1
 
 ```python
@@ -509,7 +509,7 @@ trx_params = (
 )
 ```
 
-#### How to perform an Uniswap V4 swap with the Universal Router function V4_SWAP
+#### How to perform a Uniswap V4 swap with the Universal Router function V4_SWAP
 ###### Example using the V4 SWAP_EXACT_IN_SINGLE function to swap ETH for a token
 ```python
 pool_key = codec.encode.v4_pool_key(
@@ -594,7 +594,7 @@ Example where the sender gets back all remaining USDC:
 ```
 
 #### TRANSFER
-Example where an USDC amount is sent to a recipient:
+Example where a USDC amount is sent to a recipient:
 ```python
 .transfer(FunctionRecipient.CUSTOM, usdc_address, usdc_amount, recipient_address)
 ```
