@@ -15,7 +15,7 @@ from uniswap_universal_router_decoder import (
 )
 
 
-web3_provider = os.environ['QUICKNODE_BSC_MAINNET']
+web3_provider = os.environ['WEB3_HTTP_PROVIDER_URL_BSC_MAINNET']
 w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:8545"))
 chain_id = 56
 block_number = 63929588
