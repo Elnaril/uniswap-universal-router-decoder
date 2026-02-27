@@ -12,7 +12,7 @@
                margin-left: auto;
                margin-right: auto;
                width: 75%;"
-        src="./python_uniswap_universal_router_sdk_small.jpg" 
+        src="https://raw.githubusercontent.com/Elnaril/uniswap-universal-router-decoder/master/python_uniswap_universal_router_sdk_small.jpg" 
         alt="Python Uniswap Universal Router SDK">
 </div>
 
