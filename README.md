@@ -6,15 +6,10 @@
 
 ---
 
-<div>
-    <img 
-        style="display: block; 
-               margin-left: auto;
-               margin-right: auto;
-               width: 75%;"
-        src="https://raw.githubusercontent.com/Elnaril/uniswap-universal-router-decoder/master/python_uniswap_universal_router_sdk_small.jpg" 
-        alt="Python Uniswap Universal Router SDK">
-</div>
+<p align="center">
+  <img width="75%" src="https://raw.githubusercontent.com/Elnaril/uniswap-universal-router-decoder/master/python_uniswap_universal_router_sdk_small.jpg">
+</p>
+
 
 ---
 
