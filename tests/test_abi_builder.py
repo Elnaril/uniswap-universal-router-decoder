@@ -2,7 +2,13 @@ import json
 
 import pytest
 
-from uniswap_universal_router_decoder._abi_builder import build_abi_type_list  # noqa
+from uniswap_universal_router_decoder._abi_builder import (
+    ABIFunction,
+    ABIFunctionBuilder,
+    ABIParam,
+    ABIStruct,
+    build_abi_type_list,
+)
 from uniswap_universal_router_decoder._enums import (  # noqa
     MiscFunctions,
     RouterFunction,
@@ -36,9 +42,9 @@ expected_v4_swap_exact_in_signature = "SWAP_EXACT_IN(ExactInputParams)"
     )
 )
 def test_build_abi_map(command_id, expected_fct_abi, expected_selector, expected_signature, codec):
-    assert codec._abi_map[command_id].get_abi() == expected_fct_abi
-    assert codec._abi_map[command_id].get_selector() == expected_selector
-    assert codec._abi_map[command_id].get_signature() == expected_signature
+    assert codec._abi_map[command_id].full_abi[0] == expected_fct_abi
+    assert codec._abi_map[command_id].selector == expected_selector
+    assert codec._abi_map[command_id].signature == expected_signature
 
 
 abi_dict_1 = \
@@ -116,3 +122,27 @@ abi_dict_2 = \
 )
 def test_get_abi_types(abi_dict, expected_abi_types):
     assert build_abi_type_list(abi_dict) == expected_abi_types
+
+
+def test_builder_repr():
+    abi_param = ABIParam("param_name", "param_type")
+
+    abi_struct = ABIStruct("struct_name", "tuple")
+    abi_struct.params.append(abi_param)
+    assert repr(abi_struct) == (
+        "ABIStruct(name='struct_name', type='tuple', params=[ABIParam(name='param_name', type='param_type')])"
+    )
+
+    abi_function = ABIFunction("function_name")
+    abi_function.params.append(abi_struct)
+    assert repr(abi_function) == (
+        "ABIFunction(name='function_name', params=[ABIStruct(name='struct_name', type='tuple', "
+        "params=[ABIParam(name='param_name', type='param_type')])])"
+    )
+
+    abi_builder = ABIFunctionBuilder("function_name")
+    abi_builder.abi = abi_function
+    assert repr(abi_builder) == (
+        "ABIFunctionBuilder(abi=ABIFunction(name='function_name', params=[ABIStruct(name='struct_name', type='tuple',"
+        " params=[ABIParam(name='param_name', type='param_type')])]))"
+    )

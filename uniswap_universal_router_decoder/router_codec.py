@@ -1,7 +1,7 @@
 """
 Decode and encode data sent to Uniswap universal router functions.
 
-* Author: Elnaril (https://www.fiverr.com/elnaril, https://github.com/Elnaril).
+* Author: Elnaril (elnaril_dev@caramail.com, https://github.com/Elnaril).
 * License: MIT.
 * Doc: https://github.com/Elnaril/uniswap-universal-router-decoder
 """
@@ -24,22 +24,23 @@ from web3.types import (
     Wei,
 )
 
-from uniswap_universal_router_decoder._abi_builder import ABIBuilder
+from uniswap_universal_router_decoder._abi_builder import ABIMapWrapper
 from uniswap_universal_router_decoder._constants import (
-    _permit2_abi,
-    _permit2_address,
-    _permit2_batch_types,
-    _permit2_domain_data,
-    _permit2_types,
-    _ur_address,
+    permit2_abi,
+    permit2_address,
+    permit2_batch_types,
+    permit2_domain_data,
+    permit2_types,
+    ur_address,
 )
-from uniswap_universal_router_decoder._decoder import _Decoder
-from uniswap_universal_router_decoder._encoder import _Encoder
+from uniswap_universal_router_decoder._decoder import Decoder
+from uniswap_universal_router_decoder._encoder import Encoder
 
 
 __author__ = "Elnaril"
+__email__ = "elnaril_dev@caramail.com"
 __license__ = "MIT"
-__status__ = "Development"
+__status__ = "Production"
 
 
 class PermitDetails(TypedDict):
@@ -61,9 +62,9 @@ class RouterCodec:
             self._w3 = Web3(Web3.HTTPProvider(rpc_endpoint))
         else:
             self._w3 = Web3()
-        self._abi_map = ABIBuilder(self._w3).abi_map
-        self.decode = _Decoder(self._w3, self._abi_map)
-        self.encode = _Encoder(self._w3, self._abi_map)
+        self._abi_map = ABIMapWrapper(self._w3).abi_map
+        self.decode = Decoder(self._w3, self._abi_map)
+        self.encode = Encoder(self._w3, self._abi_map)
 
     @staticmethod
     def get_default_deadline(valid_duration: int = 180) -> int:
@@ -95,7 +96,7 @@ class RouterCodec:
             spender: ChecksumAddress,
             deadline: int,
             chain_id: int = 1,
-            verifying_contract: ChecksumAddress = _permit2_address) -> tuple[dict[str, Any], SignableMessage]:
+            verifying_contract: ChecksumAddress = permit2_address) -> tuple[dict[str, Any], SignableMessage]:
         """
         Create a eth_account.messages.SignableMessage that will be sent to the UR/Permit2 contracts
         to set token permissions through signature validation.
@@ -130,12 +131,12 @@ class RouterCodec:
             "spender": spender,
             "sigDeadline": deadline,
         }
-        domain_data = dict(_permit2_domain_data)
+        domain_data = dict(permit2_domain_data)
         domain_data["chainId"] = chain_id
         domain_data["verifyingContract"] = verifying_contract
         signable_message = encode_typed_data(
             domain_data=domain_data,
-            message_types=_permit2_types,
+            message_types=permit2_types,
             message_data=permit_single,
         )
         return permit_single, signable_message
@@ -146,7 +147,7 @@ class RouterCodec:
             spender: ChecksumAddress,
             deadline: int,
             chain_id: int = 1,
-            verifying_contract: ChecksumAddress = _permit2_address) -> tuple[dict[str, Any], SignableMessage]:
+            verifying_contract: ChecksumAddress = permit2_address) -> tuple[dict[str, Any], SignableMessage]:
         """
         Create a eth_account.messages.SignableMessage for batch permits that will be sent to the UR/Permit2 contracts
         to set token permissions for multiple tokens through signature validation in a single transaction.
@@ -176,13 +177,13 @@ class RouterCodec:
             "spender": spender,
             "sigDeadline": deadline,
         }
-        domain_data = dict(_permit2_domain_data)
+        domain_data = dict(permit2_domain_data)
         domain_data["chainId"] = chain_id
         domain_data["verifyingContract"] = verifying_contract
 
         signable_message = encode_typed_data(
             domain_data=domain_data,
-            message_types=_permit2_batch_types,
+            message_types=permit2_batch_types,
             message_data=permit_batch,
         )
         return permit_batch, signable_message
@@ -191,9 +192,9 @@ class RouterCodec:
             self,
             wallet: ChecksumAddress,
             token: ChecksumAddress,
-            spender: ChecksumAddress = _ur_address,
-            permit2: ChecksumAddress = _permit2_address,
-            permit2_abi: str = _permit2_abi,
+            spender: ChecksumAddress = ur_address,
+            permit2: ChecksumAddress = permit2_address,
+            permit2_abi: str = permit2_abi,
             block_identifier: BlockIdentifier = "latest") -> tuple[Wei, int, Nonce]:
         """
         Request the permit2 allowance function to know if the UR has enough valid allowance,

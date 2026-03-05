@@ -1,3 +1,10 @@
+"""
+Collection of utility functions used by the Uniswap Universal Router Codec
+
+* Author: Elnaril (elnaril_dev@caramail.com, https://github.com/Elnaril).
+* License: MIT.
+* Doc: https://github.com/Elnaril/uniswap-universal-router-decoder
+"""
 from collections.abc import Sequence
 from statistics import quantiles
 from typing import cast
@@ -38,7 +45,7 @@ def compute_gas_fees(
     :return: the tuple (priority_fee, max_fee_per_gas)
     """
     block = w3.eth.get_block(block_identifier, True)
-    transactions = cast(Sequence[TxData], block["transactions"])
+    transactions = cast(Sequence[TxData], block.get("transactions", []))
     tips = [
         int(trx.get("maxPriorityFeePerGas", 0))
         for trx
@@ -51,7 +58,12 @@ def compute_gas_fees(
         quintiles = quantiles(tips, n=5, method="inclusive")
         priority_fee = int(quintiles[trx_speed.value] * _speed_multiplier[trx_speed])
 
-    base_fee = block["baseFeePerGas"]
+    base_fee = block.get("baseFeePerGas")
+    if not base_fee:
+        raise ValueError(
+            "Cannot compute gas fees because the retrieved block at block_identifier "
+            f"= {block_identifier!r} does not contain 'baseFeePerGas'"
+        )
     max_fee_per_gas = int(base_fee * 1.5 + priority_fee)
 
     return Wei(priority_fee), Wei(max_fee_per_gas)

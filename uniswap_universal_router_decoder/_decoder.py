@@ -1,7 +1,7 @@
 """
 Decoding part of the Uniswap Universal Router Codec
 
-* Author: Elnaril (https://www.fiverr.com/elnaril, https://github.com/Elnaril).
+* Author: Elnaril (elnaril_dev@caramail.com, https://github.com/Elnaril).
 * License: MIT.
 * Doc: https://github.com/Elnaril/uniswap-universal-router-decoder
 """
@@ -26,47 +26,51 @@ from web3.types import (
 )
 
 from uniswap_universal_router_decoder._abi_builder import (
+    ABIFunctionDict,
     ABIMap,
     build_abi_type_list,
 )
 from uniswap_universal_router_decoder._constants import (
-    _permit2_abi,
-    _pool_manager_abi,
-    _position_manager_abi,
-    _router_abi,
+    permit2_abi,
+    pool_manager_abi,
+    position_manager_abi,
+    router_abi,
 )
 from uniswap_universal_router_decoder._enums import (
-    _RouterConstant,
+    RouterConstant,
     RouterFunction,
     V4Actions,
 )
+
+
+DecodedInput = tuple[BaseContractFunction, dict[str, Any]]
 
 
 class _V4Decoder:
     def __init__(self, w3: Web3, abi_map: ABIMap) -> None:
         self._w3 = w3
         self._abi_map = abi_map
-        self._pm_contract = w3.eth.contract(abi=_position_manager_abi)
+        self._pm_contract = w3.eth.contract(abi=position_manager_abi)
 
     def _decode_v4_actions(
             self,
             actions: bytes,
-            params: list[bytes]) -> list[tuple[BaseContractFunction, dict[str, Any]]]:
+            params: list[bytes]) -> list[Union[str, DecodedInput]]:
         if len(actions) != len(params):
             raise ValueError(f"Number of actions {len(actions)} is different from number of params: {len(params)}")
 
-        decoded_params = []
+        decoded_params: list[Union[str, DecodedInput]] = []
         for i, action in enumerate(actions):
             try:
                 abi_mapping = self._abi_map[V4Actions(action)]
-                data = abi_mapping.get_selector() + params[i]
-                sub_contract = self._w3.eth.contract(abi=abi_mapping.get_full_abi())
+                data = abi_mapping.selector + params[i]
+                sub_contract = self._w3.eth.contract(abi=abi_mapping.full_abi)
                 decoded_params.append(sub_contract.decode_function_input(data))
             except (ValueError, KeyError, DecodingError):
                 decoded_params.append(params[i].hex())
         return decoded_params
 
-    def decode_v4_swap(self, actions: bytes, params: list[bytes]) -> list[tuple[BaseContractFunction, dict[str, Any]]]:
+    def decode_v4_swap(self, actions: bytes, params: list[bytes]) -> list[Union[str, DecodedInput]]:
         return self._decode_v4_actions(actions, params)
 
     def decode_v4_pm_call(self, encoded_input: bytes) -> dict[str, Any]:
@@ -74,14 +78,14 @@ class _V4Decoder:
         return {"actions": actions, "params": self._decode_v4_actions(actions, params)}
 
 
-class _Decoder:
+class Decoder:
     def __init__(self, w3: Web3, abi_map: ABIMap) -> None:
         self._w3 = w3
-        self._router_contract = self._w3.eth.contract(abi=_router_abi)
+        self._router_contract = self._w3.eth.contract(abi=router_abi)
         self._abi_map = abi_map
         self._v4_decoder = _V4Decoder(w3, abi_map)
 
-    def function_input(self, input_data: Union[HexStr, HexBytes]) -> tuple[BaseContractFunction, dict[str, Any]]:
+    def function_input(self, input_data: Union[HexStr, HexBytes]) -> DecodedInput:
         """
         Decode the data sent to an UR function
 
@@ -92,18 +96,18 @@ class _Decoder:
         # returns (execute as basecontractfunction, {commands as bytes, inputs as seq of bytes, deadline as int})
         command = decoded_input["commands"]
         command_input = decoded_input["inputs"]
-        decoded_command_input = []
+        decoded_command_input: list[tuple[BaseContractFunction, dict[str, Any], dict[str, bool]]] = []
         for i, b in enumerate(command):
             # iterating over bytes produces integers
-            command_function = b & _RouterConstant.COMMAND_TYPE_MASK.value
+            command_function = b & RouterConstant.COMMAND_TYPE_MASK.value
             try:
                 abi_mapping = self._abi_map[RouterFunction(command_function)]
                 if b == RouterFunction.V4_POSITION_MANAGER_CALL.value:
                     data = command_input[i]
                 else:
-                    data = abi_mapping.get_selector() + command_input[i]
-                sub_contract = self._w3.eth.contract(abi=abi_mapping.get_full_abi())
-                revert_on_fail = not bool(b & _RouterConstant.FLAG_ALLOW_REVERT.value)
+                    data = abi_mapping.selector + command_input[i]
+                sub_contract = self._w3.eth.contract(abi=abi_mapping.full_abi)
+                revert_on_fail = not bool(b & RouterConstant.FLAG_ALLOW_REVERT.value)
                 decoded_fct_name, decoded_fct_params = sub_contract.decode_function_input(data)
                 if b == RouterFunction.V4_SWAP.value:
                     decoded_command_input.append(
@@ -154,7 +158,7 @@ class _Decoder:
         :return: the transaction as a dict with the additional 'decoded_input' field
         """
         trx = self._get_transaction(trx_hash)
-        fct_name, decoded_input = self.function_input(trx["input"])
+        _, decoded_input = self.function_input(trx.get("input", HexStr("0x")))
         result_trx = dict(trx)
         result_trx["decoded_input"] = decoded_input
         return result_trx
@@ -195,7 +199,7 @@ class _Decoder:
     def contract_error(
             self,
             contract_error: Union[str, HexStr],
-            abis: Sequence[str] = (_permit2_abi, _pool_manager_abi, _position_manager_abi, _router_abi),
+            abis: Sequence[str] = (permit2_abi, pool_manager_abi, position_manager_abi, router_abi),
     ) -> tuple[str, dict[str, Any]]:
         """
         Decode contract custom errors.
@@ -207,7 +211,7 @@ class _Decoder:
         for abi in abis:
             try:
                 json_abi = json.loads(abi)
-                error_abi = []
+                error_abi: list[ABIFunctionDict] = []
                 for item in json_abi:
                     if item["type"].lower() == "error":
                         item["type"] = "function"
