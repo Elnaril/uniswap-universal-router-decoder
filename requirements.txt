@@ -1,9 +1,9 @@
 -r requirements_install.txt
 
+basedpyright
 coverage
 flake8
 isort
-mypy
 pytest
 pytest-mock
 tox

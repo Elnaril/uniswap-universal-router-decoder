@@ -1,7 +1,7 @@
 """
 Encoding part of the Uniswap Universal Router Codec
 
-* Author: Elnaril (https://www.fiverr.com/elnaril, https://github.com/Elnaril).
+* Author: Elnaril (elnaril_dev@caramail.com, https://github.com/Elnaril).
 * License: MIT.
 * Doc: https://github.com/Elnaril/uniswap-universal-router-decoder
 """
@@ -32,13 +32,13 @@ from web3.types import (
 
 from uniswap_universal_router_decoder._abi_builder import ABIMap
 from uniswap_universal_router_decoder._constants import (
-    _router_abi,
-    _ur_address,
+    router_abi,
+    ur_address,
 )
 from uniswap_universal_router_decoder._enums import (
-    _RouterConstant,
     FunctionRecipient,
     MiscFunctions,
+    RouterConstant,
     RouterFunction,
     TransactionSpeed,
     V4Actions,
@@ -49,7 +49,7 @@ from uniswap_universal_router_decoder.utils import (
 )
 
 
-NO_REVERT_FLAG = _RouterConstant.FLAG_ALLOW_REVERT.value
+NO_REVERT_FLAG = RouterConstant.FLAG_ALLOW_REVERT.value
 
 
 class PoolKey(TypedDict):
@@ -82,10 +82,10 @@ AllowanceTransferDetails = TypedDict(
 )
 
 
-class _Encoder:
+class Encoder:
     def __init__(self, w3: Web3, abi_map: ABIMap) -> None:
         self._w3 = w3
-        self._router_contract = self._w3.eth.contract(abi=_router_abi)
+        self._router_contract = self._w3.eth.contract(abi=router_abi)
         self._abi_map = abi_map
 
     @staticmethod
@@ -388,7 +388,11 @@ class _V4ChainedPositionFunctionBuilder(_V4ChainedCommonFunctionBuilder):
         abi = self._abi_map[MiscFunctions.UNLOCK_DATA]
         encoded_data = abi.encode(action_values)
         args = (encoded_data, deadline)
-        self.builder._add_command(RouterFunction.V4_POSITION_MANAGER_CALL, args, True)
+        self.builder._add_command(  # pyright:ignore[reportPrivateUsage]
+            RouterFunction.V4_POSITION_MANAGER_CALL,
+            args,
+            True
+        )
         return self.builder
 
 
@@ -522,14 +526,14 @@ class _V4ChainedSwapFunctionBuilder(_V4ChainedCommonFunctionBuilder):
         :return: The chain link corresponding to this function call.
         """
         args = (bytes(self.actions), self.arguments)
-        self.builder._add_command(RouterFunction.V4_SWAP, args)
+        self.builder._add_command(RouterFunction.V4_SWAP, args)  # pyright:ignore[reportPrivateUsage]
         return self.builder
 
 
 class _ChainedFunctionBuilder:
     def __init__(self, w3: Web3, abi_map: ABIMap):
         self._w3 = w3
-        self._router_contract = self._w3.eth.contract(abi=_router_abi)
+        self._router_contract = self._w3.eth.contract(abi=router_abi)
         self._abi_map = abi_map
         self.commands: bytearray = bytearray()
         self.arguments: list[bytes] = []
@@ -537,7 +541,7 @@ class _ChainedFunctionBuilder:
     def _add_command(self, command: RouterFunction, args: Sequence[Any], add_selector: bool = False) -> None:
         abi = self._abi_map[command]
         self.commands.append(command.value)
-        arguments = abi.get_selector() + abi.encode(args) if add_selector else abi.encode(args)
+        arguments = abi.selector + abi.encode(args) if add_selector else abi.encode(args)
         self.arguments.append(arguments)
 
     @staticmethod
@@ -545,8 +549,8 @@ class _ChainedFunctionBuilder:
             function_recipient: FunctionRecipient,
             custom_recipient: Optional[ChecksumAddress] = None) -> ChecksumAddress:
         recipient_mapping = {
-            FunctionRecipient.SENDER: _RouterConstant.MSG_SENDER.value,
-            FunctionRecipient.ROUTER: _RouterConstant.ADDRESS_THIS.value,
+            FunctionRecipient.SENDER: RouterConstant.MSG_SENDER.value,
+            FunctionRecipient.ROUTER: RouterConstant.ADDRESS_THIS.value,
             FunctionRecipient.CUSTOM: custom_recipient,
         }
         recipient = recipient_mapping[function_recipient]
@@ -647,7 +651,7 @@ class _ChainedFunctionBuilder:
         """
         return self.v2_swap_exact_in(
             function_recipient,
-            _RouterConstant.ROUTER_BALANCE.value,
+            RouterConstant.ROUTER_BALANCE.value,
             amount_out_min,
             path,
             custom_recipient,
@@ -703,7 +707,7 @@ class _ChainedFunctionBuilder:
         :return: The chain link corresponding to this function call.
         """
         recipient = self._get_recipient(function_recipient, custom_recipient)
-        encoded_v3_path = _Encoder.v3_path(RouterFunction.V3_SWAP_EXACT_IN.name, path)
+        encoded_v3_path = Encoder.v3_path(RouterFunction.V3_SWAP_EXACT_IN.name, path)
         args = (recipient, amount_in, amount_out_min, encoded_v3_path, payer_is_sender)
         self._add_command(RouterFunction.V3_SWAP_EXACT_IN, args)
         return self
@@ -730,7 +734,7 @@ class _ChainedFunctionBuilder:
         """
         return self.v3_swap_exact_in(
             function_recipient,
-            _RouterConstant.ROUTER_BALANCE.value,
+            RouterConstant.ROUTER_BALANCE.value,
             amount_out_min,
             path,
             custom_recipient,
@@ -760,7 +764,7 @@ class _ChainedFunctionBuilder:
         :return: The chain link corresponding to this function call.
         """
         recipient = self._get_recipient(function_recipient, custom_recipient)
-        encoded_v3_path = _Encoder.v3_path(RouterFunction.V3_SWAP_EXACT_OUT.name, path)
+        encoded_v3_path = Encoder.v3_path(RouterFunction.V3_SWAP_EXACT_OUT.name, path)
         args = (recipient, amount_out, amount_in_max, encoded_v3_path, payer_is_sender)
         self._add_command(RouterFunction.V3_SWAP_EXACT_OUT, args)
         return self
@@ -849,11 +853,7 @@ class _ChainedFunctionBuilder:
 
         :return: The chain link corresponding to this function call.
         """
-        if (
-            bips < 0
-            or bips > 10_000
-            or not isinstance(bips, int)
-        ):
+        if bips < 0 or bips > 10_000:
             raise ValueError(f"Invalid argument: bips must be an int between 0 and 10_000. Received {bips}")
 
         recipient = self._get_recipient(function_recipient, custom_recipient)
@@ -971,11 +971,11 @@ class _ChainedFunctionBuilder:
         if deadline:
             execute_with_deadline_args = (bytes(self.commands), self.arguments, deadline)
             abi = self._abi_map[MiscFunctions.EXECUTE_WITH_DEADLINE]
-            return Web3.to_hex(abi.get_selector() + abi.encode(execute_with_deadline_args))
+            return Web3.to_hex(abi.selector + abi.encode(execute_with_deadline_args))
         else:
             execute_args = (bytes(self.commands), self.arguments)
             abi = self._abi_map[MiscFunctions.EXECUTE]
-            return Web3.to_hex(abi.get_selector() + abi.encode(execute_args))
+            return Web3.to_hex(abi.selector + abi.encode(execute_args))
 
     def build_transaction(
             self,
@@ -989,7 +989,7 @@ class _ChainedFunctionBuilder:
             gas_limit: Optional[int] = None,
             chain_id: Optional[int] = None,
             nonce: Optional[Union[int, Nonce]] = None,
-            ur_address: ChecksumAddress = _ur_address,
+            ur_address: ChecksumAddress = ur_address,
             deadline: Optional[int] = None,
             block_identifier: BlockIdentifier = "latest") -> TxParams:
         """

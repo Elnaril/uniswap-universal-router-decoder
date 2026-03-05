@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "uniswap-universal-router-decoder"
-version = "2.1.0"
+version = "2.2.0.dev01"
 authors = [
   { name="Elnaril", email="elnaril_dev@caramail.com" },
 ]
@@ -23,7 +23,11 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Software Development",
+    "Topic :: Software Development :: Libraries",
     "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
 ]
 license = "MIT"
 dependencies = [
@@ -33,6 +37,20 @@ keywords = ["blockchain", "ethereum", "unichain", "uniswap", "uniswap V4", "exch
 
 [tool.setuptools]
 packages = ["uniswap_universal_router_decoder"]
+
+[tool.basedpyright]
+include = ["uniswap_universal_router_decoder", "tests", "integration_tests"]
+exclude = ["**/__pycache__"]
+# ignore = ["**/__pycache__", "tests", "integration_tests", "notes", "tutorials"]
+pythonVersion = "3.9"
+typeCheckingMode = "strict"
+
+reportPrivateImportUsage = false
+
+executionEnvironments = [
+    { root = "tests" , extraPaths = ["."], reportMissingTypeArgument = false, reportUnknownParameterType = false, reportUnknownVariableType = false, reportUnknownMemberType = false, reportUnknownArgumentType = false, reportArgumentType = false, reportMissingParameterType = false, reportPrivateUsage = false, reportAttributeAccessIssue = "hint" },
+    { root = "integration_tests" , extraPaths = ["."], reportMissingTypeArgument = false, reportUnknownParameterType = false, reportUnknownVariableType = false, reportUnknownMemberType = false, reportUnknownArgumentType = false, reportArgumentType = false, reportMissingParameterType = false, reportPrivateUsage = false, reportAttributeAccessIssue = "hint" },
+]
 
 [project.urls]
 Homepage = "https://github.com/Elnaril/uniswap-universal-router-decoder"

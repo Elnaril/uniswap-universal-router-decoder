@@ -27,6 +27,16 @@ def test_compute_gas_fees(trx_speed, block_identifier, expected_priority_fee, ex
     assert max_fee_per_gas == expected_max_fee_per_gas
 
 
+def test_compute_gas_fees_exception(w3, mocker):
+    mocker.patch.object(
+            w3.eth,
+            'get_block',
+            return_value={}
+        )
+    with pytest.raises(ValueError):
+        compute_gas_fees(w3)
+
+
 @pytest.mark.parametrize(
     'sqrt_price_x96_input, expected_result',
     (

@@ -1,7 +1,7 @@
 """
 Enums used by the Uniswap Universal Router Codec
 
-* Author: Elnaril (https://www.fiverr.com/elnaril, https://github.com/Elnaril).
+* Author: Elnaril (elnaril_dev@caramail.com, https://github.com/Elnaril).
 * License: MIT.
 * Doc: https://github.com/Elnaril/uniswap-universal-router-decoder
 """
@@ -49,7 +49,7 @@ class FunctionRecipient(Enum):
     CUSTOM = "recipient is custom"
 
 
-class _RouterConstant(Enum):
+class RouterConstant(Enum):
     # https://github.com/Uniswap/universal-router/blob/main/contracts/libraries/Constants.sol
     MSG_SENDER = Web3.to_checksum_address("0x0000000000000000000000000000000000000001")
     ADDRESS_THIS = Web3.to_checksum_address("0x0000000000000000000000000000000000000002")

@@ -1,3 +1,4 @@
+from eth_abi.exceptions import EncodingTypeError
 from eth_account import Account
 from eth_account.datastructures import SignedMessage
 from eth_account.signers.local import LocalAccount
@@ -15,7 +16,7 @@ from uniswap_universal_router_decoder import (
     PermitDetails,
     TransactionSpeed,
 )
-from uniswap_universal_router_decoder._constants import _ur_address  # noqa
+from uniswap_universal_router_decoder._constants import ur_address  # noqa
 from uniswap_universal_router_decoder._encoder import _ChainedFunctionBuilder  # noqa
 from uniswap_universal_router_decoder._enums import RouterFunction  # noqa
 
@@ -327,7 +328,7 @@ def test_chain_v2_swap_exact_in_and_sweep_and_pay_portion(codec):
     "function_recipient, token_address, bips, custom_recipient, expected_exception",
     (
         (FunctionRecipient.SENDER, Web3.to_checksum_address('0x1ce270557C1f68Cfb577b856766310Bf8B47FD9C'), 100, None, None),  # noqa
-        (FunctionRecipient.SENDER, Web3.to_checksum_address('0x1ce270557C1f68Cfb577b856766310Bf8B47FD9C'), 100.01, None, ValueError),  # noqa
+        (FunctionRecipient.SENDER, Web3.to_checksum_address('0x1ce270557C1f68Cfb577b856766310Bf8B47FD9C'), 100.01, None, EncodingTypeError),  # noqa
         (FunctionRecipient.SENDER, Web3.to_checksum_address('0x1ce270557C1f68Cfb577b856766310Bf8B47FD9C'), 10_001, None, ValueError),  # noqa
         (FunctionRecipient.SENDER, Web3.to_checksum_address('0x1ce270557C1f68Cfb577b856766310Bf8B47FD9C'), -1, None, ValueError),  # noqa
         (FunctionRecipient.CUSTOM, Web3.to_checksum_address('0x1ce270557C1f68Cfb577b856766310Bf8B47FD9C'), 100, None, ValueError),  # noqa
@@ -335,7 +336,7 @@ def test_chain_v2_swap_exact_in_and_sweep_and_pay_portion(codec):
 )
 def test_pay_portion_argument_validity(function_recipient, token_address, bips, custom_recipient, expected_exception, codec):  # noqa
     if expected_exception:
-        with pytest.raises(ValueError):
+        with pytest.raises(expected_exception):
             codec.encode.chain().pay_portion(function_recipient, token_address, bips, custom_recipient).build(1698245843)  # noqa
     else:
         _ = codec.encode.chain().pay_portion(function_recipient, token_address, bips, custom_recipient).build(1698245843)  # noqa
@@ -375,7 +376,7 @@ def test_build_transaction(codec_rpc):
     )
     assert trx_1["from"] == sender
     assert trx_1["value"] == amount_in
-    assert trx_1["to"] == _ur_address
+    assert trx_1["to"] == ur_address
     assert trx_1["chainId"] == 1
     assert trx_1["nonce"] == 397356
     assert trx_1["type"] == "0x2"
