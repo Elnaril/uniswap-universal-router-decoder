@@ -207,12 +207,12 @@ class CommonABIBuilder:
     def create_struct_array(struct_name: str) -> ABIStructBuilder:
         return ABIStructBuilder(struct_name, "tuple[]")
 
-    def add_struct(self: _Self, struct_builder: ABIStructBuilder) -> _Self:
-        self.abi.params.append(struct_builder.abi)
+    def add_struct(self: _Self, struct_abi: ABIStruct) -> _Self:
+        self.abi.params.append(struct_abi)
         return self
 
-    def add_struct_array(self: _Self, struct_array_builder: ABIStructBuilder) -> _Self:
-        self.abi.params.append(struct_array_builder.abi)
+    def add_struct_array(self: _Self, struct_abi: ABIStruct) -> _Self:
+        self.abi.params.append(struct_abi)
         return self
 
 
@@ -241,8 +241,8 @@ class ABIStructBuilder(CommonABIBuilder):
     def __init__(self, struct_name: str, type: Literal["tuple", "tuple[]"]) -> None:
         super().__init__(ABIStruct(name=struct_name, type=type))
 
-    # def build(self) -> ABIStruct:
-    #     return self.abi
+    def build(self) -> ABIStruct:
+        return self.abi
 
 
 class ABIRegister:
@@ -311,8 +311,8 @@ def build_permit2_permit() -> ABIFunction:
     inner_struct = builder.create_struct("details")
     inner_struct.add_address("token").add_uint160("amount").add_uint48("expiration").add_uint48("nonce")
     outer_struct = builder.create_struct("struct")
-    outer_struct.add_struct(inner_struct).add_address("spender").add_uint256("sigDeadline")
-    return builder.add_struct(outer_struct).add_bytes("data").build()
+    outer_struct.add_struct(inner_struct.build()).add_address("spender").add_uint256("sigDeadline")
+    return builder.add_struct(outer_struct.build()).add_bytes("data").build()
 
 
 @ABIRegister(RouterFunction.PERMIT2_PERMIT_BATCH)
@@ -321,8 +321,8 @@ def build_permit2_permit_batch() -> ABIFunction:
     inner_struct_array = builder.create_struct_array("details")
     inner_struct_array.add_address("token").add_uint160("amount").add_uint48("expiration").add_uint48("nonce")
     outer_struct = builder.create_struct("struct")
-    outer_struct.add_struct_array(inner_struct_array).add_address("spender").add_uint256("sigDeadline")
-    return builder.add_struct(outer_struct).add_bytes("data").build()
+    outer_struct.add_struct_array(inner_struct_array.build()).add_address("spender").add_uint256("sigDeadline")
+    return builder.add_struct(outer_struct.build()).add_bytes("data").build()
 
 
 @ABIRegister(RouterFunction.UNWRAP_WETH)
@@ -391,18 +391,18 @@ def _v4_pool_key_struct_builder() -> ABIStructBuilder:
 @ABIRegister(V4Actions.SWAP_EXACT_IN_SINGLE)
 def build_v4_swap_exact_in_single() -> ABIFunction:
     builder = ABIFunctionBuilder(V4Actions.SWAP_EXACT_IN_SINGLE.name)
-    pool_key = _v4_pool_key_struct_builder()
+    pool_key_builder = _v4_pool_key_struct_builder()
     outer_struct = builder.create_struct("exact_in_single_params")
-    outer_struct.add_struct(pool_key).add_bool("zeroForOne").add_uint128("amountIn").add_uint128("amountOutMinimum")
-    outer_struct.add_bytes("hookData")
-    return builder.add_struct(outer_struct).build()
+    outer_struct.add_struct(pool_key_builder.build()).add_bool("zeroForOne").add_uint128("amountIn")
+    outer_struct.add_uint128("amountOutMinimum").add_bytes("hookData")
+    return builder.add_struct(outer_struct.build()).build()
 
 
 @ABIRegister(RouterFunction.V4_INITIALIZE_POOL)
 def build_v4_initialize_pool() -> ABIFunction:
     builder = ABIFunctionBuilder(RouterFunction.V4_INITIALIZE_POOL.name)
-    pool_key = _v4_pool_key_struct_builder()
-    return builder.add_struct(pool_key).add_uint256("sqrtPriceX96").build()
+    pool_key_builder = _v4_pool_key_struct_builder()
+    return builder.add_struct(pool_key_builder.build()).add_uint256("sqrtPriceX96").build()
 
 
 @ABIRegister(RouterFunction.V4_POSITION_MANAGER_CALL)
@@ -420,8 +420,8 @@ def build_unlock_data() -> ABIFunction:
 @ABIRegister(V4Actions.MINT_POSITION)
 def build_v4_mint_position() -> ABIFunction:
     builder = ABIFunctionBuilder(V4Actions.MINT_POSITION.name)
-    pool_key = _v4_pool_key_struct_builder()
-    builder.add_struct(pool_key).add_int24("tickLower").add_int24("tickUpper").add_uint256("liquidity")
+    pool_key_builder = _v4_pool_key_struct_builder()
+    builder.add_struct(pool_key_builder.build()).add_int24("tickLower").add_int24("tickUpper").add_uint256("liquidity")
     builder.add_uint128("amount0Max").add_uint128("amount1Max").add_address("recipient").add_bytes("hookData")
     return builder.build()
 
@@ -464,7 +464,8 @@ def _allowance_transfer_details_struct_array_builder() -> ABIStructBuilder:
 @ABIRegister(RouterFunction.PERMIT2_TRANSFER_FROM_BATCH)
 def build_permit2_transfer_from_batch() -> ABIFunction:
     builder = ABIFunctionBuilder(RouterFunction.PERMIT2_TRANSFER_FROM_BATCH.name)
-    return builder.add_struct_array(_allowance_transfer_details_struct_array_builder()).build()
+    allowance_transfer_details_builder = _allowance_transfer_details_struct_array_builder()
+    return builder.add_struct_array(allowance_transfer_details_builder.build()).build()
 
 
 @ABIRegister(V4Actions.TAKE_ALL)
@@ -494,8 +495,8 @@ def build_execute_with_deadline() -> ABIFunction:
 @ABIRegister(MiscFunctions.V4_POOL_ID)
 def build_v4_pool_id() -> ABIFunction:
     builder = ABIFunctionBuilder("v4_pool_id")
-    pool_key = _v4_pool_key_struct_builder()
-    return builder.add_struct(pool_key).build()
+    pool_key_builder = _v4_pool_key_struct_builder()
+    return builder.add_struct(pool_key_builder.build()).build()
 
 
 def _v4_path_key_struct_array_builder() -> ABIStructBuilder:
@@ -508,15 +509,16 @@ def _v4_path_key_struct_array_builder() -> ABIStructBuilder:
 def build_strict_v4_swap_exact_in() -> ABIFunction:
     builder = ABIFunctionBuilder(MiscFunctions.STRICT_V4_SWAP_EXACT_IN.name)
     builder.add_address("currencyIn")
-    builder.add_struct_array(_v4_path_key_struct_array_builder())
+    v4_path_key_builder = _v4_path_key_struct_array_builder()
+    builder.add_struct_array(v4_path_key_builder.build())
     return builder.add_uint128("amountIn").add_uint128("amountOutMinimum").build()
 
 
 @ABIRegister(V4Actions.MINT_POSITION_FROM_DELTAS)
 def build_v4_mint_position_from_deltas() -> ABIFunction:
     builder = ABIFunctionBuilder(V4Actions.MINT_POSITION_FROM_DELTAS.name)
-    pool_key = _v4_pool_key_struct_builder()
-    builder.add_struct(pool_key).add_int24("tickLower").add_int24("tickUpper")
+    pool_key_builder = _v4_pool_key_struct_builder()
+    builder.add_struct(pool_key_builder.build()).add_int24("tickLower").add_int24("tickUpper")
     builder.add_uint128("amount0Max").add_uint128("amount1Max").add_address("recipient").add_bytes("hookData")
     return builder.build()
 
@@ -536,18 +538,19 @@ def build_v4_unwrap_weth() -> ABIFunction:
 @ABIRegister(V4Actions.SWAP_EXACT_OUT_SINGLE)
 def build_v4_swap_exact_out_single() -> ABIFunction:
     builder = ABIFunctionBuilder(V4Actions.SWAP_EXACT_OUT_SINGLE.name)
-    pool_key = _v4_pool_key_struct_builder()
+    pool_key_builder = _v4_pool_key_struct_builder()
     outer_struct = builder.create_struct("exact_out_single_params")
-    outer_struct.add_struct(pool_key).add_bool("zeroForOne").add_uint128("amountOut").add_uint128("amountInMaximum")
-    outer_struct.add_bytes("hookData")
-    return builder.add_struct(outer_struct).build()
+    outer_struct.add_struct(pool_key_builder.build()).add_bool("zeroForOne").add_uint128("amountOut")
+    outer_struct.add_uint128("amountInMaximum").add_bytes("hookData")
+    return builder.add_struct(outer_struct.build()).build()
 
 
 @ABIRegister(MiscFunctions.STRICT_V4_SWAP_EXACT_OUT)
 def build_strict_v4_swap_exact_out() -> ABIFunction:
     builder = ABIFunctionBuilder(MiscFunctions.STRICT_V4_SWAP_EXACT_OUT.name)
     builder.add_address("currencyOut")
-    builder.add_struct_array(_v4_path_key_struct_array_builder())
+    v4_path_key_builder = _v4_path_key_struct_array_builder()
+    builder.add_struct_array(v4_path_key_builder.build())
     return builder.add_uint128("amountOut").add_uint128("amountInMaximum").build()
 
 
