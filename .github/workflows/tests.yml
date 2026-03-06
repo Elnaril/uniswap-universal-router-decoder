@@ -7,7 +7,7 @@ on:
       - 'integration_tests/**'
       - 'tests/**'
       - 'uniswap_universal_router_decoder/**'
-      - 'mypy.ini'
+      - 'pyproject.toml'
       - 'pytest.ini'
       - 'tox.ini'
   pull_request:
@@ -16,7 +16,7 @@ on:
       - 'integration_tests/**'
       - 'tests/**'
       - 'uniswap_universal_router_decoder/**'
-      - 'mypy.ini'
+      - 'pyproject.toml'
       - 'pytest.ini'
       - 'tox.ini'
 
