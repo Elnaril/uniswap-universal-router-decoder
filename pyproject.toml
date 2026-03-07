@@ -30,10 +30,30 @@ classifiers = [
     "Typing :: Typed",
 ]
 license = "MIT"
+keywords = ["blockchain", "ethereum", "unichain", "uniswap", "uniswap V4", "exchange", "dex", "universal router", "swap", "decoder", "encoder", "codec", "wrapper", "SDK"]
+
 dependencies = [
   "web3>=6.0.0,<8.0.0",
 ]
-keywords = ["blockchain", "ethereum", "unichain", "uniswap", "uniswap V4", "exchange", "dex", "universal router", "swap", "decoder", "encoder", "codec", "wrapper", "SDK"]
+
+[dependency-groups]
+dev = [
+    "basedpyright",
+    "coverage",
+    "flake8",
+    "isort",
+    "pytest",
+    "pytest-mock",
+    "tox",
+]
+packaging = [
+    "build",
+    "twine",
+]
+all = [
+    { include-group = "dev"},
+    { include-group = "packaging"},
+]
 
 [tool.setuptools]
 packages = ["uniswap_universal_router_decoder"]
@@ -41,12 +61,9 @@ packages = ["uniswap_universal_router_decoder"]
 [tool.basedpyright]
 include = ["uniswap_universal_router_decoder", "tests", "integration_tests"]
 exclude = ["**/__pycache__"]
-# ignore = ["**/__pycache__", "tests", "integration_tests", "notes", "tutorials"]
 pythonVersion = "3.9"
 typeCheckingMode = "strict"
-
 reportPrivateImportUsage = false
-
 executionEnvironments = [
     { root = "tests" , extraPaths = ["."], reportMissingTypeArgument = false, reportUnknownParameterType = false, reportUnknownVariableType = false, reportUnknownMemberType = false, reportUnknownArgumentType = false, reportArgumentType = false, reportMissingParameterType = false, reportPrivateUsage = false, reportAttributeAccessIssue = "hint" },
     { root = "integration_tests" , extraPaths = ["."], reportMissingTypeArgument = false, reportUnknownParameterType = false, reportUnknownVariableType = false, reportUnknownMemberType = false, reportUnknownArgumentType = false, reportArgumentType = false, reportMissingParameterType = false, reportPrivateUsage = false, reportAttributeAccessIssue = "hint" },

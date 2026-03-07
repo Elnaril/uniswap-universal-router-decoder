@@ -120,6 +120,16 @@ pip install -U pip
 pip install uniswap-universal-router-decoder
 ```
 
+To install it from source:
+```bash
+pip install .
+```
+
+or for contributors:
+```bash
+pip install -e . --group dev
+```
+
 ---
 
 ## Usage
