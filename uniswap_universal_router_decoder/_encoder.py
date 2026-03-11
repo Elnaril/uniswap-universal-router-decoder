@@ -186,9 +186,8 @@ TV4ChainedCommonFunctionBuilder = TypeVar("TV4ChainedCommonFunctionBuilder", bou
 
 
 class _V4ChainedCommonFunctionBuilder(ABC):
-    def __init__(self, builder: _ChainedFunctionBuilder, w3: Web3, abi_map: ABIMap):
+    def __init__(self, builder: _ChainedFunctionBuilder, abi_map: ABIMap):
         self.builder = builder
-        self._w3 = w3
         self._abi_map = abi_map
         self.actions: bytearray = bytearray()
         self.arguments: list[bytes] = []
@@ -935,7 +934,7 @@ class _ChainedFunctionBuilder:
 
         :return: The chain link corresponding to this function call.
         """
-        return _V4ChainedSwapFunctionBuilder(self, self._w3, self._abi_map)
+        return _V4ChainedSwapFunctionBuilder(self, self._abi_map)
 
     def v4_initialize_pool(self, pool_key: PoolKey, amount_0: Wei, amount_1: Wei) -> _ChainedFunctionBuilder:
         """
@@ -959,7 +958,7 @@ class _ChainedFunctionBuilder:
         V4 - Start building a call to the V4 positon manager functions
         :return: The chain link corresponding to this function call.
         """
-        return _V4ChainedPositionFunctionBuilder(self, self._w3, self._abi_map)
+        return _V4ChainedPositionFunctionBuilder(self, self._abi_map)
 
     def build(self, deadline: Optional[int] = None) -> HexStr:
         """
