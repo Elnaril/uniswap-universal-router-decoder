@@ -13,6 +13,7 @@ readme = "README.md"
 requires-python = ">=3.9"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
+    "Framework :: AsyncIO",
     "Intended Audience :: Developers",
     "Natural Language :: English",
     "Operating System :: OS Independent",
@@ -30,10 +31,11 @@ classifiers = [
     "Typing :: Typed",
 ]
 license = "MIT"
-keywords = ["blockchain", "ethereum", "unichain", "uniswap", "uniswap V4", "exchange", "dex", "universal router", "swap", "decoder", "encoder", "codec", "wrapper", "SDK"]
+keywords = ["blockchain", "ethereum", "unichain", "uniswap", "uniswap V4", "exchange", "dex", "universal router", "swap", "decoder", "encoder", "codec", "wrapper", "SDK", "asyncio"]
 
 dependencies = [
-  "web3>=6.0.0,<8.0.0",
+    "typing_extensions",
+    "web3>=6.0.0,<8.0.0",
 ]
 
 [dependency-groups]
@@ -43,6 +45,7 @@ dev = [
     "flake8",
     "isort",
     "pytest",
+    "pytest-asyncio",
     "pytest-mock",
     "tox",
 ]
@@ -68,6 +71,13 @@ executionEnvironments = [
     { root = "tests" , extraPaths = ["."], reportMissingTypeArgument = false, reportUnknownParameterType = false, reportUnknownVariableType = false, reportUnknownMemberType = false, reportUnknownArgumentType = false, reportArgumentType = false, reportMissingParameterType = false, reportPrivateUsage = false, reportAttributeAccessIssue = "hint" },
     { root = "integration_tests" , extraPaths = ["."], reportMissingTypeArgument = false, reportUnknownParameterType = false, reportUnknownVariableType = false, reportUnknownMemberType = false, reportUnknownArgumentType = false, reportArgumentType = false, reportMissingParameterType = false, reportPrivateUsage = false, reportAttributeAccessIssue = "hint" },
 ]
+
+[tool.pytest]
+asyncio_mode = "auto"
+filterwarnings = [
+    'ignore:websockets.legacy is deprecated:DeprecationWarning',
+]
+
 
 [project.urls]
 Homepage = "https://github.com/Elnaril/uniswap-universal-router-decoder"

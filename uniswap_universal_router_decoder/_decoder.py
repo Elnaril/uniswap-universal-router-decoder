@@ -10,13 +10,22 @@ from itertools import chain
 import json
 from typing import (
     Any,
+    Generic,
     Union,
 )
 
 from eth_abi import decode
 from eth_abi.exceptions import DecodingError
-from web3 import Web3
-from web3.contract.contract import BaseContractFunction
+from web3 import (
+    AsyncHTTPProvider,
+    AsyncWeb3,
+    Web3,
+)
+from web3.contract.async_contract import AsyncContract
+from web3.contract.contract import (
+    BaseContractFunction,
+    Contract,
+)
 from web3.exceptions import Web3Exception
 from web3.types import (
     ChecksumAddress,
@@ -35,6 +44,7 @@ from uniswap_universal_router_decoder._constants import (
     pool_manager_abi,
     position_manager_abi,
     router_abi,
+    W3,
 )
 from uniswap_universal_router_decoder._enums import (
     RouterConstant,
@@ -47,7 +57,7 @@ DecodedInput = tuple[BaseContractFunction, dict[str, Any]]
 
 
 class _V4Decoder:
-    def __init__(self, w3: Web3, abi_map: ABIMap) -> None:
+    def __init__(self, w3: Union[AsyncWeb3[AsyncHTTPProvider], Web3], abi_map: ABIMap) -> None:
         self._w3 = w3
         self._abi_map = abi_map
         self._pm_contract = w3.eth.contract(abi=position_manager_abi)
@@ -78,10 +88,13 @@ class _V4Decoder:
         return {"actions": actions, "params": self._decode_v4_actions(actions, params)}
 
 
-class Decoder:
-    def __init__(self, w3: Web3, abi_map: ABIMap) -> None:
+class _BaseDecoder(Generic[W3]):
+    def __init__(self, w3: W3, abi_map: ABIMap) -> None:
         self._w3 = w3
-        self._router_contract = self._w3.eth.contract(abi=router_abi)
+
+        # w3.eth.contract returns a contract type if no address is provided, and a contract if one is.
+        self._router_contract: Union[type[AsyncContract], type[Contract]] = self._w3.eth.contract(abi=router_abi)
+
         self._abi_map = abi_map
         self._v4_decoder = _V4Decoder(w3, abi_map)
 
@@ -148,24 +161,6 @@ class Decoder:
         decoded_input["inputs"] = decoded_command_input
         return fct_name, decoded_input
 
-    def transaction(self, trx_hash: Union[HexBytes, HexStr]) -> dict[str, Any]:
-        """
-        Get transaction details and decode the data used to call a UR function.
-
-        ⚠ To use this method, the decoder must be built with a Web3 instance or a rpc endpoint address.
-
-        :param trx_hash: the hash of the transaction sent to the UR
-        :return: the transaction as a dict with the additional 'decoded_input' field
-        """
-        trx = self._get_transaction(trx_hash)
-        _, decoded_input = self.function_input(trx.get("input", HexStr("0x")))
-        result_trx = dict(trx)
-        result_trx["decoded_input"] = decoded_input
-        return result_trx
-
-    def _get_transaction(self, trx_hash: Union[HexBytes, HexStr]) -> TxData:
-        return self._w3.eth.get_transaction(trx_hash)
-
     @staticmethod
     def v3_path(v3_fn_name: str, path: Union[bytes, str]) -> tuple[Union[int, ChecksumAddress], ...]:
         """
@@ -222,3 +217,49 @@ class Decoder:
             except (ValueError, Web3Exception):
                 """The error is not defined in this ABI"""
         return "Unknown error", {}
+
+
+class Decoder(_BaseDecoder[Web3]):
+    def __init__(self, w3: Web3, abi_map: ABIMap) -> None:
+        super().__init__(w3, abi_map)
+
+    def transaction(self, trx_hash: Union[HexBytes, HexStr]) -> dict[str, Any]:
+        """
+        Get transaction details and decode the data used to call a UR function.
+
+        ⚠ To use this method, the decoder must be built with a Web3 instance or a rpc endpoint address.
+
+        :param trx_hash: the hash of the transaction sent to the UR
+        :return: the transaction as a dict with the additional 'decoded_input' field
+        """
+        trx = self._get_transaction(trx_hash)
+        _, decoded_input = self.function_input(trx.get("input", HexStr("0x")))
+        result_trx = dict(trx)
+        result_trx["decoded_input"] = decoded_input
+        return result_trx
+
+    def _get_transaction(self, trx_hash: Union[HexBytes, HexStr]) -> TxData:
+        return self._w3.eth.get_transaction(trx_hash)
+
+
+class AsyncDecoder(_BaseDecoder[AsyncWeb3[AsyncHTTPProvider]]):
+    def __init__(self, w3: AsyncWeb3[AsyncHTTPProvider], abi_map: ABIMap) -> None:
+        super().__init__(w3, abi_map)
+
+    async def transaction(self, trx_hash: Union[HexBytes, HexStr]) -> dict[str, Any]:
+        """
+        Get transaction details and decode the data used to call a UR function.
+
+        ⚠ To use this method, the decoder must be built with an AsyncWeb3 instance or a rpc endpoint address.
+
+        :param trx_hash: the hash of the transaction sent to the UR
+        :return: the transaction as a dict with the additional 'decoded_input' field
+        """
+        trx = await self._get_transaction(trx_hash)
+        _, decoded_input = self.function_input(trx.get("input", HexStr("0x")))
+        result_trx = dict(trx)
+        result_trx["decoded_input"] = decoded_input
+        return result_trx
+
+    async def _get_transaction(self, trx_hash: Union[HexBytes, HexStr]) -> TxData:
+        return await self._w3.eth.get_transaction(trx_hash)

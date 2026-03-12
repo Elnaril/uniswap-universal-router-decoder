@@ -9,6 +9,7 @@ from uniswap_universal_router_decoder._enums import (
     V4Constants,
 )
 from uniswap_universal_router_decoder.router_codec import (
+    AsyncRouterCodec,
     PermitDetails,
     RouterCodec,
 )
@@ -16,6 +17,7 @@ from uniswap_universal_router_decoder.router_codec import (
 
 __all__ = [
     "AllowanceTransferDetails",
+    "AsyncRouterCodec",
     "FunctionRecipient",
     "PathKey",
     "PermitDetails",
