@@ -1,10 +1,17 @@
 import pytest
-from web3 import Web3
+from web3 import (
+    AsyncHTTPProvider,
+    AsyncWeb3,
+    Web3,
+)
 
-from uniswap_universal_router_decoder import RouterCodec
+from uniswap_universal_router_decoder import (
+    AsyncRouterCodec,
+    RouterCodec,
+)
 
 
-rpc_endpoint_address = "https://ethereum-rpc.publicnode.com"
+rpc_endpoint_address = "https://eth.drpc.org"
 
 
 @pytest.fixture
@@ -25,3 +32,18 @@ def rpc_url():
 @pytest.fixture
 def w3():
     return Web3(Web3.HTTPProvider(rpc_endpoint_address))
+
+
+@pytest.fixture
+def async_w3():
+    return AsyncWeb3(AsyncHTTPProvider(rpc_endpoint_address))
+
+
+@pytest.fixture
+def async_codec():
+    return AsyncRouterCodec()
+
+
+@pytest.fixture
+def async_codec_rpc():
+    return AsyncRouterCodec(rpc_endpoint=rpc_endpoint_address)

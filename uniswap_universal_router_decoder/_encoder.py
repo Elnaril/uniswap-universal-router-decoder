@@ -18,10 +18,10 @@ from typing import (
     TypeVar,
     Union,
 )
-from typing_extensions import Self
 
 from eth_account.account import SignedMessage
 from eth_utils import keccak
+from typing_extensions import Self
 from web3 import (
     AsyncHTTPProvider,
     AsyncWeb3,

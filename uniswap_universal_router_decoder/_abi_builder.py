@@ -22,11 +22,11 @@ from typing import (
     TypedDict,
     Union,
 )
-from typing_extensions import Self
 
 from eth_abi import encode
 from eth_abi.registry import registry
 from eth_utils import keccak
+from typing_extensions import Self
 from web3 import (
     AsyncHTTPProvider,
     AsyncWeb3,
