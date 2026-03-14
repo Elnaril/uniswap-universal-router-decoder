@@ -20,14 +20,18 @@ from typing import (
     Literal,
     Optional,
     TypedDict,
-    TypeVar,
     Union,
 )
 
 from eth_abi import encode
 from eth_abi.registry import registry
 from eth_utils import keccak
-from web3 import Web3
+from typing_extensions import Self
+from web3 import (
+    AsyncHTTPProvider,
+    AsyncWeb3,
+    Web3,
+)
 
 from uniswap_universal_router_decoder._enums import (
     MiscFunctions,
@@ -145,8 +149,6 @@ def build_abi_type_list(abi_dict: ABIFunctionDict) -> list[str]:
 
 ABIMap = dict[Union[MiscFunctions, RouterFunction, V4Actions], ABIFunction]
 
-_Self = TypeVar("_Self", bound="CommonABIBuilder")
-
 
 class CommonABIBuilder:
     def __init__(self, abi: Union[ABIFunction, ABIStruct]) -> None:
@@ -155,47 +157,47 @@ class CommonABIBuilder:
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(abi={self.abi})"
 
-    def add_address(self: _Self, arg_name: str) -> _Self:
+    def add_address(self, arg_name: str) -> Self:
         self.abi.params.append(ABIParam(arg_name, "address"))
         return self
 
-    def add_uint256(self: _Self, arg_name: str) -> _Self:
+    def add_uint256(self, arg_name: str) -> Self:
         self.abi.params.append(ABIParam(arg_name, "uint256"))
         return self
 
-    def add_uint160(self: _Self, arg_name: str) -> _Self:
+    def add_uint160(self, arg_name: str) -> Self:
         self.abi.params.append(ABIParam(arg_name, "uint160"))
         return self
 
-    def add_uint48(self: _Self, arg_name: str) -> _Self:
+    def add_uint48(self, arg_name: str) -> Self:
         self.abi.params.append(ABIParam(arg_name, "uint48"))
         return self
 
-    def add_uint24(self: _Self, arg_name: str) -> _Self:
+    def add_uint24(self, arg_name: str) -> Self:
         self.abi.params.append(ABIParam(arg_name, "uint24"))
         return self
 
-    def add_int24(self: _Self, arg_name: str) -> _Self:
+    def add_int24(self, arg_name: str) -> Self:
         self.abi.params.append(ABIParam(arg_name, "int24"))
         return self
 
-    def add_uint128(self: _Self, arg_name: str) -> _Self:
+    def add_uint128(self, arg_name: str) -> Self:
         self.abi.params.append(ABIParam(arg_name, "uint128"))
         return self
 
-    def add_address_array(self: _Self, arg_name: str) -> _Self:
+    def add_address_array(self, arg_name: str) -> Self:
         self.abi.params.append(ABIParam(arg_name, "address[]"))
         return self
 
-    def add_bool(self: _Self, arg_name: str) -> _Self:
+    def add_bool(self, arg_name: str) -> Self:
         self.abi.params.append(ABIParam(arg_name, "bool"))
         return self
 
-    def add_bytes(self: _Self, arg_name: str) -> _Self:
+    def add_bytes(self, arg_name: str) -> Self:
         self.abi.params.append(ABIParam(arg_name, "bytes"))
         return self
 
-    def add_bytes_array(self: _Self, arg_name: str) -> _Self:
+    def add_bytes_array(self, arg_name: str) -> Self:
         self.abi.params.append(ABIParam(arg_name, "bytes[]"))
         return self
 
@@ -207,11 +209,11 @@ class CommonABIBuilder:
     def create_struct_array(struct_name: str) -> ABIStructBuilder:
         return ABIStructBuilder(struct_name, "tuple[]")
 
-    def add_struct(self: _Self, struct_abi: ABIStruct) -> _Self:
+    def add_struct(self, struct_abi: ABIStruct) -> Self:
         self.abi.params.append(struct_abi)
         return self
 
-    def add_struct_array(self: _Self, struct_abi: ABIStruct) -> _Self:
+    def add_struct_array(self, struct_abi: ABIStruct) -> Self:
         self.abi.params.append(struct_abi)
         return self
 
@@ -261,7 +263,7 @@ class ABIRegister:
 
 
 class ABIMapWrapper:
-    def __init__(self, w3: Optional[Web3] = None) -> None:
+    def __init__(self, w3: Optional[Union[AsyncWeb3[AsyncHTTPProvider], Web3]] = None) -> None:
         self.w3 = w3 if w3 else Web3()
         self.abi_map = ABIRegister.abi_map
         if not registry.has_encoder("ExactInputParams"):

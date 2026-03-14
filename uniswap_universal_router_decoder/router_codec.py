@@ -16,7 +16,11 @@ from eth_account.messages import (
     encode_typed_data,
     SignableMessage,
 )
-from web3 import Web3
+from web3 import (
+    AsyncHTTPProvider,
+    AsyncWeb3,
+    Web3,
+)
 from web3.types import (
     BlockIdentifier,
     ChecksumAddress,
@@ -33,8 +37,14 @@ from uniswap_universal_router_decoder._constants import (
     permit2_types,
     ur_address,
 )
-from uniswap_universal_router_decoder._decoder import Decoder
-from uniswap_universal_router_decoder._encoder import Encoder
+from uniswap_universal_router_decoder._decoder import (
+    AsyncDecoder,
+    Decoder,
+)
+from uniswap_universal_router_decoder._encoder import (
+    AsyncEncoder,
+    Encoder,
+)
 
 
 __author__ = "Elnaril"
@@ -54,18 +64,7 @@ class PermitDetails(TypedDict):
     nonce: int
 
 
-class RouterCodec:
-    def __init__(self, w3: Optional[Web3] = None, rpc_endpoint: Optional[str] = None) -> None:
-        if w3:
-            self._w3 = w3
-        elif rpc_endpoint:
-            self._w3 = Web3(Web3.HTTPProvider(rpc_endpoint))
-        else:
-            self._w3 = Web3()
-        self._abi_map = ABIMapWrapper(self._w3).abi_map
-        self.decode = Decoder(self._w3, self._abi_map)
-        self.encode = Encoder(self._w3, self._abi_map)
-
+class _BaseRouterCodec:
     @staticmethod
     def get_default_deadline(valid_duration: int = 180) -> int:
         """
@@ -188,6 +187,23 @@ class RouterCodec:
         )
         return permit_batch, signable_message
 
+
+class RouterCodec(_BaseRouterCodec):
+    def __init__(
+            self,
+            w3: Optional[Web3] = None,
+            rpc_endpoint: Optional[str] = None) -> None:
+        if w3:
+            _w3 = w3
+        elif rpc_endpoint:
+            _w3 = Web3(Web3.HTTPProvider(rpc_endpoint))
+        else:
+            _w3 = Web3()
+        self._w3 = _w3
+        self._abi_map = ABIMapWrapper(self._w3).abi_map
+        self.decode = Decoder(self._w3, self._abi_map)
+        self.encode = Encoder(self._w3, self._abi_map)
+
     def fetch_permit2_allowance(
             self,
             wallet: ChecksumAddress,
@@ -212,4 +228,47 @@ class RouterCodec:
         permit2_contract = self._w3.eth.contract(address=permit2, abi=permit2_abi)
         permit2_allowance_fct = permit2_contract.functions.allowance(wallet, token, spender)
         amount, expiration, nonce = permit2_allowance_fct.call(block_identifier=block_identifier)
+        return Wei(amount), int(expiration), Nonce(nonce)
+
+
+class AsyncRouterCodec(_BaseRouterCodec):
+    def __init__(
+            self,
+            async_w3: Optional[AsyncWeb3[AsyncHTTPProvider]] = None,
+            rpc_endpoint: Optional[str] = None) -> None:
+        if async_w3:
+            _async_w3 = async_w3
+        elif rpc_endpoint:
+            _async_w3 = AsyncWeb3(AsyncHTTPProvider(rpc_endpoint))
+        else:
+            _async_w3: AsyncWeb3[AsyncHTTPProvider] = AsyncWeb3()
+        self._w3 = _async_w3
+        self._abi_map = ABIMapWrapper(self._w3).abi_map
+        self.decode = AsyncDecoder(self._w3, self._abi_map)
+        self.encode = AsyncEncoder(self._w3, self._abi_map)
+
+    async def fetch_permit2_allowance(
+            self,
+            wallet: ChecksumAddress,
+            token: ChecksumAddress,
+            spender: ChecksumAddress = ur_address,
+            permit2: ChecksumAddress = permit2_address,
+            permit2_abi: str = permit2_abi,
+            block_identifier: BlockIdentifier = "latest") -> tuple[Wei, int, Nonce]:
+        """
+        Asynchronously request the permit2 allowance function to know if the UR has enough valid allowance,
+        and to get the current permit2 nonce for a given wallet and token.
+
+        :param wallet: the account address to check
+        :param token: the address of the token to check
+        :param spender: the Universal Router address - Default is its address on Mainnet
+        :param permit2: the Permit2 address - Default is its address on Mainnet
+        :param permit2_abi: the Permit2 abi - Default is the one deployed on Mainnet
+        :param block_identifier: the request will be done for this block - Default is 'latest'
+        :return: The current allowed amount in Wei, the timestamp after which the allowance is not valid anymore and
+        the current nonce (to be used with the next permit2_permit() request)
+        """
+        permit2_contract = self._w3.eth.contract(address=permit2, abi=permit2_abi)
+        permit2_allowance_fct = permit2_contract.functions.allowance(wallet, token, spender)
+        amount, expiration, nonce = await permit2_allowance_fct.call(block_identifier=block_identifier)
         return Wei(amount), int(expiration), Nonce(nonce)

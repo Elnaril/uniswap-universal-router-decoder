@@ -9,8 +9,13 @@ from collections.abc import Sequence
 from statistics import quantiles
 from typing import cast
 
-from web3 import Web3
+from web3 import (
+    AsyncHTTPProvider,
+    AsyncWeb3,
+    Web3,
+)
 from web3.types import (
+    BlockData,
     BlockIdentifier,
     TxData,
     Wei,
@@ -45,6 +50,35 @@ def compute_gas_fees(
     :return: the tuple (priority_fee, max_fee_per_gas)
     """
     block = w3.eth.get_block(block_identifier, True)
+    return _compute_gas_fees(block, trx_speed, block_identifier)
+
+
+async def async_compute_gas_fees(
+        async_w3: AsyncWeb3[AsyncHTTPProvider],
+        trx_speed: TransactionSpeed = TransactionSpeed.FAST,
+        block_identifier: BlockIdentifier = "latest") -> tuple[Wei, Wei]:
+    """
+    Asynchronously compute the priority_fee (maxPriorityFeePerGas) and max_fee_per_gas (maxFeePerGas)
+    according to the given transaction 'speed'.
+    All speeds will compute gas fees in order to try to place the transaction in the next block
+    (without certainty, of course).
+    Higher speeds would place the transaction higher in the block than lower ones.
+    So, during strained conditions, the computed gas fees could be very high and should be double-checked before
+    using them.
+
+    :param w3: valid Web3 instance
+    :param trx_speed: the desired transaction 'speed'
+    :param block_identifier: the block number or identifier, default to 'latest'
+    :return: the tuple (priority_fee, max_fee_per_gas)
+    """
+    block = await async_w3.eth.get_block(block_identifier, True)
+    return _compute_gas_fees(block, trx_speed, block_identifier)
+
+
+def _compute_gas_fees(
+        block: BlockData,
+        trx_speed: TransactionSpeed = TransactionSpeed.FAST,
+        block_identifier: BlockIdentifier = "latest") -> tuple[Wei, Wei]:
     transactions = cast(Sequence[TxData], block.get("transactions", []))
     tips = [
         int(trx.get("maxPriorityFeePerGas", 0))

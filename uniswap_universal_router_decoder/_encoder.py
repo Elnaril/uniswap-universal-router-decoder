@@ -12,6 +12,7 @@ from collections.abc import Sequence
 from typing import (
     Any,
     cast,
+    Generic,
     Optional,
     TypedDict,
     TypeVar,
@@ -20,7 +21,12 @@ from typing import (
 
 from eth_account.account import SignedMessage
 from eth_utils import keccak
-from web3 import Web3
+from typing_extensions import Self
+from web3 import (
+    AsyncHTTPProvider,
+    AsyncWeb3,
+    Web3,
+)
 from web3.types import (
     BlockIdentifier,
     ChecksumAddress,
@@ -34,6 +40,7 @@ from uniswap_universal_router_decoder._abi_builder import ABIMap
 from uniswap_universal_router_decoder._constants import (
     router_abi,
     ur_address,
+    W3,
 )
 from uniswap_universal_router_decoder._enums import (
     FunctionRecipient,
@@ -44,6 +51,7 @@ from uniswap_universal_router_decoder._enums import (
     V4Actions,
 )
 from uniswap_universal_router_decoder.utils import (
+    async_compute_gas_fees,
     compute_gas_fees,
     compute_sqrt_price_x96,
 )
@@ -82,8 +90,8 @@ AllowanceTransferDetails = TypedDict(
 )
 
 
-class Encoder:
-    def __init__(self, w3: Web3, abi_map: ABIMap) -> None:
+class _BaseEncoder(Generic[W3]):
+    def __init__(self, w3: W3, abi_map: ABIMap) -> None:
         self._w3 = w3
         self._router_contract = self._w3.eth.contract(abi=router_abi)
         self._abi_map = abi_map
@@ -175,6 +183,11 @@ class Encoder:
             hook_data=hook_data,
         )
 
+
+class Encoder(_BaseEncoder[Web3]):
+    def __init__(self, w3: Web3, abi_map: ABIMap) -> None:
+        super().__init__(w3, abi_map)
+
     def chain(self) -> _ChainedFunctionBuilder:
         """
         :return: Initialize the chain of encoded functions
@@ -182,13 +195,22 @@ class Encoder:
         return _ChainedFunctionBuilder(self._w3, self._abi_map)
 
 
-TV4ChainedCommonFunctionBuilder = TypeVar("TV4ChainedCommonFunctionBuilder", bound="_V4ChainedCommonFunctionBuilder")
+class AsyncEncoder(_BaseEncoder[AsyncWeb3[AsyncHTTPProvider]]):
+    def __init__(self, async_w3: AsyncWeb3[AsyncHTTPProvider], abi_map: ABIMap) -> None:
+        super().__init__(async_w3, abi_map)
+
+    def chain(self) -> _AsyncChainedFunctionBuilder:
+        """
+        :return: Initialize the chain of encoded functions
+        """
+        return _AsyncChainedFunctionBuilder(self._w3, self._abi_map)
 
 
-class _V4ChainedCommonFunctionBuilder(ABC):
-    def __init__(self, builder: _ChainedFunctionBuilder, w3: Web3, abi_map: ABIMap):
-        self.builder = builder
-        self._w3 = w3
+TChainedFunctionBuilder = TypeVar("TChainedFunctionBuilder", "_ChainedFunctionBuilder", "_AsyncChainedFunctionBuilder")
+
+
+class _V4ChainedCommonFunctionBuilder(ABC, Generic[TChainedFunctionBuilder]):
+    def __init__(self, abi_map: ABIMap):
         self._abi_map = abi_map
         self.actions: bytearray = bytearray()
         self.arguments: list[bytes] = []
@@ -199,10 +221,10 @@ class _V4ChainedCommonFunctionBuilder(ABC):
         self.arguments.append(abi.encode(args))
 
     def settle(
-            self: TV4ChainedCommonFunctionBuilder,
+            self,
             currency: ChecksumAddress,
             amount: int,
-            payer_is_user: bool) -> TV4ChainedCommonFunctionBuilder:
+            payer_is_user: bool) -> Self:
         """
         Pay the contract for a given amount of tokens (currency). Used for swaps and position management.
 
@@ -216,10 +238,10 @@ class _V4ChainedCommonFunctionBuilder(ABC):
         return self
 
     def take(
-            self: TV4ChainedCommonFunctionBuilder,
+            self,
             currency: ChecksumAddress,
             recipient: ChecksumAddress,
-            amount: int) -> TV4ChainedCommonFunctionBuilder:
+            amount: int) -> Self:
         """
         Get the given amount of tokens (currency) from the contract. Used for swaps and position management.
 
@@ -233,7 +255,9 @@ class _V4ChainedCommonFunctionBuilder(ABC):
         return self
 
 
-class _V4ChainedPositionFunctionBuilder(_V4ChainedCommonFunctionBuilder):
+class _BaseV4ChainedPositionFunctionBuilder(_V4ChainedCommonFunctionBuilder[TChainedFunctionBuilder]):
+    def __init__(self, abi_map: ABIMap) -> None:
+        super().__init__(abi_map)
 
     def mint_position(
             self,
@@ -244,7 +268,7 @@ class _V4ChainedPositionFunctionBuilder(_V4ChainedCommonFunctionBuilder):
             amount_0_max: int,
             amount_1_max: int,
             recipient: ChecksumAddress,
-            hook_data: bytes) -> _V4ChainedPositionFunctionBuilder:
+            hook_data: bytes) -> Self:
         """
         Position - Mint a V4 position, ie add some liquidity to a given pool and get a position as ERC-721 token.
 
@@ -274,7 +298,7 @@ class _V4ChainedPositionFunctionBuilder(_V4ChainedCommonFunctionBuilder):
     def settle_pair(
             self,
             currency_0: ChecksumAddress,
-            currency_1: ChecksumAddress) -> _V4ChainedPositionFunctionBuilder:
+            currency_1: ChecksumAddress) -> Self:
         """
         Position - Indicates that tokens are to be paid by the caller to create the position.
 
@@ -286,7 +310,9 @@ class _V4ChainedPositionFunctionBuilder(_V4ChainedCommonFunctionBuilder):
         self._add_action(V4Actions.SETTLE_PAIR, args)
         return self
 
-    def close_currency(self, currency: ChecksumAddress) -> _V4ChainedPositionFunctionBuilder:
+    def close_currency(
+            self,
+            currency: ChecksumAddress) -> Self:
         """
         Position - Automatically determines if a currency should be settled or taken.
 
@@ -297,7 +323,10 @@ class _V4ChainedPositionFunctionBuilder(_V4ChainedCommonFunctionBuilder):
         self._add_action(V4Actions.CLOSE_CURRENCY, args)
         return self
 
-    def sweep(self, currency: ChecksumAddress, to: ChecksumAddress) -> _V4ChainedPositionFunctionBuilder:
+    def sweep(
+            self,
+            currency: ChecksumAddress,
+            to: ChecksumAddress) -> Self:
         """
         Position - Sweep the contract
 
@@ -309,28 +338,7 @@ class _V4ChainedPositionFunctionBuilder(_V4ChainedCommonFunctionBuilder):
         self._add_action(V4Actions.SWEEP, args)
         return self
 
-    # def mint_position_from_deltas(
-    #         self,
-    #         pool_key: PoolKey,
-    #         tick_lower: int,
-    #         tick_upper: int,
-    #         amount_0_max: int,
-    #         amount_1_max: int,
-    #         recipient: ChecksumAddress,
-    #         hook_data: bytes) -> _V4ChainedPositionFunctionBuilder:
-    #     args = (
-    #         tuple(pool_key.values()),
-    #         tick_lower,
-    #         tick_upper,
-    #         amount_0_max,
-    #         amount_1_max,
-    #         recipient,
-    #         hook_data
-    #     )
-    #     self._add_action(V4Actions.MINT_POSITION_FROM_DELTAS, args)
-    #     return self
-
-    def wrap_eth(self, amount: Wei) -> _V4ChainedPositionFunctionBuilder:
+    def wrap_eth(self, amount: Wei) -> Self:
         """
         Position - Encode the call to the function WRAP which convert ETH to WETH in the position manager contract
 
@@ -341,7 +349,7 @@ class _V4ChainedPositionFunctionBuilder(_V4ChainedCommonFunctionBuilder):
         self._add_action(V4Actions.WRAP, args)
         return self
 
-    def unwrap_weth(self, amount: Wei) -> _V4ChainedPositionFunctionBuilder:
+    def unwrap_weth(self, amount: Wei) -> Self:
         """
         Position - Encode the call to the function UNWRAP which convert WETH to ETH in the position manager contract
 
@@ -356,7 +364,7 @@ class _V4ChainedPositionFunctionBuilder(_V4ChainedCommonFunctionBuilder):
             self,
             currency_0: ChecksumAddress,
             currency_1: ChecksumAddress,
-            recipient: ChecksumAddress) -> _V4ChainedPositionFunctionBuilder:
+            recipient: ChecksumAddress) -> Self:
         args = (currency_0, currency_1, recipient)
         self._add_action(V4Actions.TAKE_PAIR, args)
         return self
@@ -364,7 +372,7 @@ class _V4ChainedPositionFunctionBuilder(_V4ChainedCommonFunctionBuilder):
     def clear_or_take(
             self,
             currency: ChecksumAddress,
-            amount_max: int) -> _V4ChainedPositionFunctionBuilder:
+            amount_max: int) -> Self:
         """
         Position - If the token amount to-be-collected is below a threshold, opt to forfeit the dust.
         Otherwise, claim the tokens.
@@ -376,6 +384,12 @@ class _V4ChainedPositionFunctionBuilder(_V4ChainedCommonFunctionBuilder):
         args = (currency, amount_max)
         self._add_action(V4Actions.CLEAR_OR_TAKE, args)
         return self
+
+
+class _V4ChainedPositionFunctionBuilder(_BaseV4ChainedPositionFunctionBuilder["_ChainedFunctionBuilder"]):
+    def __init__(self, builder: _ChainedFunctionBuilder, abi_map: ABIMap) -> None:
+        self.builder = builder
+        super().__init__(abi_map)
 
     def build_v4_posm_call(self, deadline: int) -> _ChainedFunctionBuilder:
         """
@@ -396,15 +410,38 @@ class _V4ChainedPositionFunctionBuilder(_V4ChainedCommonFunctionBuilder):
         return self.builder
 
 
-class _V4ChainedSwapFunctionBuilder(_V4ChainedCommonFunctionBuilder):
+class _AsyncV4ChainedPositionFunctionBuilder(_BaseV4ChainedPositionFunctionBuilder["_AsyncChainedFunctionBuilder"]):
+    def __init__(self, builder: _AsyncChainedFunctionBuilder, abi_map: ABIMap) -> None:
+        self.builder = builder
+        super().__init__(abi_map)
 
+    def build_v4_posm_call(self, deadline: int) -> _AsyncChainedFunctionBuilder:
+        """
+        Position - Build the V4 position manager call
+
+        :param deadline: When this call is not valid anymore
+        :return: The chain link corresponding to this function call.
+        """
+        action_values = (bytes(self.actions), self.arguments)
+        abi = self._abi_map[MiscFunctions.UNLOCK_DATA]
+        encoded_data = abi.encode(action_values)
+        args = (encoded_data, deadline)
+        self.builder._add_command(  # pyright:ignore[reportPrivateUsage]
+            RouterFunction.V4_POSITION_MANAGER_CALL,
+            args,
+            True
+        )
+        return self.builder
+
+
+class _BaseV4ChainedSwapFunctionBuilder(_V4ChainedCommonFunctionBuilder[TChainedFunctionBuilder]):
     def swap_exact_in_single(
             self,
             pool_key: PoolKey,
             zero_for_one: bool,
             amount_in: Wei,
             amount_out_min: Wei,
-            hook_data: bytes = b'') -> _V4ChainedSwapFunctionBuilder:
+            hook_data: bytes = b'') -> Self:
         """
         Swap - Encode the call to the V4_SWAP function SWAP_EXACT_IN_SINGLE.
 
@@ -419,7 +456,10 @@ class _V4ChainedSwapFunctionBuilder(_V4ChainedCommonFunctionBuilder):
         self._add_action(V4Actions.SWAP_EXACT_IN_SINGLE, args)
         return self
 
-    def take_all(self, currency: ChecksumAddress, min_amount: Wei) -> _V4ChainedSwapFunctionBuilder:
+    def take_all(
+            self,
+            currency: ChecksumAddress,
+            min_amount: Wei) -> Self:
         """
         Swap - Final action that collects all output tokens after the swap is complete.
 
@@ -431,7 +471,10 @@ class _V4ChainedSwapFunctionBuilder(_V4ChainedCommonFunctionBuilder):
         self._add_action(V4Actions.TAKE_ALL, args)
         return self
 
-    def settle_all(self, currency: ChecksumAddress, max_amount: Wei) -> _V4ChainedSwapFunctionBuilder:
+    def settle_all(
+            self,
+            currency: ChecksumAddress,
+            max_amount: Wei) -> Self:
         """
         Swap - Final action that ensures all input tokens involved in the swap are properly paid to the contract.
 
@@ -448,7 +491,7 @@ class _V4ChainedSwapFunctionBuilder(_V4ChainedCommonFunctionBuilder):
             currency_in: ChecksumAddress,
             path_keys: Sequence[PathKey],
             amount_in: int,
-            amount_out_min: int) -> _V4ChainedSwapFunctionBuilder:
+            amount_out_min: int) -> Self:
         """
         Swap - Encode Multi-hop V4 SWAP_EXACT_IN swaps.
 
@@ -468,7 +511,7 @@ class _V4ChainedSwapFunctionBuilder(_V4ChainedCommonFunctionBuilder):
             zero_for_one: bool,
             amount_out: Wei,
             amount_in_max: Wei,
-            hook_data: bytes = b'') -> _V4ChainedSwapFunctionBuilder:
+            hook_data: bytes = b'') -> Self:
         """
         Swap - Encode the call to the V4_SWAP function SWAP_EXACT_IN_SINGLE.
 
@@ -488,7 +531,7 @@ class _V4ChainedSwapFunctionBuilder(_V4ChainedCommonFunctionBuilder):
             currency_out: ChecksumAddress,
             path_keys: Sequence[PathKey],
             amount_out: int,
-            amount_in_max: int) -> _V4ChainedSwapFunctionBuilder:
+            amount_in_max: int) -> Self:
         """
         Swap - Encode Multi-hop V4 SWAP_EXACT_OUT swaps.
 
@@ -506,7 +549,7 @@ class _V4ChainedSwapFunctionBuilder(_V4ChainedCommonFunctionBuilder):
             self,
             currency: ChecksumAddress,
             recipient: ChecksumAddress,
-            bips: int) -> _V4ChainedSwapFunctionBuilder:
+            bips: int) -> Self:
         """
         Swap - Send a portion of token to a given recipient.
 
@@ -519,6 +562,12 @@ class _V4ChainedSwapFunctionBuilder(_V4ChainedCommonFunctionBuilder):
         self._add_action(V4Actions.TAKE_PORTION, args)
         return self
 
+
+class _V4ChainedSwapFunctionBuilder(_BaseV4ChainedSwapFunctionBuilder["_ChainedFunctionBuilder"]):
+    def __init__(self, builder: _ChainedFunctionBuilder, abi_map: ABIMap) -> None:
+        self.builder = builder
+        super().__init__(abi_map)
+
     def build_v4_swap(self) -> _ChainedFunctionBuilder:
         """
         Build the V4 swap call
@@ -530,8 +579,24 @@ class _V4ChainedSwapFunctionBuilder(_V4ChainedCommonFunctionBuilder):
         return self.builder
 
 
-class _ChainedFunctionBuilder:
-    def __init__(self, w3: Web3, abi_map: ABIMap):
+class _AsyncV4ChainedSwapFunctionBuilder(_BaseV4ChainedSwapFunctionBuilder["_AsyncChainedFunctionBuilder"]):
+    def __init__(self, builder: _AsyncChainedFunctionBuilder, abi_map: ABIMap) -> None:
+        self.builder = builder
+        super().__init__(abi_map)
+
+    def build_v4_swap(self) -> _AsyncChainedFunctionBuilder:
+        """
+        Build the V4 swap call
+
+        :return: The chain link corresponding to this function call.
+        """
+        args = (bytes(self.actions), self.arguments)
+        self.builder._add_command(RouterFunction.V4_SWAP, args)  # pyright:ignore[reportPrivateUsage]
+        return self.builder
+
+
+class _BasedChainedFunctionBuilder(Generic[W3]):
+    def __init__(self, w3: W3, abi_map: ABIMap):
         self._w3 = w3
         self._router_contract = self._w3.eth.contract(abi=router_abi)
         self._abi_map = abi_map
@@ -570,7 +635,7 @@ class _ChainedFunctionBuilder:
             self,
             function_recipient: FunctionRecipient,
             amount: Wei,
-            custom_recipient: Optional[ChecksumAddress] = None) -> _ChainedFunctionBuilder:
+            custom_recipient: Optional[ChecksumAddress] = None) -> Self:
         """
         Encode the call to the function WRAP_ETH which convert ETH to WETH through the UR
 
@@ -589,7 +654,7 @@ class _ChainedFunctionBuilder:
             self,
             function_recipient: FunctionRecipient,
             amount: Wei,
-            custom_recipient: Optional[ChecksumAddress] = None) -> _ChainedFunctionBuilder:
+            custom_recipient: Optional[ChecksumAddress] = None) -> Self:
         """
         Encode the call to the function UNWRAP_WETH which convert WETH to ETH through the UR
 
@@ -611,7 +676,7 @@ class _ChainedFunctionBuilder:
             amount_out_min: Wei,
             path: Sequence[ChecksumAddress],
             custom_recipient: Optional[ChecksumAddress] = None,
-            payer_is_sender: bool = True) -> _ChainedFunctionBuilder:
+            payer_is_sender: bool = True) -> Self:
         """
         Encode the call to the function V2_SWAP_EXACT_IN, which swaps tokens on Uniswap V2.
         Correct allowances must have been set before sending such transaction.
@@ -635,7 +700,7 @@ class _ChainedFunctionBuilder:
             function_recipient: FunctionRecipient,
             amount_out_min: Wei,
             path: Sequence[ChecksumAddress],
-            custom_recipient: Optional[ChecksumAddress] = None) -> _ChainedFunctionBuilder:
+            custom_recipient: Optional[ChecksumAddress] = None) -> Self:
         """
         Encode the call to the function V2_SWAP_EXACT_IN, using the router balance as amount_in,
         which swaps tokens on Uniswap V2.
@@ -665,7 +730,7 @@ class _ChainedFunctionBuilder:
             amount_in_max: Wei,
             path: Sequence[ChecksumAddress],
             custom_recipient: Optional[ChecksumAddress] = None,
-            payer_is_sender: bool = True) -> _ChainedFunctionBuilder:
+            payer_is_sender: bool = True) -> Self:
         """
         Encode the call to the function V2_SWAP_EXACT_OUT, which swaps tokens on Uniswap V2.
         Correct allowances must have been set before sending such transaction.
@@ -691,7 +756,7 @@ class _ChainedFunctionBuilder:
             amount_out_min: Wei,
             path: Sequence[Union[int, ChecksumAddress]],
             custom_recipient: Optional[ChecksumAddress] = None,
-            payer_is_sender: bool = True) -> _ChainedFunctionBuilder:
+            payer_is_sender: bool = True) -> Self:
         """
         Encode the call to the function V3_SWAP_EXACT_IN, which swaps tokens on Uniswap V3.
         Correct allowances must have been set before sending such transaction.
@@ -717,7 +782,7 @@ class _ChainedFunctionBuilder:
             function_recipient: FunctionRecipient,
             amount_out_min: Wei,
             path: Sequence[Union[int, ChecksumAddress]],
-            custom_recipient: Optional[ChecksumAddress] = None) -> _ChainedFunctionBuilder:
+            custom_recipient: Optional[ChecksumAddress] = None) -> Self:
         """
         Encode the call to the function V3_SWAP_EXACT_IN, using the router balance as amount_in,
         which swaps tokens on Uniswap V3.
@@ -748,7 +813,7 @@ class _ChainedFunctionBuilder:
             amount_in_max: Wei,
             path: Sequence[Union[int, ChecksumAddress]],
             custom_recipient: Optional[ChecksumAddress] = None,
-            payer_is_sender: bool = True) -> _ChainedFunctionBuilder:
+            payer_is_sender: bool = True) -> Self:
         """
         Encode the call to the function V3_SWAP_EXACT_OUT, which swaps tokens on Uniswap V3.
         Correct allowances must have been set before sending such transaction.
@@ -772,7 +837,7 @@ class _ChainedFunctionBuilder:
     def permit2_permit(
             self,
             permit_single: dict[str, Any],
-            signed_permit_single: SignedMessage) -> _ChainedFunctionBuilder:
+            signed_permit_single: SignedMessage) -> Self:
         """
         Encode the call to the function PERMIT2_PERMIT, which gives token allowances to the Permit2 contract.
         In addition, the Permit2 must be approved using the token contracts as usual.
@@ -794,7 +859,7 @@ class _ChainedFunctionBuilder:
     def permit2_permit_batch(
             self,
             permit_batch: dict[str, Any],
-            signed_permit_batch: SignedMessage) -> _ChainedFunctionBuilder:
+            signed_permit_batch: SignedMessage) -> Self:
         """
         Encode the call to the function PERMIT2_PERMIT_BATCH, which gives token allowances to the Permit2 contract
         for multiple tokens in a single transaction.
@@ -820,7 +885,7 @@ class _ChainedFunctionBuilder:
             function_recipient: FunctionRecipient,
             token_address: ChecksumAddress,
             amount_min: Wei,
-            custom_recipient: Optional[ChecksumAddress] = None) -> _ChainedFunctionBuilder:
+            custom_recipient: Optional[ChecksumAddress] = None) -> Self:
         """
         Encode the call to the function SWEEP which sweeps all of the router's ERC20 or ETH to an address
 
@@ -841,7 +906,7 @@ class _ChainedFunctionBuilder:
             function_recipient: FunctionRecipient,
             token_address: ChecksumAddress,
             bips: int,
-            custom_recipient: Optional[ChecksumAddress] = None) -> _ChainedFunctionBuilder:
+            custom_recipient: Optional[ChecksumAddress] = None) -> Self:
         """
         Encode the call to the function PAY_PORTION which transfers a part of the router's ERC20 or ETH to an address.
         Transferred amount = balance * bips / 10_000
@@ -866,7 +931,7 @@ class _ChainedFunctionBuilder:
             function_recipient: FunctionRecipient,
             token_address: ChecksumAddress,
             value: Wei,
-            custom_recipient: Optional[ChecksumAddress] = None) -> _ChainedFunctionBuilder:
+            custom_recipient: Optional[ChecksumAddress] = None) -> Self:
         """
         Encode the call to the function TRANSFER which transfers an amount of ERC20 or ETH from the router's balance
         to an address.
@@ -889,7 +954,7 @@ class _ChainedFunctionBuilder:
             function_recipient: FunctionRecipient,
             token_address: ChecksumAddress,
             amount: Wei,
-            custom_recipient: Optional[ChecksumAddress] = None) -> _ChainedFunctionBuilder:
+            custom_recipient: Optional[ChecksumAddress] = None) -> Self:
         """
         Encode the transfer of tokens from the caller address to the given recipient.
         The UR must have been permit2'ed for the token first.
@@ -907,7 +972,7 @@ class _ChainedFunctionBuilder:
 
     def permit2_transfer_from_batch(
             self,
-            batch_details: list[AllowanceTransferDetails]) -> _ChainedFunctionBuilder:
+            batch_details: list[AllowanceTransferDetails]) -> Self:
         """
         Encode the batch transfer of multiple tokens from the caller address to recipients.
         The UR must have been permit2'ed for all tokens first.
@@ -929,15 +994,7 @@ class _ChainedFunctionBuilder:
         self._add_command(RouterFunction.PERMIT2_TRANSFER_FROM_BATCH, args)
         return self
 
-    def v4_swap(self) -> _V4ChainedSwapFunctionBuilder:
-        """
-        V4 - Start building a call to the V4 swap functions
-
-        :return: The chain link corresponding to this function call.
-        """
-        return _V4ChainedSwapFunctionBuilder(self, self._w3, self._abi_map)
-
-    def v4_initialize_pool(self, pool_key: PoolKey, amount_0: Wei, amount_1: Wei) -> _ChainedFunctionBuilder:
+    def v4_initialize_pool(self, pool_key: PoolKey, amount_0: Wei, amount_1: Wei) -> Self:
         """
         V4 - Encode the call to initialize (create) a V4 pool.
         The amounts are used to compute the initial sqrtPriceX96. They are NOT sent.
@@ -954,13 +1011,6 @@ class _ChainedFunctionBuilder:
         self._add_command(RouterFunction.V4_INITIALIZE_POOL, args)
         return self
 
-    def v4_posm_call(self) -> _V4ChainedPositionFunctionBuilder:
-        """
-        V4 - Start building a call to the V4 positon manager functions
-        :return: The chain link corresponding to this function call.
-        """
-        return _V4ChainedPositionFunctionBuilder(self, self._w3, self._abi_map)
-
     def build(self, deadline: Optional[int] = None) -> HexStr:
         """
         Build the encoded input for all the chained commands, ready to be sent to the UR
@@ -976,6 +1026,26 @@ class _ChainedFunctionBuilder:
             execute_args = (bytes(self.commands), self.arguments)
             abi = self._abi_map[MiscFunctions.EXECUTE]
             return Web3.to_hex(abi.selector + abi.encode(execute_args))
+
+
+class _ChainedFunctionBuilder(_BasedChainedFunctionBuilder[Web3]):
+    def __init__(self, w3: Web3, abi_map: ABIMap):
+        super().__init__(w3, abi_map)
+
+    def v4_swap(self) -> _V4ChainedSwapFunctionBuilder:
+        """
+        V4 - Start building a call to the V4 swap functions
+
+        :return: The chain link corresponding to this function call.
+        """
+        return _V4ChainedSwapFunctionBuilder(self, self._abi_map)
+
+    def v4_posm_call(self) -> _V4ChainedPositionFunctionBuilder:
+        """
+        V4 - Start building a call to the V4 positon manager functions
+        :return: The chain link corresponding to this function call.
+        """
+        return _V4ChainedPositionFunctionBuilder(self, self._abi_map)
 
     def build_transaction(
             self,
@@ -1060,6 +1130,115 @@ class _ChainedFunctionBuilder:
 
         if gas_limit is None:
             estimated_gas = self._w3.eth.estimate_gas(tx_params, block_identifier)
+            gas_limit = int(estimated_gas * 1.15)
+
+        tx_params["gas"] = Wei(gas_limit)
+
+        return tx_params
+
+
+class _AsyncChainedFunctionBuilder(_BasedChainedFunctionBuilder[AsyncWeb3[AsyncHTTPProvider]]):
+    def __init__(self, async_w3: AsyncWeb3[AsyncHTTPProvider], abi_map: ABIMap):
+        super().__init__(async_w3, abi_map)
+
+    def v4_swap(self) -> _AsyncV4ChainedSwapFunctionBuilder:
+        """
+        V4 - Start building a call to the V4 swap functions
+
+        :return: The chain link corresponding to this function call.
+        """
+        return _AsyncV4ChainedSwapFunctionBuilder(self, self._abi_map)
+
+    def v4_posm_call(self) -> _AsyncV4ChainedPositionFunctionBuilder:
+        """
+        V4 - Start building a call to the V4 positon manager functions
+        :return: The chain link corresponding to this function call.
+        """
+        return _AsyncV4ChainedPositionFunctionBuilder(self, self._abi_map)
+
+    async def build_transaction(
+            self,
+            sender: ChecksumAddress,
+            value: Wei = Wei(0),
+            trx_speed: Optional[TransactionSpeed] = TransactionSpeed.FAST,
+            *,
+            priority_fee: Optional[Wei] = None,
+            max_fee_per_gas: Optional[Wei] = None,
+            max_fee_per_gas_limit: Wei = Wei(100 * 10 ** 9),
+            gas_limit: Optional[int] = None,
+            chain_id: Optional[int] = None,
+            nonce: Optional[Union[int, Nonce]] = None,
+            ur_address: ChecksumAddress = ur_address,
+            deadline: Optional[int] = None,
+            block_identifier: BlockIdentifier = "latest") -> TxParams:
+        """
+        Asynchronously build the encoded data and the transaction dictionary, ready to be signed.
+
+        By default, compute the gas fees, chain_id, nonce, deadline, ... but custom values can be used instead.
+        Gas fees are computed with a given TransactionSpeed (default is FAST).
+        All speeds will compute gas fees in order to try to place the transaction in the next block
+        (without certainty, of course).
+        So, during strained conditions, the computed gas fees could be very high but can be controlled
+        thanks to 'max_fee_per_gas_limit'.
+
+        Either a transaction speed is provided or custom gas fees, otherwise a ValueError is raised.
+
+        The RouterCodec must be built with a Web3 instance or a rpc endpoint address except if custom values are used.
+
+        :param sender: The 'from' field - Mandatory
+        :param value: The quantity of ETH sent to the Universal Router - Default is 0
+        :param trx_speed: The indicative 'speed' of the transaction - Default is TransactionSpeed.FAST
+        :param priority_fee: custom 'maxPriorityFeePerGas' - Default is None
+        :param max_fee_per_gas: custom 'maxFeePerGas' - Default is None
+        :param max_fee_per_gas_limit: if the computed 'max_fee_per_gas' is greater than 'max_fee_per_gas_limit', raise a ValueError  # noqa
+        :param gas_limit: custom 'gas' - Default is None
+        :param chain_id: custom 'chainId'
+        :param nonce: custom 'nonce'
+        :param ur_address: custom Universal Router address
+        :param deadline: The optional unix timestamp after which the transaction won't be valid anymore.
+        :param block_identifier: specify at what block the computing is done. Mostly for test purposes.
+        :return: a transaction (TxParams) ready to be signed
+        """
+        encoded_data = self.build(deadline)
+
+        if chain_id is None:
+            chain_id = await self._w3.eth.chain_id
+
+        if nonce is None:
+            nonce = await self._w3.eth.get_transaction_count(sender, block_identifier)
+
+        if not trx_speed:
+            if priority_fee is None or max_fee_per_gas is None:
+                raise ValueError("Either trx_speed or both priority_fee and max_fee_per_gas must be set.")
+            else:
+                _priority_fee = priority_fee
+                _max_fee_per_gas = max_fee_per_gas
+        else:
+            if priority_fee or max_fee_per_gas:
+                raise ValueError("priority_fee and max_fee_per_gas can't be set with trx_speed")
+            else:
+                _priority_fee, _max_fee_per_gas = await async_compute_gas_fees(self._w3, trx_speed, block_identifier)
+                if _max_fee_per_gas > max_fee_per_gas_limit:
+                    raise ValueError(
+                        "Computed max_fee_per_gas is greater than max_fee_per_gas_limit. "
+                        "Either provide max_fee_per_gas, increase max_fee_per_gas_limit "
+                        "or wait for less strained conditions"
+                    )
+
+        tx_params: TxParams = {
+            "from": sender,
+            "value": value,
+            "to": ur_address,
+            "chainId": chain_id,
+            "nonce": Nonce(nonce),
+            "type": HexStr('0x2'),
+            "maxPriorityFeePerGas": _priority_fee,
+            "maxFeePerGas": _max_fee_per_gas,
+            "data": encoded_data,
+        }
+
+        if gas_limit is None:
+            estimated_gas = await self._w3.eth.estimate_gas(tx_params, block_identifier)
             gas_limit = int(estimated_gas * 1.15)
 
         tx_params["gas"] = Wei(gas_limit)
