@@ -33,6 +33,16 @@
 ## Release Notes
 See the [release note page](https://github.com/Elnaril/uniswap-universal-router-decoder/wiki/Release_Notes)
 
+### v3.0.0.dev0 - breaking changes
+- Add async support
+- Remove support for Python 3.9
+- Remove support for Web3 < 7.14
+- Full pyproject.toml support (remove requirements.txt files)
+- Replace Mypy with Basedpyright
+- Refactor abi builder - part 2
+- Improve typing
+- Add pep-561 marker file (py.typed)
+
 ### v2.1.0
 - Add support for PERMIT2_PERMIT_BATCH
 - Add support for PERMIT2_TRANSFER_FROM_BATCH
@@ -51,11 +61,7 @@ The object of this library is to decode & encode transactions sent to the Uniswa
 on Ethereum Mainnet). It is based on, and is intended to be used with [web3.py](https://github.com/ethereum/web3.py)  
 The target audience is Python developers who are familiar with the Ethereum blockchain concepts and web3.py, and how DEXes work. 
 
-⚠ This library has not been audited, so use at your own risk !
-
 ⚠ Before using this library, ensure you are familiar with general blockchain concepts and [web3.py](https://github.com/ethereum/web3.py) in particular.
-
-⚠ This project is a work in progress so not all UR commands are supported yet. Below is the list of the already implemented ones.
 
 ### List of supported Uniswap Universal Router Functions
 
@@ -134,7 +140,57 @@ pip install -e . --group dev
 
 ## Usage
 
-The library exposes a class, `RouterCodec` with several public methods that can be used to decode or encode UR data.
+The library exposes 2 classes, `RouterCodec` and `AsyncRouterCodec` with several public methods 
+that can be used to decode or encode UR data and transactions.  
+Both `RouterCodec` and `AsyncRouterCodec` are used the same way but either synchronously 
+or asynchronously for the relevant parts, ie when doing rpc calls.
+
+### How to instantiate the router codec
+
+1/ When no need for rpc calls  
+```python
+from web3 import Web3
+from uniswap_universal_router_decoder import RouterCodec
+codec = RouterCodec()
+```
+
+2/ Using the URL of an rpc endpoint  
+
+Sync code:
+```python
+# Using an rpc endpoint
+from uniswap_universal_router_decoder import RouterCodec
+rpc_link = "https://..."  # your rpc endpoint
+codec = RouterCodec(rpc_endpoint=rpc_link)
+```
+
+Async code:
+```python
+# Using an rpc endpoint
+from uniswap_universal_router_decoder import AsyncRouterCodec
+rpc_link = "https://..."  # your rpc endpoint
+codec = AsyncRouterCodec(rpc_endpoint=rpc_link)
+```
+
+3/ Using a Web3/AsyncWeb3 instance  
+
+Sync code:
+```python
+# Using a web3 instance
+from web3 import Web3
+from uniswap_universal_router_decoder import RouterCodec
+w3 = Web3(...)  # your Web3 instance
+codec = RouterCodec(w3=w3)
+```
+
+Async code:
+```python
+# Using an AsyncWeb3 instance
+from web3 import AsyncWeb3
+from uniswap_universal_router_decoder import AsyncRouterCodec
+async_w3 = AsyncWeb3(...)  # your AsyncWeb3 instance
+codec = AsyncRouterCodec(async_w3=async_w3)
+```
 
 ### How to decode a Uniswap Universal Router transaction input
 To decode a transaction input, use the `decode.function_input()` method as follows:
@@ -188,28 +244,19 @@ Example of decoded input returned by `decode.function_input()`:
 
 ### How to decode a Uniswap Universal Router transaction
 It's also possible to decode the whole transaction, given its hash 
-and providing the codec has been built with either a valid `Web3` instance or the link to a rpc endpoint:
+and providing the codec has been built with either a valid `Web3` instance or the link to a rpc endpoint.
 
+The decoder will get the transaction from the blockchain and decode it, along with its input data:
 ```python
-# Using a web3 instance
-from web3 import Web3
-from uniswap_universal_router_decoder import RouterCodec
-w3 = Web3(...)  # your web3 instance
-codec = RouterCodec(w3=w3)
-```
-
-```python
-# Using a rpc endpoint
-from web3 import Web3
-from uniswap_universal_router_decoder import RouterCodec
-rpc_link = "https://..."  # your rpc endpoint
-codec = RouterCodec(rpc_endpoint=rpc_link)
-```
-
-And then the decoder will get the transaction from the blockchain and decode it, along with its input data:
-```python
+# sync code
 trx_hash = "0x52e63b7 ... 11b979dd9"
 decoded_transaction = codec.decode.transaction(trx_hash)
+```
+
+```python
+# async code
+trx_hash = "0x52e63b7 ... 11b979dd9"
+decoded_transaction = await codec.decode.transaction(trx_hash)
 ```
 
 ### How to decode a Uniswap V3 swap path
@@ -618,13 +665,15 @@ Check the corresponding integration tests for an example of how to use these fun
 ### How to build directly a transaction to the Uniswap Universal Router
 The SDK provides a handy method to build very easily the full transaction in addition to the input data.
 It can compute most of the transaction parameters (if the codec has been instantiated with a valid w3 or rpc url) 
-or you can provide them. 
+or you can provide them.  
+
+> See the corresponding integration tests for an async example
 
 Example where a swap is encoded and a transaction is built automatically:
 ```python
 from uniswap_universal_router_decoder import FunctionRecipient, RouterCodec
 
-codec = RouterCodec()
+codec = RouterCodec(w3)
 trx_params = (
     codec.encode.chain().v2_swap_exact_in(
         FunctionRecipient.SENDER,  # the output tokens are sent to the transaction sender
@@ -661,10 +710,18 @@ from uniswap_universal_router_decoder import TransactionSpeed
 ### Utility functions
 
 #### How to compute the gas fees
-The SDK provides a handy method to compute the current "priority fee" and "max fee per gas":
+The SDK provides handy methods to compute the current "priority fee" and "max fee per gas":  
+
+Sync code:
 ```python
 from uniswap_universal_router_decoder.utils import compute_gas_fees
 priority_fee, max_fee_per_gas = compute_gas_fees(w3)  # w3 is a valid Web3 instance
+```
+
+Async code:
+```python
+from uniswap_universal_router_decoder.utils import async_compute_gas_fees
+priority_fee, max_fee_per_gas = await async_compute_gas_fees(async_w3)  # async_w3 is a valid AsyncWeb3 instance
 ```
 
 ## Tutorials and Recipes on the Uniswap Universal Router:
