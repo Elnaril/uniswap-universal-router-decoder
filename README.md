@@ -25,7 +25,7 @@
 [![CodeQL](https://github.com/elnaril/uniswap-universal-router-decoder/workflows/CodeQL/badge.svg)](https://github.com/Elnaril/uniswap-universal-router-decoder/actions/workflows/github-code-scanning/codeql)
 [![Test Coverage](https://img.shields.io/badge/dynamic/json?color=blueviolet&label=coverage&query=%24.totals.percent_covered_display&suffix=%25&url=https%3A%2F%2Fraw.githubusercontent.com%2FElnaril%2Funiswap-universal-router-decoder%2Fmaster%2Fcoverage.json)](https://github.com/Elnaril/uniswap-universal-router-decoder/blob/master/coverage.json)
 [![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
-[![Type Checker: mypy](https://img.shields.io/badge/%20type%20checker-mypy-%231674b1?style=flat&labelColor=ef8336)](https://mypy-lang.org/)
+[![Type Checker: basedpyright](https://img.shields.io/badge/%20type%20checker-basedpyright-%231674b1?style=flat&labelColor=ef8336)](https://docs.basedpyright.com/)
 [![Linter: flake8](https://img.shields.io/badge/%20linter-flake8-%231674b1?style=flat&labelColor=ef8336)](https://flake8.pycqa.org/en/latest/)
 
 ---
@@ -42,6 +42,7 @@ See the [release note page](https://github.com/Elnaril/uniswap-universal-router-
 - Refactor abi builder - part 2
 - Improve typing
 - Add pep-561 marker file (py.typed)
+- Add tick, sqrtPriceX96, and liquidity related functions
 
 ### v2.1.0
 - Add support for PERMIT2_PERMIT_BATCH
@@ -722,6 +723,26 @@ Async code:
 ```python
 from uniswap_universal_router_decoder.utils import async_compute_gas_fees
 priority_fee, max_fee_per_gas = await async_compute_gas_fees(async_w3)  # async_w3 is a valid AsyncWeb3 instance
+```
+
+#### Ticks, sqrtPriceX96 and liquidity
+These functions can be useful to estimate the arguments needed to mint positions.
+
+⚠️ The implementation of all tick, sqrtPriceX96, and liquidity related functions differs from the contracts: 
+if you want the exact same results/numbers, do not use them.
+
+They can be imported `from uniswap_universal_router_decoder.utils`.  
+For examples, check the integration tests for Uniswap V4.
+
+```Python
+compute_sqrt_price_x96()  # Compute the sqrtPriceX96 from the Wei amounts  
+convert_sqrt_price_x96()  # Compute the price from the sqrtPriceX96  
+sqrt_price_x96_to_floor_tick()  # Connvert a sqrtPriceX96 to floor tick  
+tick_to_sqrt_price_x96()  # Convert a tick to sqrtPriceX96  
+tick_to_prices()  # Compute price_0 (with currency_0 as the quote currency) and price_1 (with currency_1 as the quote currency)
+    at a given tick  
+price_0_to_closest_tick()  # Compute the closest tick to a given price; useful to compute a price range lower and upper ticks  
+compute_liquidity()  # Compute theoretical liquidity as used to mint positions.
 ```
 
 ## Tutorials and Recipes on the Uniswap Universal Router:

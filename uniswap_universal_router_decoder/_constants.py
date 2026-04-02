@@ -5,6 +5,7 @@ Constants used by the Uniswap Universal Router Codec
 * License: MIT.
 * Doc: https://github.com/Elnaril/uniswap-universal-router-decoder
 """
+from math import log10
 from typing import (
     Final,
     TypeVar,
@@ -56,3 +57,11 @@ permit2_batch_types: Final = {
         {'name': 'sigDeadline', 'type': 'uint256'},
     ],
 }
+
+Q96: Final = 0x1000000000000000000000000
+BASELOG: Final = log10(1.0001)
+MIN_TICK: Final = -887272
+MAX_TICK: Final = 887272
+MIN_TICK_SPACING: Final = 1
+MAX_TICK_SPACING: Final = 2**15 - 1
+MIN_SQRT_PRICE: Final = 4295128739

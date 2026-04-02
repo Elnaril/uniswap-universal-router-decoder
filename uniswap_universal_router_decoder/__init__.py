@@ -1,3 +1,9 @@
+from uniswap_universal_router_decoder._constants import (
+    MAX_TICK,
+    MAX_TICK_SPACING,
+    MIN_TICK,
+    MIN_TICK_SPACING,
+)
 from uniswap_universal_router_decoder._encoder import (
     AllowanceTransferDetails,
     PathKey,
@@ -19,6 +25,10 @@ __all__ = [
     "AllowanceTransferDetails",
     "AsyncRouterCodec",
     "FunctionRecipient",
+    "MAX_TICK",
+    "MAX_TICK_SPACING",
+    "MIN_TICK",
+    "MIN_TICK_SPACING",
     "PathKey",
     "PermitDetails",
     "PoolKey",
