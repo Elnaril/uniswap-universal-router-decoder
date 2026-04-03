@@ -331,9 +331,9 @@ def mint_v4_position():
         amount_0_max,
         amount_1_max,
     )
-    assert max_liquidity == 1.8207226770041196e+16
+    assert max_liquidity == 18207226770041195, f"max liquidity is actually {max_liquidity}"
     # We'll go with liquidity = 1.8e16 to include a potential slippage
-    liquidity = 1.8e16
+    liquidity = int(1.8e16)
     assert liquidity < max_liquidity
 
     trx_params = (
