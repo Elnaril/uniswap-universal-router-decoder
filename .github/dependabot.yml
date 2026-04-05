@@ -1,0 +1,14 @@
+version: 2
+updates:
+  # Main project - check for Python dependencies normally
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # Tutorial folder - disable version updates to avoid obsolete dependency alerts
+  - package-ecosystem: "pip"
+    directory: "/tutorials"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0
