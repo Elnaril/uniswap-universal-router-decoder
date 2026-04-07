@@ -4,7 +4,8 @@
 Only the latest version of this library is supported.
 
 ## Scope
-Only [vulnerabilities](https://csrc.nist.gov/glossary/term/Software_Vulnerability) in dependencies or in the library itself that can be exploited by using this library are in the scope.
+Only [vulnerabilities](https://csrc.nist.gov/glossary/term/Software_Vulnerability) in dependencies or in the library itself that can be exploited by using this library are in the scope.  
+Unmaintained code like tutorials are not in the scope.
 
 For other bugs in this library, consider opening an issue [here](https://github.com/Elnaril/uniswap-universal-router-decoder/issues)
 
