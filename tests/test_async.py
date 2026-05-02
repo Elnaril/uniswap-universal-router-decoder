@@ -177,8 +177,7 @@ async def test_v4_swap_exact_in_single(async_codec):
     )
     encoded_input = (
         async_codec.
-        encode.
-        chain().
+        encode().
         v4_swap().
         swap_exact_in_single(
             pool_key=pool_key,

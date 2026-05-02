@@ -355,8 +355,7 @@ def test_build_transaction(codec_rpc):
     amount_in = Wei(2 * 10**18)
     builder = (
         codec_rpc
-        .encode
-        .chain()
+        .encode()
         .wrap_eth(FunctionRecipient.ROUTER, amount_in)
         .v2_swap_exact_in_from_balance(
             FunctionRecipient.SENDER,
