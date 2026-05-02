@@ -43,6 +43,7 @@ See the [release note page](https://github.com/Elnaril/uniswap-universal-router-
 - Improve typing
 - Add pep-561 marker file (py.typed)
 - Add tick, sqrtPriceX96, and liquidity related functions
+- Possibility to call directly the encoder i/o using chain()
 
 ### v2.1.0
 - Add support for PERMIT2_PERMIT_BATCH
@@ -279,7 +280,8 @@ The Uniswap Universal Router allows the chaining of several functions in the sam
 This codec supports it (at least for supported functions) and exposes public methods that can be chained.
 
 The chaining starts with the `encode.chain()` method and ends with the `build()` one which returns the full encoded data to be included in the transaction.
-Below some examples of encoded data for one function and one example for 2 functions.
+Below some examples of encoded data for one function and one example for 2 functions.  
+Starting with v3.0.0, it is possible to start the chaining with `encode()` instead of `encode.chain()`, making the code a bit more concise.
 
 Default values for deadlines and expirations can be computed with the static methods `get_default_deadline()` and `get_default_expiration()` respectively.
 ```python

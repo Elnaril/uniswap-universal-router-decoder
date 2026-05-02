@@ -188,6 +188,12 @@ class Encoder(_BaseEncoder[Web3]):
     def __init__(self, w3: Web3, abi_map: ABIMap) -> None:
         super().__init__(w3, abi_map)
 
+    def __call__(self):
+        """
+        :return: Initialize the chain of encoded functions
+        """
+        return _ChainedFunctionBuilder(self._w3, self._abi_map)
+
     def chain(self) -> _ChainedFunctionBuilder:
         """
         :return: Initialize the chain of encoded functions
@@ -198,6 +204,12 @@ class Encoder(_BaseEncoder[Web3]):
 class AsyncEncoder(_BaseEncoder[AsyncWeb3[AsyncHTTPProvider]]):
     def __init__(self, async_w3: AsyncWeb3[AsyncHTTPProvider], abi_map: ABIMap) -> None:
         super().__init__(async_w3, abi_map)
+
+    def __call__(self):
+        """
+        :return: Initialize the chain of encoded functions
+        """
+        return _AsyncChainedFunctionBuilder(self._w3, self._abi_map)
 
     def chain(self) -> _AsyncChainedFunctionBuilder:
         """
