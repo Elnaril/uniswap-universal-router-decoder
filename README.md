@@ -31,7 +31,7 @@
 ---
 
 ## Release Notes
-See the [release note page](https://github.com/Elnaril/uniswap-universal-router-decoder/wiki/Release_Notes)
+See the [release notes page](https://github.com/Elnaril/uniswap-universal-router-decoder/wiki/Release_Notes)
 
 ### v3.0.0.dev0 - breaking changes
 - Add async support
@@ -227,7 +227,7 @@ Example of decoded input returned by `decode.function_input()`:
                 {                                                                 # and its parameters
                     'recipient': '0x0000000000000000000000000000000000000001',  # code indicating the sender will receive the output of this command
                     'amountIn': 4500000000000000000,  # the exact amount sent
-                    'amountOutMin': 6291988002,  # the min amount expected of the bought token for the swap to be executed 
+                    'amountOutMin': 6291988002,  # the min amount expected of the bought token for the swap to be executed
                     'path': b"\xc0*\xaa9\xb2#\xfe\x8d\n\x0e\\O'\xea\xd9\x08<ul\xc2"  # the V3 path (tokens + pool fees)
                            b'\x00\x01\xf4\xa0\xb8i\x91\xc6!\x8b6\xc1\xd1\x9dJ.'  # can be decoded with the method decode.v3_path()
                            b'\x9e\xb0\xce6\x06\xebH',
@@ -238,7 +238,7 @@ Example of decoded input returned by `decode.function_input()`:
                 },
             )
         ],
-        'deadline': 1678441619  # The deadline after which the transaction is not valid any more.
+        'deadline': 1678441619  # The deadline after which the transaction is no longer valid
     }
 )
 ```
@@ -505,7 +505,7 @@ path_key = codec.encode.v4_path_key(
 ```
 
 #### How to encode a Uniswap V4 pool id
-Pool ids are used by V4 contracts to identify pools. For ex, you'll need it to request the `StateView` contract.
+Pool ids are used by V4 contracts to identify pools. For example, you'll need it to request the `StateView` contract.
 ```python
 from uniswap_universal_router_decoder import RouterCodec
 codec = RouterCodec()
@@ -695,7 +695,7 @@ trx_params = (
 ```
 And that's it! You can now sign and send this transaction.
 A few other important parameters:
- - `value`: the quantity of ETH in wei you send to the Universal Router (for ex when you wrap them before a swap)
+ - `value`: the quantity of ETH in wei you send to the Universal Router (for example when you wrap them before a swap)
  - `trx_speed`: an enum which influences the transaction rank in the block. Values are:
     - `TransactionSpeed.SLOW`
     - `TransactionSpeed.AVERAGE`
@@ -736,10 +736,10 @@ if you want the exact same results/numbers, do not use them.
 They can be imported `from uniswap_universal_router_decoder.utils`.  
 For examples, check the integration tests for Uniswap V4.
 
-```Python
+```python
 compute_sqrt_price_x96()  # Compute the sqrtPriceX96 from the Wei amounts  
 convert_sqrt_price_x96()  # Compute the price from the sqrtPriceX96  
-sqrt_price_x96_to_floor_tick()  # Connvert a sqrtPriceX96 to floor tick  
+sqrt_price_x96_to_floor_tick()  # Convert a sqrtPriceX96 to floor tick  
 tick_to_sqrt_price_x96()  # Convert a tick to sqrtPriceX96  
 tick_to_prices()  # Compute price_0 (with currency_0 as the quote currency) and price_1 (with currency_1 as the quote currency)
     at a given tick  
