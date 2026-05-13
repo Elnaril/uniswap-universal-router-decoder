@@ -34,6 +34,8 @@
 See the [release notes page](https://github.com/Elnaril/uniswap-universal-router-decoder/wiki/Release_Notes)
 
 ### v3.0.0.dev0 - breaking changes
+- Update UR address to match v2.1.1
+- Add support for UR v2.1.1 swaps
 - Add async support
 - Remove support for Python 3.9
 - Remove support for Web3 < 7.14
@@ -45,22 +47,13 @@ See the [release notes page](https://github.com/Elnaril/uniswap-universal-router
 - Add tick, sqrtPriceX96, and liquidity related functions
 - Possibility to call directly the encoder i/o using chain()
 
-### v2.1.0
-- Add support for PERMIT2_PERMIT_BATCH
-- Add support for PERMIT2_TRANSFER_FROM_BATCH
-- Refactor all integration tests to use Anvil i/o Ganache
-- Replace typing features deprecated since Python 3.9
-- Get test coverage back to 100%
-- Refactor ABI builder
-- Add support for Python 3.14
-
 ---
 
 ## Overview and Points of Attention
 
-The object of this library is to decode & encode transactions sent to the Uniswap universal router (UR)
-(address [`0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af`](https://etherscan.io/address/0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af) 
-on Ethereum Mainnet). It is based on, and is intended to be used with [web3.py](https://github.com/ethereum/web3.py)  
+The object of this library is to decode & encode transactions sent to the Uniswap Universal Router (UR) 
+on Ethereum Mainnet). See Version Mapping below.  
+It is based on, and is intended to be used with [web3.py](https://github.com/ethereum/web3.py)  
 The target audience is Python developers who are familiar with the Ethereum blockchain concepts and web3.py, and how DEXes work. 
 
 ⚠ Before using this library, ensure you are familiar with general blockchain concepts and [web3.py](https://github.com/ethereum/web3.py) in particular.
@@ -76,7 +69,7 @@ The target audience is Python developers who are familiar with the Ethereum bloc
 | 0x04        | SWEEP                       |                              |     ✅     |
 | 0x05        | TRANSFER                    |                              |     ✅     |
 | 0x06        | PAY_PORTION                 |                              |     ✅     |
-| 0x07        | placeholder                 |                              |    N/A    |
+| 0x07        | PAY_PORTION_FULL_PRECISION  |                              |     ❌      |
 | 0x08        | V2_SWAP_EXACT_IN            |                              |     ✅     |
 | 0x09        | V2_SWAP_EXACT_OUT           |                              |     ✅     |
 | 0x0a        | PERMIT2_PERMIT              |                              |     ✅     |
@@ -112,6 +105,18 @@ The target audience is Python developers who are familiar with the Ethereum bloc
 | 0x15 - 0x20 | placeholders                |                              |    N/A    |
 | 0x21        | EXECUTE_SUB_PLAN            |                              |     ❌     |
 | 0x22 - 0x3f | placeholders                |                              |    N/A    |
+| 0x40        | ACROSS_V4_DEPOSIT_V3        |                              |     ❌     |
+
+
+### Version Mapping
+Here is the mapping between the Universal Router versions and the SDK ones
+
+| UR Version | UR address on Ethereum | Python SDK version|
+|:----------:|------------|:-----------------:|
+| v2.1.1     | [`0x4C82D1fBFe28C977cBB58D8C7FF8FCF9F70a2cCA`](https://etherscan.io/address/0x4C82D1fBFe28C977cBB58D8C7FF8FCF9F70a2cCA) | v3.0.0 |
+| v2         | [`0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af`](https://etherscan.io/address/0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af) | v2.0.0 & v2.1.0 |
+| v1.2         | [`0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD`](https://etherscan.io/address/0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD) | v0.9.0 to v1.2.1 |
+| v1         | [`0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B`](https://etherscan.io/address/0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B) | v0.8.0 |
 
 ---
 
