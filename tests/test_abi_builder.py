@@ -16,8 +16,8 @@ from uniswap_universal_router_decoder._enums import (  # noqa
 )
 
 
-expected_fct_abi_08 = json.loads('{"inputs":[{"name":"recipient","type":"address"},{"name":"amountIn","type":"uint256"},{"name":"amountOutMin","type":"uint256"},{"name":"path","type":"address[]"},{"name":"payerIsSender","type":"bool"}],"name":"V2_SWAP_EXACT_IN","type":"function"}')  # noqa: E501
-expected_fct_signature_08 = "V2_SWAP_EXACT_IN(address,uint256,uint256,address[],bool)"
+expected_fct_abi_08 = json.loads('{"inputs":[{"name":"recipient","type":"address"},{"name":"amountIn","type":"uint256"},{"name":"amountOutMin","type":"uint256"},{"name":"path","type":"address[]"},{"name":"payerIsSender","type":"bool"}, {"name":"minHopPriceX36","type":"uint256[]"}],"name":"V2_SWAP_EXACT_IN","type":"function"}')  # noqa: E501
+expected_fct_signature_08 = "V2_SWAP_EXACT_IN(address,uint256,uint256,address[],bool,uint256[])"
 expected_fct_abi_10 = json.loads('{"inputs":[{"name":"struct","type":"tuple","components":[{"name":"details","type":"tuple","components":[{"name":"token","type":"address"},{"name":"amount","type":"uint160"},{"name":"expiration","type":"uint48"},{"name":"nonce","type":"uint48"}]},{"name":"spender","type":"address"},{"name":"sigDeadline","type":"uint256"}]},{"name":"data","type":"bytes"}],"name":"PERMIT2_PERMIT","type":"function"}')  # noqa: E501
 expected_fct_signature_10 = "PERMIT2_PERMIT(((address,uint160,uint48,uint48),address,uint256),bytes)"
 expected_fct_abi_03 = json.loads('{"inputs":[{"name":"struct","type":"tuple","components":[{"name":"details","type":"tuple[]","components":[{"name":"token","type":"address"},{"name":"amount","type":"uint160"},{"name":"expiration","type":"uint48"},{"name":"nonce","type":"uint48"}]},{"name":"spender","type":"address"},{"name":"sigDeadline","type":"uint256"}]},{"name":"data","type":"bytes"}],"name":"PERMIT2_PERMIT_BATCH","type":"function"}')  # noqa: E501
@@ -33,7 +33,7 @@ expected_v4_swap_exact_in_signature = "SWAP_EXACT_IN(ExactInputParams)"
 @pytest.mark.parametrize(
     "command_id, expected_fct_abi, expected_selector, expected_signature",
     (
-        (RouterFunction(8), expected_fct_abi_08, bytes.fromhex("3bd2d879"), expected_fct_signature_08),
+        (RouterFunction(8), expected_fct_abi_08, b't\x1e\x1a\x9f', expected_fct_signature_08),
         (RouterFunction(10), expected_fct_abi_10, b'9#\xf7\x04', expected_fct_signature_10),
         (RouterFunction(3), expected_fct_abi_03, bytes.fromhex("deac4a12"), expected_fct_signature_03),
         (MiscFunctions.EXECUTE, expected_execute_abi, bytes.fromhex("24856bc3"), expected_execute_signature),

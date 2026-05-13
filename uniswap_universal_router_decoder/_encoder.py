@@ -688,7 +688,8 @@ class _BasedChainedFunctionBuilder(Generic[W3]):
             amount_out_min: Wei,
             path: Sequence[ChecksumAddress],
             custom_recipient: Optional[ChecksumAddress] = None,
-            payer_is_sender: bool = True) -> Self:
+            payer_is_sender: bool = True,
+            min_hop_price_x36: Sequence[int] = []) -> Self:
         """
         Encode the call to the function V2_SWAP_EXACT_IN, which swaps tokens on Uniswap V2.
         Correct allowances must have been set before sending such transaction.
@@ -699,11 +700,13 @@ class _BasedChainedFunctionBuilder(Generic[W3]):
         :param path: The V2 path: a list of 2 or 3 tokens where the first is token_in and the last is token_out
         :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
         :param payer_is_sender: True if the in tokens come from the sender, False if they already are in the router
+        :param min_hop_price_x36: a list of min prices (output / input x 1e36) expected for each pair in the path.
+        An empty list to disable it. 0 to prevent checking the output of a specific pair.
 
         :return: The chain link corresponding to this function call.
         """
         recipient = self._get_recipient(function_recipient, custom_recipient)
-        args = (recipient, amount_in, amount_out_min, path, payer_is_sender)
+        args = (recipient, amount_in, amount_out_min, path, payer_is_sender, min_hop_price_x36)
         self._add_command(RouterFunction.V2_SWAP_EXACT_IN, args)
         return self
 
@@ -712,7 +715,8 @@ class _BasedChainedFunctionBuilder(Generic[W3]):
             function_recipient: FunctionRecipient,
             amount_out_min: Wei,
             path: Sequence[ChecksumAddress],
-            custom_recipient: Optional[ChecksumAddress] = None) -> Self:
+            custom_recipient: Optional[ChecksumAddress] = None,
+            min_hop_price_x36: Sequence[int] = []) -> Self:
         """
         Encode the call to the function V2_SWAP_EXACT_IN, using the router balance as amount_in,
         which swaps tokens on Uniswap V2.
@@ -723,6 +727,8 @@ class _BasedChainedFunctionBuilder(Generic[W3]):
         :param amount_out_min: The minimum accepted bought token (token_out)
         :param path: The V2 path: a list of 2 or 3 tokens where the first is token_in and the last is token_out
         :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
+        :param min_hop_price_x36: a list of min prices (output / input x 1e36) expected for each pair in the path.
+        An empty list to disable it. 0 to prevent checking the output of a specific pair.
 
         :return: The chain link corresponding to this function call.
         """
@@ -733,6 +739,7 @@ class _BasedChainedFunctionBuilder(Generic[W3]):
             path,
             custom_recipient,
             False,
+            min_hop_price_x36,
         )
 
     def v2_swap_exact_out(
@@ -742,7 +749,8 @@ class _BasedChainedFunctionBuilder(Generic[W3]):
             amount_in_max: Wei,
             path: Sequence[ChecksumAddress],
             custom_recipient: Optional[ChecksumAddress] = None,
-            payer_is_sender: bool = True) -> Self:
+            payer_is_sender: bool = True,
+            min_hop_price_x36: Sequence[int] = []) -> Self:
         """
         Encode the call to the function V2_SWAP_EXACT_OUT, which swaps tokens on Uniswap V2.
         Correct allowances must have been set before sending such transaction.
@@ -753,11 +761,13 @@ class _BasedChainedFunctionBuilder(Generic[W3]):
         :param path: The V2 path: a list of 2 or 3 tokens where the first is token_in and the last is token_out
         :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
         :param payer_is_sender: True if the in tokens come from the sender, False if they already are in the router
+        :param min_hop_price_x36: a list of min prices (output / input x 1e36) expected for each pair in the path.
+        An empty list to disable it. 0 to prevent checking the output of a specific pair.
 
         :return: The chain link corresponding to this function call.
         """
         recipient = self._get_recipient(function_recipient, custom_recipient)
-        args = (recipient, amount_out, amount_in_max, path, payer_is_sender)
+        args = (recipient, amount_out, amount_in_max, path, payer_is_sender, min_hop_price_x36)
         self._add_command(RouterFunction.V2_SWAP_EXACT_OUT, args)
         return self
 
@@ -768,7 +778,8 @@ class _BasedChainedFunctionBuilder(Generic[W3]):
             amount_out_min: Wei,
             path: Sequence[Union[int, ChecksumAddress]],
             custom_recipient: Optional[ChecksumAddress] = None,
-            payer_is_sender: bool = True) -> Self:
+            payer_is_sender: bool = True,
+            min_hop_price_x36: Sequence[int] = []) -> Self:
         """
         Encode the call to the function V3_SWAP_EXACT_IN, which swaps tokens on Uniswap V3.
         Correct allowances must have been set before sending such transaction.
@@ -780,12 +791,14 @@ class _BasedChainedFunctionBuilder(Generic[W3]):
         with the pool fee between each token in percentage * 10000 (ex: 3000 for 0.3%)
         :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
         :param payer_is_sender: True if the in tokens come from the sender, False if they already are in the router
+        :param min_hop_price_x36: a list of min prices (output / input x 1e36) expected for each pair in the path.
+        An empty list to disable it. 0 to prevent checking the output of a specific pair.
 
         :return: The chain link corresponding to this function call.
         """
         recipient = self._get_recipient(function_recipient, custom_recipient)
         encoded_v3_path = Encoder.v3_path(RouterFunction.V3_SWAP_EXACT_IN.name, path)
-        args = (recipient, amount_in, amount_out_min, encoded_v3_path, payer_is_sender)
+        args = (recipient, amount_in, amount_out_min, encoded_v3_path, payer_is_sender, min_hop_price_x36)
         self._add_command(RouterFunction.V3_SWAP_EXACT_IN, args)
         return self
 
@@ -794,7 +807,8 @@ class _BasedChainedFunctionBuilder(Generic[W3]):
             function_recipient: FunctionRecipient,
             amount_out_min: Wei,
             path: Sequence[Union[int, ChecksumAddress]],
-            custom_recipient: Optional[ChecksumAddress] = None) -> Self:
+            custom_recipient: Optional[ChecksumAddress] = None,
+            min_hop_price_x36: Sequence[int] = []) -> Self:
         """
         Encode the call to the function V3_SWAP_EXACT_IN, using the router balance as amount_in,
         which swaps tokens on Uniswap V3.
@@ -806,6 +820,8 @@ class _BasedChainedFunctionBuilder(Generic[W3]):
         :param path: The V3 path: a list of tokens where the first is the token_in, the last one is the token_out, and
         with the pool fee between each token in percentage * 10000 (ex: 3000 for 0.3%)
         :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
+        :param min_hop_price_x36: a list of min prices (output / input x 1e36) expected for each pair in the path.
+        An empty list to disable it. 0 to prevent checking the output of a specific pair.
 
         :return: The chain link corresponding to this function call.
         """
@@ -816,6 +832,7 @@ class _BasedChainedFunctionBuilder(Generic[W3]):
             path,
             custom_recipient,
             False,
+            min_hop_price_x36,
         )
 
     def v3_swap_exact_out(
@@ -825,7 +842,8 @@ class _BasedChainedFunctionBuilder(Generic[W3]):
             amount_in_max: Wei,
             path: Sequence[Union[int, ChecksumAddress]],
             custom_recipient: Optional[ChecksumAddress] = None,
-            payer_is_sender: bool = True) -> Self:
+            payer_is_sender: bool = True,
+            min_hop_price_x36: Sequence[int] = []) -> Self:
         """
         Encode the call to the function V3_SWAP_EXACT_OUT, which swaps tokens on Uniswap V3.
         Correct allowances must have been set before sending such transaction.
@@ -837,12 +855,14 @@ class _BasedChainedFunctionBuilder(Generic[W3]):
         with the pool fee between each token in percentage * 10000 (ex: 3000 for 0.3%)
         :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
         :param payer_is_sender: True if the in tokens come from the sender, False if they already are in the router
+        :param min_hop_price_x36: a list of min prices (output / input x 1e36) expected for each pair in the path.
+        An empty list to disable it. 0 to prevent checking the output of a specific pair.
 
         :return: The chain link corresponding to this function call.
         """
         recipient = self._get_recipient(function_recipient, custom_recipient)
         encoded_v3_path = Encoder.v3_path(RouterFunction.V3_SWAP_EXACT_OUT.name, path)
-        args = (recipient, amount_out, amount_in_max, encoded_v3_path, payer_is_sender)
+        args = (recipient, amount_out, amount_in_max, encoded_v3_path, payer_is_sender, min_hop_price_x36)
         self._add_command(RouterFunction.V3_SWAP_EXACT_OUT, args)
         return self
 

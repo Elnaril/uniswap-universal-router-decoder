@@ -201,6 +201,10 @@ class CommonABIBuilder:
         self.abi.params.append(ABIParam(arg_name, "bytes[]"))
         return self
 
+    def add_uint256_array(self, arg_name: str) -> Self:
+        self.abi.params.append(ABIParam(arg_name, "uint256[]"))
+        return self
+
     @staticmethod
     def create_struct(struct_name: str) -> ABIStructBuilder:
         return ABIStructBuilder(struct_name, "tuple")
@@ -304,7 +308,7 @@ class ABIMapWrapper:
 def build_v2_swap_exact_in() -> ABIFunction:
     builder = ABIFunctionBuilder(RouterFunction.V2_SWAP_EXACT_IN.name)
     builder.add_address("recipient").add_uint256("amountIn").add_uint256("amountOutMin").add_address_array("path")
-    return builder.add_bool("payerIsSender").build()
+    return builder.add_bool("payerIsSender").add_uint256_array("minHopPriceX36").build()
 
 
 @ABIRegister(RouterFunction.PERMIT2_PERMIT)
@@ -337,7 +341,7 @@ def build_unwrap_weth() -> ABIFunction:
 def build_v3_swap_exact_in() -> ABIFunction:
     builder = ABIFunctionBuilder(RouterFunction.V3_SWAP_EXACT_IN.name)
     builder.add_address("recipient").add_uint256("amountIn").add_uint256("amountOutMin").add_bytes("path")
-    return builder.add_bool("payerIsSender").build()
+    return builder.add_bool("payerIsSender").add_uint256_array("minHopPriceX36").build()
 
 
 @ABIRegister(RouterFunction.WRAP_ETH)
@@ -350,14 +354,14 @@ def build_wrap_eth() -> ABIFunction:
 def build_v2_swap_exact_out() -> ABIFunction:
     builder = ABIFunctionBuilder(RouterFunction.V2_SWAP_EXACT_OUT.name)
     builder.add_address("recipient").add_uint256("amountOut").add_uint256("amountInMax").add_address_array("path")
-    return builder.add_bool("payerIsSender").build()
+    return builder.add_bool("payerIsSender").add_uint256_array("minHopPriceX36").build()
 
 
 @ABIRegister(RouterFunction.V3_SWAP_EXACT_OUT)
 def build_v3_swap_exact_out() -> ABIFunction:
     builder = ABIFunctionBuilder(RouterFunction.V3_SWAP_EXACT_OUT.name)
     builder.add_address("recipient").add_uint256("amountOut").add_uint256("amountInMax").add_bytes("path")
-    return builder.add_bool("payerIsSender").build()
+    return builder.add_bool("payerIsSender").add_uint256_array("minHopPriceX36").build()
 
 
 @ABIRegister(RouterFunction.SWEEP)
