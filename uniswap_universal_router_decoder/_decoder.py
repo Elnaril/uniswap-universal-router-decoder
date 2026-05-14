@@ -41,9 +41,9 @@ from uniswap_universal_router_decoder._abi_builder import (
 )
 from uniswap_universal_router_decoder._constants import (
     permit2_abi,
-    pool_manager_abi,
-    position_manager_abi,
-    router_abi,
+    ur_abi,
+    v4_pool_manager_abi,
+    v4_position_manager_abi,
     W3,
 )
 from uniswap_universal_router_decoder._enums import (
@@ -60,7 +60,7 @@ class _V4Decoder:
     def __init__(self, w3: Union[AsyncWeb3[AsyncHTTPProvider], Web3], abi_map: ABIMap) -> None:
         self._w3 = w3
         self._abi_map = abi_map
-        self._pm_contract = w3.eth.contract(abi=position_manager_abi)
+        self._pm_contract = w3.eth.contract(abi=v4_position_manager_abi)
 
     def _decode_v4_actions(
             self,
@@ -93,7 +93,7 @@ class _BaseDecoder(Generic[W3]):
         self._w3 = w3
 
         # w3.eth.contract returns a contract type if no address is provided, and a contract if one is.
-        self._router_contract: Union[type[AsyncContract], type[Contract]] = self._w3.eth.contract(abi=router_abi)
+        self._router_contract: Union[type[AsyncContract], type[Contract]] = self._w3.eth.contract(abi=ur_abi)
 
         self._abi_map = abi_map
         self._v4_decoder = _V4Decoder(w3, abi_map)
@@ -194,7 +194,12 @@ class _BaseDecoder(Generic[W3]):
     def contract_error(
             self,
             contract_error: Union[str, HexStr],
-            abis: Sequence[str] = (permit2_abi, pool_manager_abi, position_manager_abi, router_abi),
+            abis: Sequence[str] = (
+                permit2_abi,
+                v4_pool_manager_abi,
+                v4_position_manager_abi,
+                ur_abi,
+            ),
     ) -> tuple[str, dict[str, Any]]:
         """
         Decode contract custom errors.

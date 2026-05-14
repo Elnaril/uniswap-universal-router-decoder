@@ -38,7 +38,7 @@ from web3.types import (
 
 from uniswap_universal_router_decoder._abi_builder import ABIMap
 from uniswap_universal_router_decoder._constants import (
-    router_abi,
+    ur_abi,
     ur_address,
     W3,
 )
@@ -93,7 +93,7 @@ AllowanceTransferDetails = TypedDict(
 class _BaseEncoder(Generic[W3]):
     def __init__(self, w3: W3, abi_map: ABIMap) -> None:
         self._w3 = w3
-        self._router_contract = self._w3.eth.contract(abi=router_abi)
+        self._router_contract = self._w3.eth.contract(abi=ur_abi)
         self._abi_map = abi_map
 
     @staticmethod
@@ -610,7 +610,7 @@ class _AsyncV4ChainedSwapFunctionBuilder(_BaseV4ChainedSwapFunctionBuilder["_Asy
 class _BasedChainedFunctionBuilder(Generic[W3]):
     def __init__(self, w3: W3, abi_map: ABIMap):
         self._w3 = w3
-        self._router_contract = self._w3.eth.contract(abi=router_abi)
+        self._router_contract = self._w3.eth.contract(abi=ur_abi)
         self._abi_map = abi_map
         self.commands: bytearray = bytearray()
         self.arguments: list[bytes] = []
