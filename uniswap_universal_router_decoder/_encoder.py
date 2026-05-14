@@ -198,7 +198,7 @@ class Encoder(_BaseEncoder[Web3]):
         """
         :return: Initialize the chain of encoded functions
         """
-        return _ChainedFunctionBuilder(self._w3, self._abi_map)
+        return self()
 
 
 class AsyncEncoder(_BaseEncoder[AsyncWeb3[AsyncHTTPProvider]]):
@@ -215,7 +215,7 @@ class AsyncEncoder(_BaseEncoder[AsyncWeb3[AsyncHTTPProvider]]):
         """
         :return: Initialize the chain of encoded functions
         """
-        return _AsyncChainedFunctionBuilder(self._w3, self._abi_map)
+        return self()
 
 
 TChainedFunctionBuilder = TypeVar("TChainedFunctionBuilder", "_ChainedFunctionBuilder", "_AsyncChainedFunctionBuilder")
