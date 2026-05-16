@@ -46,6 +46,7 @@ See the [release notes page](https://github.com/Elnaril/uniswap-universal-router
 - Add pep-561 marker file (py.typed)
 - Add tick, sqrtPriceX96, and liquidity related functions
 - Possibility to call directly the encoder i/o using chain()
+- Make `decode.transaction()` and `decode.function_input()` outputs consistent
 
 ---
 

@@ -238,9 +238,9 @@ class Decoder(_BaseDecoder[Web3]):
         :return: the transaction as a dict with the additional 'decoded_input' field
         """
         trx = self._get_transaction(trx_hash)
-        _, decoded_input = self.function_input(trx.get("input", HexStr("0x")))
-        result_trx = dict(trx)
-        result_trx["decoded_input"] = decoded_input
+        fct_name, decoded_input = self.function_input(trx.get("input", HexStr("0x")))
+        result_trx: dict[str, Any] = dict(trx)
+        result_trx["decoded_input"] = (fct_name, decoded_input)
         return result_trx
 
     def _get_transaction(self, trx_hash: Union[HexBytes, HexStr]) -> TxData:
@@ -261,9 +261,9 @@ class AsyncDecoder(_BaseDecoder[AsyncWeb3[AsyncHTTPProvider]]):
         :return: the transaction as a dict with the additional 'decoded_input' field
         """
         trx = await self._get_transaction(trx_hash)
-        _, decoded_input = self.function_input(trx.get("input", HexStr("0x")))
-        result_trx = dict(trx)
-        result_trx["decoded_input"] = decoded_input
+        fct_name, decoded_input = self.function_input(trx.get("input", HexStr("0x")))
+        result_trx: dict[str, Any] = dict(trx)
+        result_trx["decoded_input"] = (fct_name, decoded_input)
         return result_trx
 
     async def _get_transaction(self, trx_hash: Union[HexBytes, HexStr]) -> TxData:

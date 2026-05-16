@@ -2,11 +2,9 @@ from pprint import pp
 
 import pytest
 from web3 import AsyncWeb3
-from web3.types import (
-    HexStr,
-    Wei,
-)
+from web3.types import Wei
 
+from tests.resources.transactions import transactions
 from uniswap_universal_router_decoder import (
     AsyncRouterCodec,
     FunctionRecipient,
@@ -20,64 +18,32 @@ def test_get_max_expiration(async_codec):
 
 
 # Test Decode Trx + Input
-trx_hash_01 = HexStr("0xd2c87626ff2ed52e922c3d0c49ca36bd6c48e31ac21d5aee2505e503ddd1e29c")
-expected_function_names_01 = ("V2_SWAP_EXACT_IN", "UNWRAP_WETH")
-
-trx_hash_02 = HexStr("0x16f416f6e808c457f88a7e0ce89892e5741c5ea7587d89eca073b5095e33c890")
-expected_function_names_02 = ("PERMIT2_PERMIT", "V3_SWAP_EXACT_OUT")
-
-trx_hash_03 = HexStr("0x93371c34a911f9b7f1a01945b373548fc17f72c6628767669151a981a33fc156")
-expected_function_names_03 = ("WRAP_ETH", "V2_SWAP_EXACT_OUT", "UNWRAP_WETH")
-
-trx_hash_05 = HexStr("0x47c0f1dd13edf9f1608f9f34bdba9ad40cb95dd081033cad69f5b88e451b4b55")
-expected_function_names_05 = (None, "SWEEP")
-
-trx_hash_06 = HexStr("0xfd25bd671e4186f360e673bee850a7ba0677bd45f1498ad400c81ffb0cef7838")
-expected_function_names_06 = ("V3_SWAP_EXACT_IN", "V3_SWAP_EXACT_IN", "V2_SWAP_EXACT_IN")
-
-trx_hash_07 = HexStr("0x1e869ba980b7131ca03f619cdf4a37af66eed4de2db97eed862c02c977ecce53")
-expected_function_names_07 = ("PERMIT2_PERMIT", "V2_SWAP_EXACT_IN", "PAY_PORTION", "PAY_PORTION", "UNWRAP_WETH")
-
-trx_hash_11 = HexStr("0x4b8c8940707bbcd928d00d0e369bdbe8ff65b092ba1fc8aa10891bfac7c4277b")
-expected_function_names_11 = ("PERMIT2_PERMIT_BATCH", "V4_SWAP")
-
-trx_hash_12 = HexStr("0x2ab1c28cf84f5e4b4db07e1be2e6f45f9c07e5d3b2ad80396e51c12d8db2b180")
-expected_function_names_12 = ("PERMIT2_PERMIT_BATCH", "V4_SWAP", "PERMIT2_TRANSFER_FROM_BATCH", "modifyLiquidities")
-
-trx_hash_13 = HexStr("0x19d531aaab4b8abfa3723d4d6fa5e80d8ecddafe3100992230edb9a2b02c3a80")
-expected_function_names_13 = ("WRAP_ETH", "TRANSFER", "V3_SWAP_EXACT_OUT", "UNWRAP_WETH")
-
-
 @pytest.mark.parametrize(
-    "trx_hash, use_w3, expected_fct_names",
+    "trx_hash, use_w3, expected_decoded_input",
     (
-        (trx_hash_01, False, expected_function_names_01),
-        (trx_hash_02, True, expected_function_names_02),
-        (trx_hash_03, True, expected_function_names_03),
-        (trx_hash_05, True, expected_function_names_05),
-        (trx_hash_06, True, expected_function_names_06),
-        (trx_hash_07, True, expected_function_names_07),
-        (trx_hash_11, True, expected_function_names_11),
-        (trx_hash_12, True, expected_function_names_12),
-        (trx_hash_13, True, expected_function_names_13),
+        (transactions[0]["trx_hash"], True, transactions[0]["decoded_input"]),
+        (transactions[1]["trx_hash"], False, transactions[1]["decoded_input"]),
+        (transactions[2]["trx_hash"], True, transactions[2]["decoded_input"]),
+        (transactions[3]["trx_hash"], False, transactions[3]["decoded_input"]),
+        (transactions[4]["trx_hash"], True, transactions[4]["decoded_input"]),
+        (transactions[5]["trx_hash"], False, transactions[5]["decoded_input"]),
+        (transactions[6]["trx_hash"], True, transactions[6]["decoded_input"]),
+        (transactions[7]["trx_hash"], False, transactions[7]["decoded_input"]),
+        (transactions[8]["trx_hash"], True, transactions[8]["decoded_input"]),
     )
 )
-async def test_decode_transaction(trx_hash, use_w3, expected_fct_names, async_w3, rpc_url):
+async def test_decode_transaction(trx_hash, use_w3, expected_decoded_input, async_w3, rpc_url):
     if use_w3:
         codec_w3 = AsyncRouterCodec(async_w3=async_w3)
     else:
         codec_w3 = AsyncRouterCodec(rpc_endpoint=rpc_url)
 
     decoded_trx = await codec_w3.decode.transaction(trx_hash)
-    command_inputs = decoded_trx["decoded_input"]["inputs"]
-    assert len(command_inputs) == len(expected_fct_names)
-    for i, expected_name in enumerate(expected_fct_names):
-        if expected_name:
-            assert expected_name == command_inputs[i][0].fn_name
-            assert command_inputs[i][2]['revert_on_fail'] is True
-        else:
-            assert isinstance(command_inputs[i], str)
-            int(command_inputs[i], 16)  # check the str is actually a hex
+    assert decoded_trx["hash"] == AsyncWeb3.to_bytes(hexstr=trx_hash)
+    assert str(decoded_trx["decoded_input"]) == expected_decoded_input
+
+    decoded_input = codec_w3.decode.function_input(decoded_trx["input"])
+    assert str(decoded_input) == expected_decoded_input
 
 
 async def test_build_transaction(async_w3):
