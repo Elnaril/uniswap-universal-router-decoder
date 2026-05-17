@@ -3,11 +3,15 @@ from pprint import pp
 import pytest
 from web3 import Web3
 from web3.types import (
+    HexBytes,
     HexStr,
     Wei,
 )
 
 from uniswap_universal_router_decoder import (
+    FunctionRecipient,
+    PathKey,
+    PoolKey,
     RouterCodec,
     V4Constants,
 )
@@ -52,90 +56,194 @@ def test_pool_id():
     assert codec.encode.v4_pool_id(pool_key) == Web3.to_bytes(hexstr=expected_pool_id)
 
 
-def test_v4_swap_exact_in_single():
-    pool_key = codec.encode.v4_pool_key(
-        "0x0000000000000000000000000000000000000000",
-        "0xBf5617af623f1863c4abc900c5bebD5415a694e8",
-        3000,
-        50,
+# V4_SWAP - SWAP_EXACT_IN, SETTLE, TAKE
+input_01 = HexBytes('0x3593564c000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000069fa330c00000000000000000000000000000000000000000000000000000000000000011000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000003070b0e000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000026000000000000000000000000000000000000000000000000000000000000002e000000000000000000000000000000000000000000000000000000000000001e00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000d04175024082f1490135f5d7054ade0538386fed00000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000001a00000000000000000000000000000000000000000000034f086ee6f2f763e3f6c0000000000000000000000000000000000000000000000000029863a7606da2a000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000271000000000000000000000000000000000000000000000000000000000000000c8000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000060000000000000000000000000d04175024082f1490135f5d7054ade0538386fed00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002de9481bae36573ea2a7b949260470c6c044867c0000000000000000000000000000000000000000000000000000000000000000')  # noqa: E501
+expected_decoded_input_01 = """(<Function execute(bytes,bytes[],uint256)>, {'commands': b'\\x10', 'inputs': [(<Function V4_SWAP(bytes,bytes[])>, {'actions': b'\\x07\\x0b\\x0e', 'params': [(<Function SWAP_EXACT_IN(ExactInputParams)>, {'params': {'currencyIn': '0xd04175024082F1490135F5D7054aDE0538386Fed', 'PathKeys': [{'intermediateCurrency': '0x0000000000000000000000000000000000000000', 'fee': 10000, 'tickSpacing': 200, 'hooks': '0x0000000000000000000000000000000000000000', 'hookData': b''}], 'minHopPriceX36': [], 'amountIn': 249999998517807020916588, 'amountOutMinimum': 11688059691522602}}), (<Function SETTLE(address,uint256,bool)>, {'currency': '0xd04175024082F1490135F5D7054aDE0538386Fed', 'amount': 0, 'payerIsUser': True}), (<Function TAKE(address,address,uint256)>, {'currency': '0x0000000000000000000000000000000000000000', 'recipient': '0x2De9481BAE36573Ea2A7b949260470C6C044867c', 'amount': 0})]}, {'revert_on_fail': True})], 'deadline': 1778004748})"""  # noqa: E501
+
+
+def test_v4_swap_exact_in_settle_take(codec: RouterCodec):
+    decoded_input = codec.decode.function_input(input_01)
+    print("decoded_input:", decoded_input)
+    assert expected_decoded_input_01 == repr(decoded_input)
+
+    path_key = PathKey(
+        intermediate_currency=Web3.to_checksum_address("0x0000000000000000000000000000000000000000"),
+        fee=10000,
+        tick_spacing=200,
+        hooks=Web3.to_checksum_address("0x0000000000000000000000000000000000000000"),
+        hook_data=b"",
     )
     encoded_input = (
         codec.
-        encode.
-        chain().
+        encode().
+        v4_swap().
+        swap_exact_in(
+            currency_in=Web3.to_checksum_address("0xd04175024082F1490135F5D7054aDE0538386Fed"),
+            path_keys=[
+                path_key,
+            ],
+            amount_in=249999998517807020916588,
+            amount_out_min=11688059691522602,
+            min_hop_price_x36=[],
+        ).
+        settle(
+            currency=Web3.to_checksum_address("0xd04175024082F1490135F5D7054aDE0538386Fed"),
+            amount=0,
+            payer_is_user=True,
+        ).
+        take(
+            currency=Web3.to_checksum_address("0x0000000000000000000000000000000000000000"),
+            recipient=Web3.to_checksum_address("0x2De9481BAE36573Ea2A7b949260470C6C044867c"),
+            amount=0,
+        ).
+        build_v4_swap().
+        build(deadline=1778004748)
+    )
+    assert input_01 == HexBytes(Web3.to_bytes(hexstr=encoded_input))
+
+
+# V4_SWAP - SWAP_EXACT_OUT, SETTLE, TAKE - SWEEP
+input_02 = HexBytes('0x3593564c000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000069fa5151000000000000000000000000000000000000000000000000000000000000000210040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000004600000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000003090b0e000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000026000000000000000000000000000000000000000000000000000000000000002e000000000000000000000000000000000000000000000000000000000000001e0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000044b28991b167582f18ba0259e0173176ca12550500000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000001a00000000000000000000000000000000000000000000000001bc16d674ec800000000000000000000000000000000000000000000000000001026c649b068ebfb0000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002710000000000000000000000000000000000000000000000000000000000000003c000000000000000000000000e54082dfbf044b6a8f584bdddb90a22d5613c44000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000006000000000000000000000000044b28991b167582f18ba0259e0173176ca125505000000000000000000000000dc780bf167e46cb2de0e8db47381186dbf514831000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000dc780bf167e46cb2de0e8db47381186dbf5148310000000000000000000000000000000000000000000000000000000000000000')  # noqa: E501
+expected_decoded_input_02 = """(<Function execute(bytes,bytes[],uint256)>, {'commands': b'\\x10\\x04', 'inputs': [(<Function V4_SWAP(bytes,bytes[])>, {'actions': b'\\t\\x0b\\x0e', 'params': [(<Function SWAP_EXACT_OUT(ExactOutputParams)>, {'params': {'currencyOut': '0x44b28991B167582F18BA0259e0173176ca125505', 'PathKeys': [{'intermediateCurrency': '0x0000000000000000000000000000000000000000', 'fee': 10000, 'tickSpacing': 60, 'hooks': '0xe54082DfBf044B6a8F584bdDdb90a22d5613C440', 'hookData': b''}], 'minHopPriceX36': [], 'amountOut': 2000000000000000000, 'amountInMaximum': 1163835573516430331}}), (<Function SETTLE(address,uint256,bool)>, {'currency': '0x0000000000000000000000000000000000000000', 'amount': 0, 'payerIsUser': True}), (<Function TAKE(address,address,uint256)>, {'currency': '0x44b28991B167582F18BA0259e0173176ca125505', 'recipient': '0xDC780BF167E46cb2dE0E8Db47381186dbF514831', 'amount': 0})]}, {'revert_on_fail': True}), (<Function SWEEP(address,address,uint256)>, {'token': '0x0000000000000000000000000000000000000000', 'recipient': '0xDC780BF167E46cb2dE0E8Db47381186dbF514831', 'amountMin': 0}, {'revert_on_fail': True})], 'deadline': 1778012497})"""  # noqa: E501
+
+
+def test_v4_swap_exact_out_settle_take(codec: RouterCodec):
+    decoded_input = codec.decode.function_input(input_02)
+    print("decoded_input:", decoded_input)
+    assert expected_decoded_input_02 == repr(decoded_input)
+
+    path_key = PathKey(
+        intermediate_currency=Web3.to_checksum_address("0x0000000000000000000000000000000000000000"),
+        fee=10000,
+        tick_spacing=60,
+        hooks=Web3.to_checksum_address("0xe54082DfBf044B6a8F584bdDdb90a22d5613C440"),
+        hook_data=b"",
+    )
+    encoded_input = (
+        codec.
+        encode().
+        v4_swap().
+        swap_exact_out(
+            currency_out=Web3.to_checksum_address("0x44b28991B167582F18BA0259e0173176ca125505"),
+            path_keys=[
+                path_key,
+            ],
+            amount_out=2000000000000000000,
+            amount_in_max=1163835573516430331,
+            min_hop_price_x36=[],
+        ).
+        settle(
+            currency=Web3.to_checksum_address("0x0000000000000000000000000000000000000000"),
+            amount=0,
+            payer_is_user=True,
+        ).
+        take(
+            currency=Web3.to_checksum_address("0x44b28991B167582F18BA0259e0173176ca125505"),
+            recipient=Web3.to_checksum_address("0xDC780BF167E46cb2dE0E8Db47381186dbF514831"),
+            amount=0,
+        ).
+        build_v4_swap().
+        sweep(
+            function_recipient=FunctionRecipient.CUSTOM,
+            token_address=Web3.to_checksum_address("0x0000000000000000000000000000000000000000"),
+            amount_min=Wei(0),
+            custom_recipient=Web3.to_checksum_address("0xDC780BF167E46cb2dE0E8Db47381186dbF514831"),
+        ).
+        build(deadline=1778012497)
+    )
+    assert input_02 == HexBytes(Web3.to_bytes(hexstr=encoded_input))
+
+
+# V4_SWAP - SWAP_EXACT_IN_SINGLE, SETTLE_ALL, TAKE_ALL
+input_03 = HexBytes('0x3593564c000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000069fbf1ef00000000000000000000000000000000000000000000000000000000000000011000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000360000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000003060c0f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000260000000000000000000000000000000000000000000000000000000000000018000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000be57e9c04387a1bceb89c5dfb488b99343fb9f280000000000000000000000000000000000000000000000000000000000000bb8000000000000000000000000000000000000000000000000000000000000003c000000000000000000000000d11b0ebcd58c978807aa3a438f0915a394ed20cc000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000046cbd056bca18e5260500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000014000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000be57e9c04387a1bceb89c5dfb488b99343fb9f2800000000000000000000000000000000000000000000046cbd056bca18e52605000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000')  # noqa: E501
+expected_decoded_input_03 = """(<Function execute(bytes,bytes[],uint256)>, {'commands': b'\\x10', 'inputs': [(<Function V4_SWAP(bytes,bytes[])>, {'actions': b'\\x06\\x0c\\x0f', 'params': [(<Function SWAP_EXACT_IN_SINGLE(((address,address,uint24,int24,address),bool,uint128,uint128,uint256,bytes))>, {'exact_in_single_params': {'PoolKey': {'currency0': '0x0000000000000000000000000000000000000000', 'currency1': '0xbE57e9c04387a1bCeB89C5Dfb488B99343FB9f28', 'fee': 3000, 'tickSpacing': 60, 'hooks': '0xD11B0eBcD58C978807aA3A438f0915A394ed20CC'}, 'zeroForOne': False, 'amountIn': 20895334702603009598981, 'amountOutMinimum': 0, 'minHopPriceX36': 0, 'hookData': b''}}), (<Function SETTLE_ALL(address,uint256)>, {'currency': '0xbE57e9c04387a1bCeB89C5Dfb488B99343FB9f28', 'maxAmount': 20895334702603009598981}), (<Function TAKE_ALL(address,uint256)>, {'currency': '0x0000000000000000000000000000000000000000', 'minAmount': 0})]}, {'revert_on_fail': True})], 'deadline': 1778119151})"""  # noqa: E501
+
+
+def test_v4_swap_exact_in_single_settle_all_take_all(codec: RouterCodec):
+    decoded_input = codec.decode.function_input(input_03)
+    print("decoded_input:", decoded_input)
+    assert expected_decoded_input_03 == repr(decoded_input)
+
+    pool_key = PoolKey(
+        currency_0=Web3.to_checksum_address("0x0000000000000000000000000000000000000000"),
+        currency_1=Web3.to_checksum_address("0xbE57e9c04387a1bCeB89C5Dfb488B99343FB9f28"),
+        fee=3000,
+        tick_spacing=60,
+        hooks=Web3.to_checksum_address("0xD11B0eBcD58C978807aA3A438f0915A394ed20CC"),
+    )
+
+    encoded_input = (
+        codec.
+        encode().
         v4_swap().
         swap_exact_in_single(
             pool_key=pool_key,
             zero_for_one=False,
-            amount_in=100000000000000,
-            amount_out_min=798750268136655870501951828,
-            hook_data=b'',
+            amount_in=Wei(20895334702603009598981),
+            amount_out_min=Wei(0),
         ).
-        take_all("0x0000000000000000000000000000000000000000", Wei(0)).
-        settle_all("0xBf5617af623f1863c4abc900c5bebD5415a694e8", 100000000000000).
+        settle_all(
+            currency=Web3.to_checksum_address("0xbE57e9c04387a1bCeB89C5Dfb488B99343FB9f28"),
+            max_amount=Wei(20895334702603009598981),
+        ).take_all(
+            currency=Web3.to_checksum_address("0x0000000000000000000000000000000000000000"),
+            min_amount=Wei(0),
+        ).
         build_v4_swap().
-        build(deadline=1732612928)
+        build(deadline=1778119151)
     )
-
-    print(encoded_input)
-
-    fct_name, decoded_input = codec.decode.function_input(encoded_input)
-    print(fct_name)
-    pp(decoded_input, width=120)
+    assert input_03 == HexBytes(Web3.to_bytes(hexstr=encoded_input))
 
 
-"""
-<Function execute(bytes,bytes[],uint256)>
-{
-    'commands': b'\x10',
-    'inputs': [
-        (
-            <Function V4_SWAP(bytes,bytes[])>,
-            {
-                'actions': b'\x06\x0f\x0c',
-                'params': [
-                    (
-                        <Function SWAP_EXACT_IN_SINGLE(((address,address,uint24,int24,address),bool,uint128,uint128,bytes))>,  # noqa
-                        {
-                            'exact_in_single_params': {
-                                'PoolKey': {
-                                    'currency0': '0x0000000000000000000000000000000000000000',
-                                    'currency1': '0xBf5617af623f1863c4abc900c5bebD5415a694e8',
-                                    'fee': 3000,
-                                    'tickSpacing': 50,
-                                    'hooks': '0x0000000000000000000000000000000000000000'
-                                },
-                                'zeroForOne': False,
-                                'amountIn': 100000000000000,
-                                'amountOutMinimum': 798750268136655870501951828,
-                                'hookData': b''
-                            }
-                        }
-                    ),
-                    (
-                        <Function TAKE_ALL(address,uint256)>,
-                        {
-                            'currency': '0x0000000000000000000000000000000000000000',
-                            'minAmount': 0
-                        }
-                    ),
-                    (
-                        <Function SETTLE_ALL(address,uint256)>,
-                        {
-                            'currency': '0xBf5617af623f1863c4abc900c5bebD5415a694e8',
-                            'maxAmount': 100000000000000
-                        }
-                    )
-                ]
-            },
-            {
-                'revert_on_fail': True
-            }
-        )
-    ],
-    'deadline': 1732612928
-}
-"""
+# V4_SWAP - SWAP_EXACT_IN, SETTLE, TAKE_PORTION, TAKE
+input_04 = HexBytes('0x3593564c000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000069f8ff4f000000000000000000000000000000000000000000000000000000000000000110000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004a0000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000004070b100e000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000002800000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000038000000000000000000000000000000000000000000000000000000000000001e00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000001a00000000000000000000000000000000000000000000000000001c6bf526340000000000000000000000000000000000000000000000000000000000000110a8800000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000dac17f958d2ee523a2206206994597c13d831ec700000000000000000000000000000000000000000000000000000000000000640000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000060000000000000000000000000dac17f958d2ee523a2206206994597c13d831ec7000000000000000000000000adf72360e07ba2fa9e371b69857a3b083370f91900000000000000000000000000000000000000000000000000000000000000500000000000000000000000000000000000000000000000000000000000000060000000000000000000000000dac17f958d2ee523a2206206994597c13d831ec70000000000000000000000000add8f8b221b989245328b76d7a5c8f6b82233de0000000000000000000000000000000000000000000000000000000000000000')  # noqa: E501
+expected_decoded_input_04 = """(<Function execute(bytes,bytes[],uint256)>, {'commands': b'\\x10', 'inputs': [(<Function V4_SWAP(bytes,bytes[])>, {'actions': b'\\x07\\x0b\\x10\\x0e', 'params': [(<Function SWAP_EXACT_IN(ExactInputParams)>, {'params': {'currencyIn': '0x0000000000000000000000000000000000000000', 'PathKeys': [{'intermediateCurrency': '0xdAC17F958D2ee523a2206206994597C13D831ec7', 'fee': 100, 'tickSpacing': 1, 'hooks': '0x0000000000000000000000000000000000000000', 'hookData': b''}], 'minHopPriceX36': [], 'amountIn': 500000000000000, 'amountOutMinimum': 1116808}}), (<Function SETTLE(address,uint256,bool)>, {'currency': '0x0000000000000000000000000000000000000000', 'amount': 0, 'payerIsUser': True}), (<Function TAKE_PORTION(address,address,uint256)>, {'currency': '0xdAC17F958D2ee523a2206206994597C13D831ec7', 'recipient': '0xAdF72360e07ba2FA9e371B69857A3b083370F919', 'bips': 80}), (<Function TAKE(address,address,uint256)>, {'currency': '0xdAC17F958D2ee523a2206206994597C13D831ec7', 'recipient': '0x0aDd8F8b221b989245328b76D7A5C8F6B82233de', 'amount': 0})]}, {'revert_on_fail': True})], 'deadline': 1777925967})"""  # noqa: E501
+
+
+def test_v4_swap_exact_in_settle_take_portion_take(codec: RouterCodec):
+    decoded_input = codec.decode.function_input(input_04)
+    print("decoded_input:", decoded_input)
+    assert expected_decoded_input_04 == repr(decoded_input)
+
+    path_key = PathKey(
+        intermediate_currency=Web3.to_checksum_address("0xdAC17F958D2ee523a2206206994597C13D831ec7"),
+        fee=100,
+        tick_spacing=1,
+        hooks=Web3.to_checksum_address("0x0000000000000000000000000000000000000000"),
+        hook_data=b"",
+    )
+    encoded_input = (
+        codec.
+        encode().
+        v4_swap().
+        swap_exact_in(
+            currency_in=Web3.to_checksum_address("0x0000000000000000000000000000000000000000"),
+            path_keys=[
+                path_key,
+            ],
+            amount_in=500000000000000,
+            amount_out_min=1116808,
+            min_hop_price_x36=[],
+        ).
+        settle(
+            currency=Web3.to_checksum_address("0x0000000000000000000000000000000000000000"),
+            amount=0,
+            payer_is_user=True,
+        ).
+        take_portion(
+            currency=Web3.to_checksum_address("0xdAC17F958D2ee523a2206206994597C13D831ec7"),
+            recipient=Web3.to_checksum_address("0xAdF72360e07ba2FA9e371B69857A3b083370F919"),
+            bips=80,
+        ).
+        take(
+            currency=Web3.to_checksum_address("0xdAC17F958D2ee523a2206206994597C13D831ec7"),
+            recipient=Web3.to_checksum_address("0x0aDd8F8b221b989245328b76D7A5C8F6B82233de"),
+            amount=0,
+        ).
+        build_v4_swap().
+        build(deadline=1777925967)
+    )
+    assert input_04 == HexBytes(Web3.to_bytes(hexstr=encoded_input))
 
 
 def test_v4_initialize_pool():
@@ -288,284 +396,6 @@ def test_v4_position_manager_call():
     ]
 }
 """
-
-
-def test_v4_swap_exact_in():
-    currency_in = Web3.to_checksum_address("0x0000000000000000000000000000000000000000")
-    path_key_0 = codec.encode.v4_path_key(
-        Web3.to_checksum_address("0xBf5617af623f1863c4abc900c5bebD5415a694e8"),
-        3000,
-        60,
-    )
-    path_key_1 = codec.encode.v4_path_key(
-        Web3.to_checksum_address("0x2207B8c3d6b63675D9D14019e9F6b7f76ddF997f"),
-        2500,
-        55,
-    )
-    encoded_input = (
-        codec.
-        encode.
-        chain().
-        v4_swap().
-        swap_exact_in(
-            currency_in=currency_in,
-            path_keys=[path_key_0, path_key_1],
-            amount_in=Wei(1 * 10**18),
-            amount_out_min=Wei(0),
-        ).
-        build_v4_swap().
-        build(deadline=1735989153)
-    )
-
-    print(encoded_input)
-
-    fct_name, decoded_input = codec.decode.function_input(encoded_input)
-    print(fct_name)
-    pp(decoded_input, indent=1, width=120)
-
-    assert repr(fct_name) == "<Function execute(bytes,bytes[],uint256)>"
-    assert int(decoded_input['commands'].hex(), 16) == 16
-    assert repr(decoded_input['inputs'][0][0]) == "<Function V4_SWAP(bytes,bytes[])>"
-    assert decoded_input['inputs'][0][1]["actions"] == b'\x07'
-    assert repr(decoded_input['inputs'][0][1]["params"][0][0]) == "<Function SWAP_EXACT_IN(ExactInputParams)>"
-    assert decoded_input['inputs'][0][1]["params"][0][1]["params"]["currencyIn"] == "0x0000000000000000000000000000000000000000"  # noqa E501
-    path_keys = [to_camel_case(path_key_0), to_camel_case(path_key_1)]
-    assert decoded_input['inputs'][0][1]["params"][0][1]["params"]["PathKeys"] == path_keys
-    assert decoded_input['inputs'][0][1]["params"][0][1]["params"]["amountIn"] == 1000000000000000000
-    assert decoded_input['inputs'][0][1]["params"][0][1]["params"]["amountOutMinimum"] == 0
-    assert decoded_input['inputs'][0][2]["revert_on_fail"] is True
-    assert decoded_input['deadline'] == 1735989153
-
-
-"""
-<Function execute(bytes,bytes[],uint256)>
-{
-    'commands': b'\x10',
-    'inputs': [
-        (
-            <Function V4_SWAP(bytes,bytes[])>,
-            {
-                'actions': b'\x07',
-                'params': [
-                    (
-                        <Function SWAP_EXACT_IN(ExactInputParams)>,
-                        {
-                            'params': {
-                                'currencyIn': '0x0000000000000000000000000000000000000000',
-                                'PathKeys': [
-                                    {
-                                        'intermediateCurrency': '0xBf5617af623f1863c4abc900c5bebD5415a694e8',
-                                        'fee': 3000,
-                                        'tickSpacing': 60,
-                                        'hooks': '0x0000000000000000000000000000000000000000',
-                                        'hookData': b''
-                                    },
-                                    {
-                                        'intermediateCurrency': '0x2207B8c3d6b63675D9D14019e9F6b7f76ddF997f',
-                                        'fee': 2500,
-                                        'tickSpacing': 55,
-                                        'hooks': '0x0000000000000000000000000000000000000000',
-                                        'hookData': b''
-                                    }
-                                ],
-                                'amountIn': 1000000000000000000,
-                                'amountOutMinimum': 0
-                            }
-                        }
-                    )
-                ]
-            },
-            {
-                'revert_on_fail': True
-            }
-        )
-    ],
-    'deadline': 1735989153
-}
-"""
-
-
-def test_v4_swap_exact_in_2(w3):
-    trx_hash = "0xa6ec9dabbd0f80bdb2d9d5f1da8006939af385ec83874363b5a85b99dde51164"
-    router = RouterCodec(w3=w3)
-    decoded_transaction = router.decode.transaction(trx_hash)
-    print(decoded_transaction)
-
-    currency_in = Web3.to_checksum_address("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48")
-    path_key_0 = codec.encode.v4_path_key(
-        Web3.to_checksum_address("0x0000000000000000000000000000000000000000"),
-        3000,
-        60,
-    )
-
-    encoded_input = (
-        codec.
-        encode.
-        chain().
-        v4_swap().
-        swap_exact_in(
-            currency_in=currency_in,
-            path_keys=[path_key_0, ],
-            amount_in=Wei(1 * 10 ** 6),
-            amount_out_min=Wei(0),
-        ).
-        build_v4_swap().
-        build(deadline=1737747761)
-    )
-
-    print(encoded_input)
-    assert b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00 \x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xa0\xb8i\x91\xc6!\x8b6\xc1\xd1\x9dJ.\x9e\xb0\xce6\x06\xebH\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x80\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x0fB@\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00 \x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x0b\xb8\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00<\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xa0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'.hex() in encoded_input  # noqa
-
-    decoded_input = codec.decode.function_input(encoded_input)
-    print(decoded_input)
-
-
-def test_v4_swap_exact_out_single():
-    pool_key = codec.encode.v4_pool_key(
-        "0x0000000000000000000000000000000000000000",
-        "0xBf5617af623f1863c4abc900c5bebD5415a694e8",
-        3000,
-        50,
-        "0x0123456789012345678901234567890123456789"
-    )
-    encoded_input = (
-        codec.
-        encode.
-        chain().
-        v4_swap().
-        swap_exact_out_single(
-            pool_key=pool_key,
-            zero_for_one=True,
-            amount_out=798750268136655870501951828,
-            amount_in_max=500000000000000,
-            hook_data=b"hook_data",
-        ).
-        settle_all("0x0000000000000000000000000000000000000000", 500000000000000).
-        take(
-            "0xBf5617af623f1863c4abc900c5bebD5415a694e8",
-            Web3.to_checksum_address("0x0000000000000000000000000000000000000001"),
-            V4Constants.OPEN_DELTA.value,
-        ).
-        build_v4_swap().
-        build(deadline=1732612928)
-    )
-
-    print(encoded_input)
-
-    fct_name, decoded_input = codec.decode.function_input(encoded_input)
-    print(fct_name)
-    pp(decoded_input, width=120)
-
-    assert repr(fct_name) == "<Function execute(bytes,bytes[],uint256)>"
-    assert int(decoded_input['commands'].hex(), 16) == 16
-    assert repr(decoded_input['inputs'][0][0]) == "<Function V4_SWAP(bytes,bytes[])>"
-    assert decoded_input['inputs'][0][1]["actions"] == b'\x08\x0c\x0e'
-
-    assert repr(decoded_input['inputs'][0][1]["params"][0][0]) == "<Function SWAP_EXACT_OUT_SINGLE(((address,address,uint24,int24,address),bool,uint128,uint128,bytes))>"  # noqa E501
-    exact_out_single_params = decoded_input['inputs'][0][1]["params"][0][1]["exact_out_single_params"]
-    assert exact_out_single_params["PoolKey"] == to_camel_case(pool_key)
-    assert exact_out_single_params["zeroForOne"]
-    assert exact_out_single_params["amountOut"] == 798750268136655870501951828
-    assert exact_out_single_params["amountInMaximum"] == 500000000000000
-    assert exact_out_single_params["hookData"] == b'hook_data'
-
-    assert repr(decoded_input['inputs'][0][1]["params"][1][0]) == "<Function SETTLE_ALL(address,uint256)>"
-    assert decoded_input['inputs'][0][1]["params"][1][1]["currency"] == "0x0000000000000000000000000000000000000000"
-    assert decoded_input['inputs'][0][1]["params"][1][1]["maxAmount"] == 500000000000000
-
-    assert repr(decoded_input['inputs'][0][1]["params"][2][0]) == "<Function TAKE(address,address,uint256)>"
-    assert decoded_input['inputs'][0][1]["params"][2][1]["currency"] == "0xBf5617af623f1863c4abc900c5bebD5415a694e8"
-    assert decoded_input['inputs'][0][1]["params"][2][1]["recipient"] == "0x0000000000000000000000000000000000000001"
-    assert decoded_input['inputs'][0][1]["params"][2][1]["amount"] == 0
-
-    assert decoded_input['inputs'][0][2] == {'revert_on_fail': True}
-    assert decoded_input['deadline'] == 1732612928
-
-"""
-<Function execute(bytes,bytes[],uint256)>
-{'commands': b'\x10',
- 'inputs': [
-    (
-        <Function V4_SWAP(bytes,bytes[])>,
-        {
-            'actions': b'\x08\x0c\x0e',
-            'params': [
-                (
-                    <Function SWAP_EXACT_OUT_SINGLE(((address,address,uint24,int24,address),bool,uint128,uint128,bytes))>,  # noqa E501
-                    {
-                        'exact_out_single_params': {
-                            'PoolKey': {
-                                'currency0': '0x0000000000000000000000000000000000000000',
-                                'currency1': '0xBf5617af623f1863c4abc900c5bebD5415a694e8',
-                                'fee': 3000,
-                                'tickSpacing': 50,
-                                'hooks': '0x0123456789012345678901234567890123456789'
-                            },
-                            'zeroForOne': True,
-                            'amountOut': 798750268136655870501951828,
-                            'amountInMaximum': 500000000000000,
-                            'hookData': b'hook_data'
-                        }
-                    }
-                ),
-                (
-                    <Function SETTLE_ALL(address,uint256)>,
-                    {
-                        'currency': '0x0000000000000000000000000000000000000000',
-                        'maxAmount': 500000000000000
-                    }
-                ),
-                (
-                    <Function TAKE(address,address,uint256)>,
-                    {
-                        'currency': '0xBf5617af623f1863c4abc900c5bebD5415a694e8',
-                        'recipient': '0x0000000000000000000000000000000000000001',
-                        'amount': 0
-                    }
-                )
-            ]
-        },
-        {'revert_on_fail': True}
-    )
-],
-'deadline': 1732612928
-}
-
-"""
-
-
-def test_v4_swap_exact_out(w3):
-    trx_hash = "0x966a949326d0b3aba5d41c7e8fda72b585fb5f5eb4378a2ccddb82836df92711"
-    router = RouterCodec(w3=w3)
-    decoded_transaction = router.decode.transaction(trx_hash)
-    print(decoded_transaction)
-
-    currency_out = Web3.to_checksum_address("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48")
-    path_key_0 = codec.encode.v4_path_key(
-        Web3.to_checksum_address("0x0000000000000000000000000000000000000000"),
-        3000,
-        60,
-    )
-
-    encoded_input = (
-        codec.
-        encode.
-        chain().
-        v4_swap().
-        swap_exact_out(
-            currency_out=currency_out,
-            path_keys=[path_key_0, ],
-            amount_out=Wei(1002500),
-            amount_in_max=Wei(346005692668603),
-        ).
-        build_v4_swap().
-        build(deadline=1737749606)
-    )
-
-    print(encoded_input)
-
-    decoded_input = codec.decode.function_input(encoded_input)
-    print(decoded_input)
 
 
 @pytest.mark.parametrize(

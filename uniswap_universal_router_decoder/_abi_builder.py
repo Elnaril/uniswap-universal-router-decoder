@@ -400,7 +400,7 @@ def build_v4_swap_exact_in_single() -> ABIFunction:
     pool_key_builder = _v4_pool_key_struct_builder()
     outer_struct = builder.create_struct("exact_in_single_params")
     outer_struct.add_struct(pool_key_builder.build()).add_bool("zeroForOne").add_uint128("amountIn")
-    outer_struct.add_uint128("amountOutMinimum").add_bytes("hookData")
+    outer_struct.add_uint128("amountOutMinimum").add_uint256("minHopPriceX36").add_bytes("hookData")
     return builder.add_struct(outer_struct.build()).build()
 
 
@@ -517,6 +517,7 @@ def build_strict_v4_swap_exact_in() -> ABIFunction:
     builder.add_address("currencyIn")
     v4_path_key_builder = _v4_path_key_struct_array_builder()
     builder.add_struct_array(v4_path_key_builder.build())
+    builder.add_uint256_array("minHopPriceX36")
     return builder.add_uint128("amountIn").add_uint128("amountOutMinimum").build()
 
 
@@ -547,7 +548,7 @@ def build_v4_swap_exact_out_single() -> ABIFunction:
     pool_key_builder = _v4_pool_key_struct_builder()
     outer_struct = builder.create_struct("exact_out_single_params")
     outer_struct.add_struct(pool_key_builder.build()).add_bool("zeroForOne").add_uint128("amountOut")
-    outer_struct.add_uint128("amountInMaximum").add_bytes("hookData")
+    outer_struct.add_uint128("amountInMaximum").add_uint256("minHopPriceX36").add_bytes("hookData")
     return builder.add_struct(outer_struct.build()).build()
 
 
@@ -557,6 +558,7 @@ def build_strict_v4_swap_exact_out() -> ABIFunction:
     builder.add_address("currencyOut")
     v4_path_key_builder = _v4_path_key_struct_array_builder()
     builder.add_struct_array(v4_path_key_builder.build())
+    builder.add_uint256_array("minHopPriceX36")
     return builder.add_uint128("amountOut").add_uint128("amountInMaximum").build()
 
 

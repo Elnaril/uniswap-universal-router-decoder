@@ -28,8 +28,6 @@ def test_get_max_expiration(async_codec):
         (transactions[4]["trx_hash"], True, transactions[4]["decoded_input"]),
         (transactions[5]["trx_hash"], False, transactions[5]["decoded_input"]),
         (transactions[6]["trx_hash"], True, transactions[6]["decoded_input"]),
-        (transactions[7]["trx_hash"], False, transactions[7]["decoded_input"]),
-        (transactions[8]["trx_hash"], True, transactions[8]["decoded_input"]),
     )
 )
 async def test_decode_transaction(trx_hash, use_w3, expected_decoded_input, async_w3, rpc_url):

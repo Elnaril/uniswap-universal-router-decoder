@@ -453,7 +453,8 @@ class _BaseV4ChainedSwapFunctionBuilder(_V4ChainedCommonFunctionBuilder[TChained
             zero_for_one: bool,
             amount_in: Wei,
             amount_out_min: Wei,
-            hook_data: bytes = b'') -> Self:
+            hook_data: bytes = b'',
+            min_hop_price_x36: int = 0) -> Self:
         """
         Swap - Encode the call to the V4_SWAP function SWAP_EXACT_IN_SINGLE.
 
@@ -462,9 +463,10 @@ class _BaseV4ChainedSwapFunctionBuilder(_V4ChainedCommonFunctionBuilder[TChained
         :param amount_in: the exact amount of the sold currency in Wei
         :param amount_out_min: the minimum accepted bought currency
         :param hook_data: encoded data sent to the pool's hook, if any.
+        :param min_hop_price_x36: the min price (output / input x 1e36) expected, or 0 to ignore it.
         :return: The chain link corresponding to this function call.
         """
-        args = ((tuple(pool_key.values()), zero_for_one, amount_in, amount_out_min, hook_data),)
+        args = ((tuple(pool_key.values()), zero_for_one, amount_in, amount_out_min, min_hop_price_x36, hook_data),)
         self._add_action(V4Actions.SWAP_EXACT_IN_SINGLE, args)
         return self
 
@@ -503,7 +505,8 @@ class _BaseV4ChainedSwapFunctionBuilder(_V4ChainedCommonFunctionBuilder[TChained
             currency_in: ChecksumAddress,
             path_keys: Sequence[PathKey],
             amount_in: int,
-            amount_out_min: int) -> Self:
+            amount_out_min: int,
+            min_hop_price_x36: Sequence[int] = []) -> Self:
         """
         Swap - Encode Multi-hop V4 SWAP_EXACT_IN swaps.
 
@@ -511,9 +514,19 @@ class _BaseV4ChainedSwapFunctionBuilder(_V4ChainedCommonFunctionBuilder[TChained
         :param path_keys: The sequence of path keys to identify the pools
         :param amount_in: The amount to send to the contract
         :param amount_out_min: The expected minimum amount to be received
+        :param min_hop_price_x36: a list of min prices (output / input x 1e36) expected for each pair in the path.
+        An empty list to disable it. 0 to prevent checking the output of a specific pair.
         :return: The chain link corresponding to this function call.
         """
-        args = ((currency_in, [tuple(path_key.values()) for path_key in path_keys], amount_in, amount_out_min), )
+        args = (
+            (
+                currency_in,
+                [tuple(path_key.values()) for path_key in path_keys],
+                min_hop_price_x36,
+                amount_in,
+                amount_out_min
+            ),
+        )
         self._add_action(V4Actions.SWAP_EXACT_IN, args)
         return self
 
@@ -523,7 +536,8 @@ class _BaseV4ChainedSwapFunctionBuilder(_V4ChainedCommonFunctionBuilder[TChained
             zero_for_one: bool,
             amount_out: Wei,
             amount_in_max: Wei,
-            hook_data: bytes = b'') -> Self:
+            hook_data: bytes = b'',
+            min_hop_price_x36: int = 0) -> Self:
         """
         Swap - Encode the call to the V4_SWAP function SWAP_EXACT_IN_SINGLE.
 
@@ -532,9 +546,10 @@ class _BaseV4ChainedSwapFunctionBuilder(_V4ChainedCommonFunctionBuilder[TChained
         :param amount_out: the exact amount of the bought currency in Wei
         :param amount_in_max: the maximum accepted sold currency
         :param hook_data: encoded data sent to the pool's hook, if any.
+        :param min_hop_price_x36: the min price (output / input x 1e36) expected, or 0 to ignore it.
         :return: The chain link corresponding to this function call.
         """
-        args = ((tuple(pool_key.values()), zero_for_one, amount_out, amount_in_max, hook_data),)
+        args = ((tuple(pool_key.values()), zero_for_one, amount_out, amount_in_max, min_hop_price_x36, hook_data),)
         self._add_action(V4Actions.SWAP_EXACT_OUT_SINGLE, args)
         return self
 
@@ -543,7 +558,8 @@ class _BaseV4ChainedSwapFunctionBuilder(_V4ChainedCommonFunctionBuilder[TChained
             currency_out: ChecksumAddress,
             path_keys: Sequence[PathKey],
             amount_out: int,
-            amount_in_max: int) -> Self:
+            amount_in_max: int,
+            min_hop_price_x36: Sequence[int] = []) -> Self:
         """
         Swap - Encode Multi-hop V4 SWAP_EXACT_OUT swaps.
 
@@ -551,9 +567,19 @@ class _BaseV4ChainedSwapFunctionBuilder(_V4ChainedCommonFunctionBuilder[TChained
         :param path_keys: The sequence of path keys to identify the pools
         :param amount_out: The amount to be received
         :param amount_in_max: The maximum amount that the transaction sender is willing to pay.
+        :param min_hop_price_x36: a list of min prices (output / input x 1e36) expected for each pair in the path.
+        An empty list to disable it. 0 to prevent checking the output of a specific pair.
         :return: The chain link corresponding to this function call.
         """
-        args = ((currency_out, [tuple(path_key.values()) for path_key in path_keys], amount_out, amount_in_max), )
+        args = (
+            (
+                currency_out,
+                [tuple(path_key.values()) for path_key in path_keys],
+                min_hop_price_x36,
+                amount_out,
+                amount_in_max
+            ),
+        )
         self._add_action(V4Actions.SWAP_EXACT_OUT, args)
         return self
 

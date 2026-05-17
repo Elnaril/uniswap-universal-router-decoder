@@ -16,8 +16,7 @@ from uniswap_universal_router_decoder import RouterCodec
         (transactions[4]["trx_hash"], True, transactions[4]["decoded_input"]),
         (transactions[5]["trx_hash"], False, transactions[5]["decoded_input"]),
         (transactions[6]["trx_hash"], True, transactions[6]["decoded_input"]),
-        (transactions[7]["trx_hash"], False, transactions[7]["decoded_input"]),
-        (transactions[8]["trx_hash"], True, transactions[8]["decoded_input"]),
+
     )
 )
 def test_decode_transaction(trx_hash, use_w3, expected_decoded_input, w3, rpc_url):
@@ -70,7 +69,7 @@ expected_parsed_path_13 = (
         (transactions[1]["trx_hash"], "V3_SWAP_EXACT_OUT", expected_parsed_path_02, None),
         (transactions[4]["trx_hash"], "V2_SWAP_EXACT_IN", None, ValueError),
         (transactions[4]["trx_hash"], "V3_SWAP_EXACT_IN", expected_parsed_path_06, None),
-        (transactions[8]["trx_hash"], "V3_SWAP_EXACT_OUT", expected_parsed_path_13, None),
+        (transactions[6]["trx_hash"], "V3_SWAP_EXACT_OUT", expected_parsed_path_13, None),
     )
 )
 def test_decode_v3_path(trx_hash, fn_name, expected_parsed_path, expected_exception, codec_rpc):
