@@ -23,7 +23,7 @@ account: LocalAccount = Account.from_key("0xf7e96bcf6b5223c240ec308d8374ff01a753
 assert account.address == "0x1e46c294f20bC7C27D93a9b5f45039751D8BCc3e"
 
 chain_id = 1
-initial_block_number = 23518041
+initial_block_number = 25092859
 
 # Tokens
 eth_address = AsyncWeb3.to_checksum_address("0x0000000000000000000000000000000000000000")
@@ -56,7 +56,7 @@ link_usdc_pool_id = codec.encode.v4_pool_id(link_usdc_pool_key)
 assert link_usdc_pool_id.hex().upper() == "50ae33c238824aa1937d5d9f1766c487bca39b548f8d957994e8357eeeca3280".upper()
 
 # Uniswap contracts
-ur_address = AsyncWeb3.to_checksum_address("0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af")
+ur_address = AsyncWeb3.to_checksum_address("0x4C82D1fBFe28C977cBB58D8C7FF8FCF9F70a2cCA")
 permit2_address = AsyncWeb3.to_checksum_address("0x000000000022D473030F116dDEE9F6B43aC78BA3")
 
 
@@ -129,7 +129,7 @@ async def swap_exact_in_single_eth_to_wbtc():
     print("ETH balance:", eth_balance / 10**18)
     wbtc_balance = await wbtc_contract.functions.balanceOf(account.address).call()
     print("WBTC balance:", wbtc_balance / 10 ** 8)
-    assert wbtc_balance == 36696533, f"actual wbtc balance is {wbtc_balance}"
+    assert wbtc_balance == 28361240, f"actual wbtc balance is {wbtc_balance}"
 
     print("SWAP EXACT IN SINGLE ETH => OK\n")
 
@@ -164,7 +164,7 @@ async def permit2_ur(token_address):
     permit2_allowance = await codec.fetch_permit2_allowance(account.address, token_address, ur_address)
     print(permit2_allowance)
     assert permit2_allowance[0] == 1461501637330902918203684832716283019655932542975
-    assert permit2_allowance[1] > 1762338577
+    assert permit2_allowance[1] > 1781354345
     assert permit2_allowance[2] == 1
 
     print(f"PERMIT2 UNIVERSAL ROUTER for token: {token_address} => OK\n")
@@ -204,7 +204,7 @@ async def swap_exact_in_wbtc_v3_usdc_v4_link():
     print("START SWAP EXACT IN SINGLE WBTC -> V3 -> USDC -> V4 -> LINK")
     v3_path = [wbtc_address, 3000, usdc_address]
     v3_in_amount = Wei(int(.1 * 10 ** 8))
-    v3_out_amount_min = Wei(12340000000)
+    v3_out_amount_min = Wei(7900000000)
 
     v4_in_amount = v3_out_amount_min
     v4_out_amount_min = Wei(0)
@@ -239,15 +239,15 @@ async def swap_exact_in_wbtc_v3_usdc_v4_link():
     assert receipt["status"] == 1  # trx success
     wbtc_balance = await wbtc_contract.functions.balanceOf(account.address).call()
     print("WBTC balance:", wbtc_balance / 10 ** 8)
-    assert wbtc_balance == 26696533, f"actual wbtc balance is {wbtc_balance}"
+    assert wbtc_balance == 18361240, f"actual wbtc balance is {wbtc_balance}"
 
     usdc_balance = await usdc_contract.functions.balanceOf(account.address).call()
     print(f"{usdc_balance=}", usdc_balance / 10 ** 6)
-    assert usdc_balance == 12340813046 - v3_out_amount_min, f"actual usdc balance is {usdc_balance}"
+    assert usdc_balance == 19528903, f"actual usdc balance is {usdc_balance}"
 
     link_balance = await link_contract.functions.balanceOf(account.address).call()
     print(f"{link_balance=}", link_balance / 10 ** 18)
-    assert link_balance == 550285406832752299748, f"actual link balance is {link_balance}"
+    assert link_balance == 768982331611058414801, f"actual link balance is {link_balance}"
 
     print(" => SWAP EXACT IN SINGLE WBTC -> V3 -> USDC -> V4 -> LINK: OK")
 

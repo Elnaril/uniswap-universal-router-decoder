@@ -25,7 +25,7 @@ account: LocalAccount = Account.from_key("0xf7e96bcf6b5223c240ec308d8374ff01a753
 assert account.address == "0x1e46c294f20bC7C27D93a9b5f45039751D8BCc3e"
 
 chain_id = 1
-initial_block_number = 24485322
+initial_block_number = 25092859
 
 # recipients
 recipients = tuple(
@@ -51,7 +51,7 @@ codec = RouterCodec()
 eth_wbtc_pool_key = codec.encode.v4_pool_key(eth_address, wbtc_address, 3000, 60)
 
 # Uniswap contracts
-ur_address = Web3.to_checksum_address("0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af")
+ur_address = Web3.to_checksum_address("0x4C82D1fBFe28C977cBB58D8C7FF8FCF9F70a2cCA")
 permit2_address = Web3.to_checksum_address("0x000000000022D473030F116dDEE9F6B43aC78BA3")
 
 
@@ -192,7 +192,7 @@ def get_weth_and_btc():
 
     wbtc_balance = wbtc_contract.functions.balanceOf(account.address).call()
     print("WBTC balance:", wbtc_balance / 10 ** 8)
-    assert wbtc_balance == 2692025946, f"actual wbtc balance is {wbtc_balance}"
+    assert wbtc_balance == 2541603096, f"actual wbtc balance is {wbtc_balance}"
 
     print("GET WETH AND BTC => OK")
 

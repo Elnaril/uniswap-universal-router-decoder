@@ -22,7 +22,7 @@ account: LocalAccount = Account.from_key("0xf7e96bcf6b5223c240ec308d8374ff01a753
 assert account.address == "0x1e46c294f20bC7C27D93a9b5f45039751D8BCc3e"
 
 chain_id = 1
-initial_block_number = 23491937
+initial_block_number = 25092859
 initial_eth_amount = 10000 * 10**18  # Anvil provides 10000 ETH by default
 transient_eth_balance = initial_eth_amount
 
@@ -35,7 +35,7 @@ usdc_address = Web3.to_checksum_address("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606e
 usdc_contract = w3.eth.contract(address=usdc_address, abi=erc20_abi)
 
 # Latest Universal Router address
-ur_address = Web3.to_checksum_address("0x66a9893cc07d91d95644aedd05d03f95e1dba8af")
+ur_address = Web3.to_checksum_address("0x4C82D1fBFe28C977cBB58D8C7FF8FCF9F70a2cCA")
 
 codec = RouterCodec()
 
@@ -50,7 +50,7 @@ def launch_anvil():
         ]),
         shell=True,
     )
-    time.sleep(5)  # Increased wait time for anvil to fully start
+    time.sleep(5)
     parent_id = anvil_process.pid
     return parent_id
 
@@ -111,7 +111,7 @@ def buy_usdc_from_v2_and_sell_to_v3():
     # Wrap, Buy for 0.3 eth of usdc from v2, Sell to v3 and Unwrap
     v2_path = [weth_address, usdc_address]
     v2_in_amount = Wei(3 * 10**17)
-    v2_out_amount = Wei(817968342)  # with slippage
+    v2_out_amount = Wei(675000000)  # with slippage
     v3_path = [usdc_address, 500, weth_address]
     v3_out_amount = Wei(int(2.98 * 10**17))  # with slippage
     encoded_input = (
@@ -147,7 +147,7 @@ def buy_usdc_from_v3_and_sell_to_v2():
     # Wrap, Buy for 0.3 eth of usdc from v3, Sell to v2 and Unwrap
     v3_path = [weth_address, 500, usdc_address]
     v3_in_amount = Wei(3 * 10 ** 17)
-    v3_out_amount = Wei(817968342)  # with slippage
+    v3_out_amount = Wei(675000000)  # with slippage
 
     v2_path = [usdc_address, weth_address]
     v2_out_amount = Wei(int(2.98 * 10 ** 17))  # with slippage

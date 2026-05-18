@@ -22,7 +22,7 @@ account: LocalAccount = Account.from_key("0xf7e96bcf6b5223c240ec308d8374ff01a753
 assert account.address == "0x1e46c294f20bC7C27D93a9b5f45039751D8BCc3e"
 
 chain_id = 1
-initial_block_number = 21893982
+initial_block_number = 25092859
 initial_eth_amount = 10000 * 10**18
 
 erc20_abi = '[{"constant":true,"inputs":[],"name":"name","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"},{"name":"_spender","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"anonymous":false,"inputs":[{"indexed":true,"name":"_from","type":"address"},{"indexed":true,"name":"_to","type":"address"},{"indexed":false,"name":"_value","type":"uint256"}],"name":"Transfer","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"_owner","type":"address"},{"indexed":true,"name":"_spender","type":"address"},{"indexed":false,"name":"_value","type":"uint256"}],"name":"Approval","type":"event"}]'  # noqa
@@ -31,6 +31,8 @@ weth_address = Web3.to_checksum_address("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756
 
 usdc_address = Web3.to_checksum_address("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48")
 usdc_contract = w3.eth.contract(address=usdc_address, abi=erc20_abi)
+
+ur_address = Web3.to_checksum_address("0x4C82D1fBFe28C977cBB58D8C7FF8FCF9F70a2cCA")
 
 codec = RouterCodec()
 
@@ -76,10 +78,10 @@ def buy_usdc_from_v2_and_v3():
     # Buying for 1 eth of usdc from v2 and v3 pools
     v2_path = [weth_address, usdc_address]
     v2_in_amount = Wei(3 * 10**17)
-    v2_out_amount = Wei(817968342)  # with slippage
+    v2_out_amount = Wei(642603089)  # with slippage
     v3_path = [weth_address, 500, usdc_address]
     v3_in_amount = Wei(7 * 10 ** 17)
-    v3_out_amount = Wei(1908592798)  # with slippage
+    v3_out_amount = Wei(1499407208)  # with slippage
     total_in_amount = Wei(v2_in_amount + v3_in_amount)
     trx_params = (
         codec
@@ -91,6 +93,7 @@ def buy_usdc_from_v2_and_v3():
         .build_transaction(
             account.address,
             total_in_amount,
+            ur_address=ur_address,
             block_identifier=w3.eth.block_number  # because test is on local Anvil fork
         )
     )
@@ -104,7 +107,7 @@ def buy_usdc_from_v2_and_v3():
 
     usdc_balance = usdc_contract.functions.balanceOf(account.address).call()
     print(f"{usdc_balance=}", usdc_balance / 10**6)
-    assert usdc_contract.functions.balanceOf(account.address).call() == 2782205245
+    assert usdc_contract.functions.balanceOf(account.address).call() == 2254747682
 
     print(" => BUY USDC: OK")
 

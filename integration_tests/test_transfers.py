@@ -23,7 +23,7 @@ account: LocalAccount = Account.from_key("0xf7e96bcf6b5223c240ec308d8374ff01a753
 assert account.address == "0x1e46c294f20bC7C27D93a9b5f45039751D8BCc3e"
 
 chain_id = 1
-initial_block_number = 21893982
+initial_block_number = 25092859
 initial_eth_amount = 10000 * 10**18
 
 recipients = tuple(
@@ -40,7 +40,7 @@ weth_contract = w3.eth.contract(address=weth_address, abi=weth_abi)
 usdc_address = Web3.to_checksum_address("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48")
 usdc_contract = w3.eth.contract(address=usdc_address, abi=erc20_abi)
 
-ur_address = Web3.to_checksum_address("0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af")
+ur_address = Web3.to_checksum_address("0x4C82D1fBFe28C977cBB58D8C7FF8FCF9F70a2cCA")
 
 codec = RouterCodec()
 
@@ -111,7 +111,7 @@ def buy_and_transfer():
     """
     usdc_amount_per_recipient = Wei(100 * 10**6)
     eth_amount_per_recipient = Wei(int(0.1 * 10**18))
-    amount_in_max = Wei(int(0.22 * 10**18))  # for weth -> usdc swap
+    amount_in_max = Wei(int(0.23 * 10**18))  # for weth -> usdc swap
     amount_out = Wei(5 * usdc_amount_per_recipient)
     value = amount_in_max + 2 * eth_amount_per_recipient  # eth sent to the UR
 
