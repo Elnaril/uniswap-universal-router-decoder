@@ -131,14 +131,14 @@ def swap_exact_in_single_eth_to_wbtc():
             amount_out_min=Wei(amount_out_min),
             min_hop_price_x36=min_hop_price_x36,
         ).
-        take_all(wbtc_address, Wei(0)). # or: take(wbtc_address, account.address, V4Constants.OPEN_DELTA.value).
-        settle_all(eth_address, eth_amount).  # or: settle(eth_address, eth_amount, True)., or: settle(eth_address, V4Constants.OPEN_DELTA.value, True).
+        take_all(wbtc_address, Wei(0)).  # or: take(wbtc_address, account.address, V4Constants.OPEN_DELTA.value).
+        settle_all(eth_address, eth_amount).  # or: settle(eth_address, eth_amount, True)., or: settle(eth_address, V4Constants.OPEN_DELTA.value, True).  # noqa: E501
         build_v4_swap().
         build_transaction(account.address, eth_amount, block_identifier=w3.eth.block_number)
     )
     raw_transaction = w3.eth.account.sign_transaction(trx_params, account.key).raw_transaction
     trx_hash = w3.eth.send_raw_transaction(raw_transaction)
-    receipt = w3.eth.wait_for_transaction_receipt(trx_hash)    
+    receipt = w3.eth.wait_for_transaction_receipt(trx_hash)
     assert receipt["status"] == 1, f'receipt["status"] is actually {receipt["status"]}'  # status == 1 => trx success
 
     eth_balance = w3.eth.get_balance(account.address)
@@ -166,7 +166,7 @@ def swap_exact_out_single_eth_to_wbtc():
             amount_in_max=eth_amount_max,
             amount_out=wbtc_amount
         ).
-        take_all(wbtc_address, wbtc_amount).  # or: take(wbtc_address, account.address, wbtc_amount).        
+        take_all(wbtc_address, wbtc_amount).  # or: take(wbtc_address, account.address, wbtc_amount).
         settle_all(eth_address, eth_amount_max).  # or: settle(eth_address, V4Constants.OPEN_DELTA.value, True).
         build_v4_swap().
         sweep(FunctionRecipient.SENDER, eth_address, Wei(0)).  # Otherwise ETH excess stays on the contract
