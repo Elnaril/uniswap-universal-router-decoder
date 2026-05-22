@@ -33,7 +33,7 @@
 ## Release Notes
 See the [release notes page](https://github.com/Elnaril/uniswap-universal-router-decoder/wiki/Release_Notes)
 
-### v3.0.0.dev0 - breaking changes
+### v3.0.0 - breaking changes
 - Update UR address and abi to match v2.1.1
 - Add support for UR v2.1.1 swaps
 - Add async support
