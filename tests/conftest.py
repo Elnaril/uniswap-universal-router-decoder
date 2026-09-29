@@ -17,7 +17,7 @@ from uniswap_universal_router_decoder import (
 )
 
 
-rpc_endpoint_address = "https://mainnet.gateway.tenderly.co"
+rpc_endpoint_address = "https://rpc.mevblocker.io/fast"
 
 
 @pytest.fixture
