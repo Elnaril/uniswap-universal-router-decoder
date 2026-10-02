@@ -33,6 +33,9 @@
 ## Release Notes
 See the [release notes page](https://github.com/Elnaril/uniswap-universal-router-decoder/wiki/Release_Notes)
 
+### v3.1.0
+- Update UR address and abi to match v2.1.2
+
 ### v3.0.0 - breaking changes
 - Update UR address and abi to match v2.1.1
 - Add support for UR v2.1.1 swaps
@@ -114,6 +117,7 @@ Here is the mapping between the Universal Router versions and the SDK ones
 
 | UR Version | UR address on Ethereum | Python SDK version|
 |:----------:|------------|:-----------------:|
+| v2.1.2     | [`0x23617e59A5925b2A4Bf75d73ff6711cD0b29De85`](https://etherscan.io/address/0x23617e59A5925b2A4Bf75d73ff6711cD0b29De85) | v3.1.0 |
 | v2.1.1     | [`0x4C82D1fBFe28C977cBB58D8C7FF8FCF9F70a2cCA`](https://etherscan.io/address/0x4C82D1fBFe28C977cBB58D8C7FF8FCF9F70a2cCA) | v3.0.0 |
 | v2         | [`0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af`](https://etherscan.io/address/0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af) | v2.0.0 & v2.1.0 |
 | v1.2         | [`0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD`](https://etherscan.io/address/0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD) | v0.9.0 to v1.2.1 |
