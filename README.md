@@ -35,6 +35,7 @@ See the [release notes page](https://github.com/Elnaril/uniswap-universal-router
 
 ### v3.1.0
 - Update UR address and abi to match v2.1.2
+- Add support for web3 v8
 
 ### v3.0.0 - breaking changes
 - Update UR address and abi to match v2.1.1
@@ -56,7 +57,7 @@ See the [release notes page](https://github.com/Elnaril/uniswap-universal-router
 ## Overview and Points of Attention
 
 The object of this library is to decode & encode transactions sent to the Uniswap Universal Router (UR) 
-on Ethereum Mainnet). See Version Mapping below.  
+on Ethereum Mainnet, though it would work on any compatible chain where the UR is deployed. See Version Mapping below.  
 It is based on, and is intended to be used with [web3.py](https://github.com/ethereum/web3.py)  
 The target audience is Python developers who are familiar with the Ethereum blockchain concepts and web3.py, and how DEXes work. 
 
@@ -363,7 +364,7 @@ transaction["data"] = encoded_data
 ```
 
 ### How to encode a call to the Uniswap V3 function V3_SWAP_EXACT_IN
-This function can be used to swap tokens on a V3 pool. Correct allowances must have been set before using sending such transaction.
+This function can be used to swap tokens on a V3 pool. Correct allowances must have been set before sending such transaction.
 ```python
 from uniswap_universal_router_decoder import FunctionRecipient, RouterCodec
 
@@ -408,7 +409,7 @@ transaction["data"] = encoded_data
 ```
 
 ### How to encode a call to the Uniswap Universal Router function PERMIT2_PERMIT
-This function is used to give an allowance to the universal router thanks to the Permit2 contract ([`0x000000000022D473030F116dDEE9F6B43aC78BA3`](https://etherscan.io/address/0x000000000022D473030F116dDEE9F6B43aC78BA3)).
+This function is used to give an allowance to the universal router via the Permit2 contract ([`0x000000000022D473030F116dDEE9F6B43aC78BA3`](https://etherscan.io/address/0x000000000022D473030F116dDEE9F6B43aC78BA3)).
 It is also necessary to approve the Permit2 contract using the token approve function.
 See this [tutorial](https://hackernoon.com/python-how-to-use-permit2-with-the-uniswap-universal-router)
 ```python
