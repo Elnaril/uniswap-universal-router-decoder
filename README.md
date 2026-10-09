@@ -33,6 +33,9 @@
 ## Release Notes
 See the [release notes page](https://github.com/Elnaril/uniswap-universal-router-decoder/wiki/Release_Notes)
 
+### v3.2.0
+- Update COMMAND_TYPE_MASK to 0x7f to match UR
+
 ### v3.1.0
 - Update UR address and abi to match v2.1.2
 - Add support for web3 v8

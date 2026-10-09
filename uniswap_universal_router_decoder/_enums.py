@@ -55,7 +55,7 @@ class RouterConstant(Enum):
     ADDRESS_THIS = Web3.to_checksum_address("0x0000000000000000000000000000000000000002")
     ROUTER_BALANCE = Wei(2**255)
     FLAG_ALLOW_REVERT = 0x80
-    COMMAND_TYPE_MASK = 0x3f
+    COMMAND_TYPE_MASK = 0x7f
 
 
 class TransactionSpeed(Enum):
