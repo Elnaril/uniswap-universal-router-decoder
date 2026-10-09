@@ -35,6 +35,7 @@ See the [release notes page](https://github.com/Elnaril/uniswap-universal-router
 
 ### v3.2.0
 - Update COMMAND_TYPE_MASK to 0x7f to match UR
+- Add support for the PAY_PORTION_FULL_PRECISION command (0x07)
 
 ### v3.1.0
 - Update UR address and abi to match v2.1.2
@@ -77,7 +78,7 @@ The target audience is Python developers who are familiar with the Ethereum bloc
 | 0x04        | SWEEP                       |                              |     ✅     |
 | 0x05        | TRANSFER                    |                              |     ✅     |
 | 0x06        | PAY_PORTION                 |                              |     ✅     |
-| 0x07        | PAY_PORTION_FULL_PRECISION  |                              |     ❌      |
+| 0x07        | PAY_PORTION_FULL_PRECISION  |                              |     ✅     |
 | 0x08        | V2_SWAP_EXACT_IN            |                              |     ✅     |
 | 0x09        | V2_SWAP_EXACT_OUT           |                              |     ✅     |
 | 0x0a        | PERMIT2_PERMIT              |                              |     ✅     |
@@ -654,6 +655,13 @@ trx_params = (
 Example where a recipient is paid 1% of the USDC amount:
 ```python
 .pay_portion(FunctionRecipient.CUSTOM, usdc_address, 100, recipient_address)
+
+```
+#### PAY_PORTION_FULL_PRECISION
+Same as PAY_PORTION but with full precision, where 10**18 represents 100%.
+Example where a recipient is paid 50% of the USDC amount:
+```python
+.pay_portion_full_precision(FunctionRecipient.CUSTOM, usdc_address, 5 * 10**17, recipient_address)
 
 ```
 #### SWEEP

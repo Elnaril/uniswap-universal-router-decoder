@@ -421,6 +421,42 @@ def test_transfer(codec):
     assert encoded_input == HexStr("0x24856bc300000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000000000000105000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000adfec019ee085a93a9e947cf3ecc5f29a36efac0000000000000000000000000000000000000000000000000000e35fa931a0000")  # noqa
 
 
+def test_chain_pay_portion_full_precision(codec):
+    usdc_address = Web3.to_checksum_address("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48")
+    recipient = Web3.to_checksum_address("0x17CC6042605381c158D2adab487434Bde79Aa61C")
+    encoded_input = (
+        codec
+        .encode
+        .chain()
+        .pay_portion_full_precision(FunctionRecipient.CUSTOM, usdc_address, 5 * 10**17, recipient)
+        .build(1698245843)
+    )
+    fct_name, decoded_input = codec.decode.function_input(encoded_input)
+    assert fct_name.fn_name == "execute"
+    assert decoded_input["commands"] == b"\x07"
+    command_fct, command_params, command_options = decoded_input["inputs"][0]
+    assert command_fct.fn_name == "PAY_PORTION_FULL_PRECISION"
+    assert command_params == {"token": usdc_address, "recipient": recipient, "portion": 5 * 10**17}
+    assert command_options == {"revert_on_fail": True}
+
+
+@pytest.mark.parametrize(
+    "function_recipient, token_address, portion, custom_recipient, expected_exception",
+    (
+        (FunctionRecipient.SENDER, Web3.to_checksum_address('0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'), 10**18, None, None),  # noqa
+        (FunctionRecipient.SENDER, Web3.to_checksum_address('0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'), 10**18 + 1, None, ValueError),  # noqa
+        (FunctionRecipient.SENDER, Web3.to_checksum_address('0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'), -1, None, ValueError),  # noqa
+        (FunctionRecipient.CUSTOM, Web3.to_checksum_address('0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'), 10**18, None, ValueError),  # noqa
+    )
+)
+def test_pay_portion_full_precision_argument_validity(function_recipient, token_address, portion, custom_recipient, expected_exception, codec):  # noqa
+    if expected_exception:
+        with pytest.raises(expected_exception):
+            codec.encode.chain().pay_portion_full_precision(function_recipient, token_address, portion, custom_recipient).build(1698245843)  # noqa
+    else:
+        _ = codec.encode.chain().pay_portion_full_precision(function_recipient, token_address, portion, custom_recipient).build(1698245843)  # noqa
+
+
 def test_build_transaction(codec_rpc):
     sender = "0x1AB4973a48dc892Cd9971ECE8e01DcC7688f8F23"
     balance = codec_rpc._w3.eth.get_balance("0x52d7Bb619F6E37A038e522eDF755008d9EfdD695", block_identifier=19876107)

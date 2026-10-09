@@ -16,6 +16,7 @@ from uniswap_universal_router_decoder import RouterCodec
         (transactions[4]["trx_hash"], True, transactions[4]["decoded_input"]),
         (transactions[5]["trx_hash"], False, transactions[5]["decoded_input"]),
         (transactions[6]["trx_hash"], True, transactions[6]["decoded_input"]),
+        (transactions[7]["trx_hash"], False, transactions[7]["decoded_input"]),
 
     )
 )

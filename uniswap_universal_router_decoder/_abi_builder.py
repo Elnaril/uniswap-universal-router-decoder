@@ -376,6 +376,12 @@ def build_pay_portion() -> ABIFunction:
     return builder.add_address("token").add_address("recipient").add_uint256("bips").build()
 
 
+@ABIRegister(RouterFunction.PAY_PORTION_FULL_PRECISION)
+def build_pay_portion_full_precision() -> ABIFunction:
+    builder = ABIFunctionBuilder(RouterFunction.PAY_PORTION_FULL_PRECISION.name)
+    return builder.add_address("token").add_address("recipient").add_uint256("portion").build()
+
+
 @ABIRegister(RouterFunction.TRANSFER)
 def build_transfer() -> ABIFunction:
     builder = ABIFunctionBuilder(RouterFunction.TRANSFER.name)

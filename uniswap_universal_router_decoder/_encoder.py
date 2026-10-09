@@ -984,6 +984,32 @@ class _BasedChainedFunctionBuilder(Generic[W3]):
         self._add_command(RouterFunction.PAY_PORTION, args)
         return self
 
+    def pay_portion_full_precision(
+            self,
+            function_recipient: FunctionRecipient,
+            token_address: ChecksumAddress,
+            portion: int,
+            custom_recipient: Optional[ChecksumAddress] = None) -> Self:
+        """
+        Encode the call to the function PAY_PORTION_FULL_PRECISION which transfers a part of the router's ERC20 or ETH
+        to an address.
+        Transferred amount = balance * portion / 10 ** 18
+
+        :param function_recipient: A FunctionRecipient which defines the recipient of this function output.
+        :param token_address: The address of token to pay or "0x0000000000000000000000000000000000000000" for ETH.
+        :param portion: integer between 0 and 10 ** 18, where 10 ** 18 represents 100%
+        :param custom_recipient: If function_recipient is CUSTOM, must be the actual recipient, otherwise None.
+
+        :return: The chain link corresponding to this function call.
+        """
+        if portion < 0 or portion > 10 ** 18:
+            raise ValueError(f"Invalid argument: portion must be an int between 0 and 10 ** 18. Received {portion}")
+
+        recipient = self._get_recipient(function_recipient, custom_recipient)
+        args = (token_address, recipient, portion)
+        self._add_command(RouterFunction.PAY_PORTION_FULL_PRECISION, args)
+        return self
+
     def transfer(
             self,
             function_recipient: FunctionRecipient,

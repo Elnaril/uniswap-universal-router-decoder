@@ -25,6 +25,7 @@ class RouterFunction(Enum):
     SWEEP = 4
     TRANSFER = 5
     PAY_PORTION = 6
+    PAY_PORTION_FULL_PRECISION = 7
     V2_SWAP_EXACT_IN = 8
     V2_SWAP_EXACT_OUT = 9
     PERMIT2_PERMIT = 10
