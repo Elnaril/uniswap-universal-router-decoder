@@ -36,6 +36,7 @@ See the [release notes page](https://github.com/Elnaril/uniswap-universal-router
 ### v3.2.0
 - Update COMMAND_TYPE_MASK to 0x7f to match UR
 - Add support for the PAY_PORTION_FULL_PRECISION command (0x07)
+- Reduce CI time
 
 ### v3.1.0
 - Update UR address and abi to match v2.1.2
