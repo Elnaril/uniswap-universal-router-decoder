@@ -457,6 +457,25 @@ def test_pay_portion_full_precision_argument_validity(function_recipient, token_
         _ = codec.encode.chain().pay_portion_full_precision(function_recipient, token_address, portion, custom_recipient).build(1698245843)  # noqa
 
 
+def test_chain_balance_check_erc20(codec):
+    owner = Web3.to_checksum_address("0x23617e59A5925b2A4Bf75d73ff6711cD0b29De85")
+    usdc_address = Web3.to_checksum_address("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48")
+    encoded_input = (
+        codec
+        .encode
+        .chain()
+        .balance_check_erc20(owner, usdc_address, 1 * 10**6)
+        .build(1698245843)
+    )
+    fct_name, decoded_input = codec.decode.function_input(encoded_input)
+    assert fct_name.fn_name == "execute"
+    assert decoded_input["commands"] == b"\x0e"
+    command_fct, command_params, command_options = decoded_input["inputs"][0]
+    assert command_fct.fn_name == "BALANCE_CHECK_ERC20"
+    assert command_params == {"owner": owner, "token": usdc_address, "minBalance": 1 * 10**6}
+    assert command_options == {"revert_on_fail": True}
+
+
 def test_build_transaction(codec_rpc):
     sender = "0x1AB4973a48dc892Cd9971ECE8e01DcC7688f8F23"
     balance = codec_rpc._w3.eth.get_balance("0x52d7Bb619F6E37A038e522eDF755008d9EfdD695", block_identifier=19876107)

@@ -1033,6 +1033,25 @@ class _BasedChainedFunctionBuilder(Generic[W3]):
         self._add_command(RouterFunction.TRANSFER, args)
         return self
 
+    def balance_check_erc20(
+            self,
+            owner: ChecksumAddress,
+            token_address: ChecksumAddress,
+            min_balance: Wei) -> Self:
+        """
+        Encode the call to the function BALANCE_CHECK_ERC20 which checks that the balance of an ERC20 token
+        owned by a given address is at least a minimum amount, and reverts otherwise.
+
+        :param owner: The address whose token balance is checked.
+        :param token_address: The address of the ERC20 token to check.
+        :param min_balance: The minimum balance (in Wei) the owner must hold.
+
+        :return: The chain link corresponding to this function call.
+        """
+        args = (owner, token_address, min_balance)
+        self._add_command(RouterFunction.BALANCE_CHECK_ERC20, args)
+        return self
+
     def permit2_transfer_from(
             self,
             function_recipient: FunctionRecipient,

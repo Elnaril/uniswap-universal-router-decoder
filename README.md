@@ -36,6 +36,7 @@ See the [release notes page](https://github.com/Elnaril/uniswap-universal-router
 ### v3.2.0
 - Update COMMAND_TYPE_MASK to 0x7f to match UR
 - Add support for the PAY_PORTION_FULL_PRECISION command (0x07)
+- Add support for the BALANCE_CHECK_ERC20 command (0x0e)
 - Reduce CI time
 
 ### v3.1.0
@@ -86,7 +87,7 @@ The target audience is Python developers who are familiar with the Ethereum bloc
 | 0x0b        | WRAP_ETH                    |                              |     ✅     |
 | 0x0c        | UNWRAP_WETH                 |                              |     ✅     |
 | 0x0d        | PERMIT2_TRANSFER_FROM_BATCH |                              |     ✅     |
-| 0x0e        | BALANCE_CHECK_ERC20         |                              |     ❌     |
+| 0x0e        | BALANCE_CHECK_ERC20         |                              |     ✅     |
 | 0x0f        | placeholder                 |                              |    N/A    |
 | 0x10        | V4_SWAP                     |                              |     ✅     |
 |             |                             | 0x06 - SWAP_EXACT_IN_SINGLE  |     ✅     |
@@ -675,6 +676,13 @@ Example where the sender gets back all remaining USDC:
 Example where a USDC amount is sent to a recipient:
 ```python
 .transfer(FunctionRecipient.CUSTOM, usdc_address, usdc_amount, recipient_address)
+```
+
+#### BALANCE_CHECK_ERC20
+Reverts if the owner's balance of the given ERC20 token is lower than the minimum amount.
+Example where the router must hold at least 1 USDC:
+```python
+.balance_check_erc20(ur_address, usdc_address, 1 * 10 ** 6)
 ```
 
 #### PERMIT2_TRANSFER_FROM

@@ -480,6 +480,12 @@ def build_permit2_transfer_from_batch() -> ABIFunction:
     return builder.add_struct_array(allowance_transfer_details_builder.build()).build()
 
 
+@ABIRegister(RouterFunction.BALANCE_CHECK_ERC20)
+def build_balance_check_erc20() -> ABIFunction:
+    builder = ABIFunctionBuilder(RouterFunction.BALANCE_CHECK_ERC20.name)
+    return builder.add_address("owner").add_address("token").add_uint256("minBalance").build()
+
+
 @ABIRegister(V4Actions.TAKE_ALL)
 def build_v4_take_all() -> ABIFunction:
     builder = ABIFunctionBuilder(V4Actions.TAKE_ALL.name)
