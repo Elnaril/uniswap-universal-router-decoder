@@ -1114,6 +1114,19 @@ class _BasedChainedFunctionBuilder(Generic[W3]):
         self._add_command(RouterFunction.V4_INITIALIZE_POOL, args)
         return self
 
+    def execute_sub_plan(self, sub_plan: _BasedChainedFunctionBuilder[W3]) -> Self:
+        """
+        Encode the call to the function EXECUTE_SUB_PLAN which executes a nested plan of commands.
+        The Universal Router calls itself to run the sub-plan, so its commands are executed in the same
+        transaction and share the same context (recipients, balances, ...).
+
+        :param sub_plan: A chain builder (built with encode.chain()) holding the commands to run as a sub-plan.
+        :return: The chain link corresponding to this function call.
+        """
+        args = (bytes(sub_plan.commands), sub_plan.arguments)
+        self._add_command(RouterFunction.EXECUTE_SUB_PLAN, args)
+        return self
+
     def build(self, deadline: Optional[int] = None) -> HexStr:
         """
         Build the encoded input for all the chained commands, ready to be sent to the UR

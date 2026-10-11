@@ -54,6 +54,7 @@ from uniswap_universal_router_decoder._enums import (
 
 
 DecodedInput = tuple[BaseContractFunction, dict[str, Any]]
+DecodedCommandInput = Union[str, tuple[BaseContractFunction, dict[str, Any], dict[str, bool]]]
 
 
 class _V4Decoder:
@@ -98,18 +99,11 @@ class _BaseDecoder(Generic[W3]):
         self._abi_map = abi_map
         self._v4_decoder = _V4Decoder(w3, abi_map)
 
-    def function_input(self, input_data: Union[HexStr, HexBytes]) -> DecodedInput:
-        """
-        Decode the data sent to an UR function
-
-        :param input_data: the transaction 'input' data
-        :return: The decoded data if the function has been implemented.
-        """
-        fct_name, decoded_input = self._router_contract.decode_function_input(input_data)
-        # returns (execute as basecontractfunction, {commands as bytes, inputs as seq of bytes, deadline as int})
-        command = decoded_input["commands"]
-        command_input = decoded_input["inputs"]
-        decoded_command_input: list[tuple[BaseContractFunction, dict[str, Any], dict[str, bool]]] = []
+    def _decode_commands(
+            self,
+            command: bytes,
+            command_input: Sequence[Any]) -> list[DecodedCommandInput]:
+        decoded_command_input: list[DecodedCommandInput] = []
         for i, b in enumerate(command):
             # iterating over bytes produces integers
             command_function = b & RouterConstant.COMMAND_TYPE_MASK.value
@@ -147,6 +141,20 @@ class _BaseDecoder(Generic[W3]):
                             {"revert_on_fail": revert_on_fail},
                         )
                     )
+                elif command_function == RouterFunction.EXECUTE_SUB_PLAN.value:
+                    decoded_command_input.append(
+                        (
+                            decoded_fct_name,
+                            {
+                                "commands": decoded_fct_params["commands"],
+                                "inputs": self._decode_commands(
+                                    decoded_fct_params["commands"],
+                                    decoded_fct_params["inputs"],
+                                ),
+                            },
+                            {"revert_on_fail": revert_on_fail},
+                        )
+                    )
                 else:
                     decoded_command_input.append(
                         (
@@ -158,7 +166,18 @@ class _BaseDecoder(Generic[W3]):
 
             except (ValueError, KeyError, DecodingError):
                 decoded_command_input.append(command_input[i].hex())
-        decoded_input["inputs"] = decoded_command_input
+        return decoded_command_input
+
+    def function_input(self, input_data: Union[HexStr, HexBytes]) -> DecodedInput:
+        """
+        Decode the data sent to an UR function
+
+        :param input_data: the transaction 'input' data
+        :return: The decoded data if the function has been implemented.
+        """
+        fct_name, decoded_input = self._router_contract.decode_function_input(input_data)
+        # returns (execute as basecontractfunction, {commands as bytes, inputs as seq of bytes, deadline as int})
+        decoded_input["inputs"] = self._decode_commands(decoded_input["commands"], decoded_input["inputs"])
         return fct_name, decoded_input
 
     @staticmethod

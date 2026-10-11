@@ -37,6 +37,7 @@ See the [release notes page](https://github.com/Elnaril/uniswap-universal-router
 - Update COMMAND_TYPE_MASK to 0x7f to match UR
 - Add support for the PAY_PORTION_FULL_PRECISION command (0x07)
 - Add support for the BALANCE_CHECK_ERC20 command (0x0e)
+- Add support for the EXECUTE_SUB_PLAN command (0x21)
 - Reduce CI time
 
 ### v3.1.0
@@ -114,7 +115,7 @@ The target audience is Python developers who are familiar with the Ethereum bloc
 |             |                             | 0x15 - WRAP                  |     ✅     |
 |             |                             | 0x16 - UNWRAP                |     ✅     |
 | 0x15 - 0x20 | placeholders                |                              |    N/A    |
-| 0x21        | EXECUTE_SUB_PLAN            |                              |     ❌     |
+| 0x21        | EXECUTE_SUB_PLAN            |                              |     ✅     |
 | 0x22 - 0x3f | placeholders                |                              |    N/A    |
 | 0x40        | ACROSS_V4_DEPOSIT_V3        |                              |     ❌     |
 
@@ -683,6 +684,16 @@ Reverts if the owner's balance of the given ERC20 token is lower than the minimu
 Example where the router must hold at least 1 USDC:
 ```python
 .balance_check_erc20(ur_address, usdc_address, 1 * 10 ** 6)
+```
+
+#### EXECUTE_SUB_PLAN
+Executes a nested plan of commands. The Universal Router calls itself to run the sub-plan, so its commands
+are executed in the same transaction and share the same context (recipients, balances, ...).
+The sub-plan is built with `encode.chain()` just like the main plan.
+Example where a sub-plan transferring USDC is nested in the main plan:
+```python
+sub_plan = codec.encode.chain().transfer(FunctionRecipient.SENDER, usdc_address, usdc_amount)
+codec.encode.chain().execute_sub_plan(sub_plan).build()
 ```
 
 #### PERMIT2_TRANSFER_FROM

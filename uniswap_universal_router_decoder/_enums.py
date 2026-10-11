@@ -36,6 +36,7 @@ class RouterFunction(Enum):
     V4_SWAP = 16
     V4_INITIALIZE_POOL = 19
     V4_POSITION_MANAGER_CALL = 20
+    EXECUTE_SUB_PLAN = 33
 
 
 class FunctionRecipient(Enum):

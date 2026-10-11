@@ -486,6 +486,12 @@ def build_balance_check_erc20() -> ABIFunction:
     return builder.add_address("owner").add_address("token").add_uint256("minBalance").build()
 
 
+@ABIRegister(RouterFunction.EXECUTE_SUB_PLAN)
+def build_execute_sub_plan() -> ABIFunction:
+    builder = ABIFunctionBuilder(RouterFunction.EXECUTE_SUB_PLAN.name)
+    return builder.add_bytes("commands").add_bytes_array("inputs").build()
+
+
 @ABIRegister(V4Actions.TAKE_ALL)
 def build_v4_take_all() -> ABIFunction:
     builder = ABIFunctionBuilder(V4Actions.TAKE_ALL.name)

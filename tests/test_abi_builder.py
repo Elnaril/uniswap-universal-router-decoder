@@ -28,6 +28,8 @@ expected_fct_abi_19 = json.loads('{"inputs": [{"components": [{"name": "currency
 expected_fct_signature_19 = "V4_INITIALIZE_POOL((address,address,uint24,int24,address),uint256)"
 expected_v4_swap_exact_in_abi = json.loads('{"inputs": [{"name": "params", "type": "ExactInputParams"}], "name": "SWAP_EXACT_IN", "type": "function"}')  # noqa E501
 expected_v4_swap_exact_in_signature = "SWAP_EXACT_IN(ExactInputParams)"
+expected_fct_abi_21 = json.loads('{"inputs":[{"name":"commands","type":"bytes"},{"name":"inputs","type":"bytes[]"}],"name":"EXECUTE_SUB_PLAN","type":"function"}')  # noqa: E501
+expected_fct_signature_21 = "EXECUTE_SUB_PLAN(bytes,bytes[])"
 
 
 @pytest.mark.parametrize(
@@ -39,6 +41,7 @@ expected_v4_swap_exact_in_signature = "SWAP_EXACT_IN(ExactInputParams)"
         (MiscFunctions.EXECUTE, expected_execute_abi, bytes.fromhex("24856bc3"), expected_execute_signature),
         (RouterFunction.V4_INITIALIZE_POOL, expected_fct_abi_19, b'\xdb\xd4\xe4\xbd', expected_fct_signature_19),
         (V4Actions.SWAP_EXACT_IN, expected_v4_swap_exact_in_abi, b'h>~1', expected_v4_swap_exact_in_signature),  # noqa E501
+        (RouterFunction.EXECUTE_SUB_PLAN, expected_fct_abi_21, bytes.fromhex("ed4f9523"), expected_fct_signature_21),
     )
 )
 def test_build_abi_map(command_id, expected_fct_abi, expected_selector, expected_signature, codec):
