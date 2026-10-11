@@ -33,7 +33,7 @@
 ## Release Notes
 See the [release notes page](https://github.com/Elnaril/uniswap-universal-router-decoder/wiki/Release_Notes)
 
-### v3.2.0
+### v3.2.0 - breaking changes
 - Update COMMAND_TYPE_MASK to 0x7f to match UR
 - Add support for the PAY_PORTION_FULL_PRECISION command (0x07)
 - Add support for the BALANCE_CHECK_ERC20 command (0x0e)
