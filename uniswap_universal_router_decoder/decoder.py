@@ -54,7 +54,7 @@ from uniswap_universal_router_decoder._enums import (
 
 
 DecodedInput = tuple[BaseContractFunction, dict[str, Any]]
-DecodedCommandInput = Union[str, tuple[BaseContractFunction, dict[str, Any], dict[str, bool]]]
+_DecodedCommandInput = Union[str, tuple[BaseContractFunction, dict[str, Any], dict[str, bool]]]
 
 
 class _V4Decoder:
@@ -102,8 +102,8 @@ class _BaseDecoder(Generic[W3]):
     def _decode_commands(
             self,
             command: bytes,
-            command_input: Sequence[Any]) -> list[DecodedCommandInput]:
-        decoded_command_input: list[DecodedCommandInput] = []
+            command_input: Sequence[Any]) -> list[_DecodedCommandInput]:
+        decoded_command_input: list[_DecodedCommandInput] = []
         for i, b in enumerate(command):
             # iterating over bytes produces integers
             command_function = b & RouterConstant.COMMAND_TYPE_MASK.value

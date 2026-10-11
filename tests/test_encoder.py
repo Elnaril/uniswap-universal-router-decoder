@@ -17,8 +17,8 @@ from uniswap_universal_router_decoder import (
     TransactionSpeed,
 )
 from uniswap_universal_router_decoder._constants import ur_address  # noqa
-from uniswap_universal_router_decoder._encoder import _ChainedFunctionBuilder  # noqa
 from uniswap_universal_router_decoder._enums import RouterFunction  # noqa
+from uniswap_universal_router_decoder.encoder import ChainedFunctionBuilder
 
 
 @pytest.mark.parametrize(
@@ -34,9 +34,9 @@ from uniswap_universal_router_decoder._enums import RouterFunction  # noqa
 def test_get_recipient(function_recipient, custom_recipient, expected_recipient, expected_exception):
     if expected_exception:
         with pytest.raises(expected_exception):
-            _ChainedFunctionBuilder._get_recipient(function_recipient, custom_recipient)
+            ChainedFunctionBuilder._get_recipient(function_recipient, custom_recipient)
     else:
-        assert expected_recipient == _ChainedFunctionBuilder._get_recipient(function_recipient, custom_recipient)
+        assert expected_recipient == ChainedFunctionBuilder._get_recipient(function_recipient, custom_recipient)
 
 
 def test_chain_wrap_eth(codec):
@@ -750,7 +750,7 @@ def test_build_transaction_value_err(
         err_msg
 ):
     mocker.patch(
-        'uniswap_universal_router_decoder._encoder.compute_gas_fees',
+        'uniswap_universal_router_decoder.encoder.compute_gas_fees',
         return_value=(Wei(1), Wei(10**12)),
     )
     with pytest.raises(ValueError) as err:

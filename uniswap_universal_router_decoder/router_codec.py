@@ -37,11 +37,11 @@ from uniswap_universal_router_decoder._constants import (
     permit2_types,
     ur_address,
 )
-from uniswap_universal_router_decoder._decoder import (
+from uniswap_universal_router_decoder.decoder import (
     AsyncDecoder,
     Decoder,
 )
-from uniswap_universal_router_decoder._encoder import (
+from uniswap_universal_router_decoder.encoder import (
     AsyncEncoder,
     Encoder,
 )

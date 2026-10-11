@@ -11,11 +11,11 @@ from web3 import (
 from web3.types import Wei
 
 from uniswap_universal_router_decoder import (
-    AllowanceTransferDetails,
     FunctionRecipient,
     PermitDetails,
     RouterCodec,
 )
+from uniswap_universal_router_decoder.encoder import AllowanceTransferDetails
 
 
 web3_provider = os.environ['WEB3_HTTP_PROVIDER_URL_ETHEREUM_MAINNET']

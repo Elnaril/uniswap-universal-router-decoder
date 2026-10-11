@@ -38,6 +38,7 @@ See the [release notes page](https://github.com/Elnaril/uniswap-universal-router
 - Add support for the PAY_PORTION_FULL_PRECISION command (0x07)
 - Add support for the BALANCE_CHECK_ERC20 command (0x0e)
 - Add support for the EXECUTE_SUB_PLAN command (0x21)
+- Make the chained function builders public and expose the `encoder` & `decoder` modules
 - Reduce CI time
 
 ### v3.1.0

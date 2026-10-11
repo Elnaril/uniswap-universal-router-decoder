@@ -192,9 +192,9 @@ class Encoder(_BaseEncoder[Web3]):
         """
         :return: Initialize the chain of encoded functions
         """
-        return _ChainedFunctionBuilder(self._w3, self._abi_map)
+        return ChainedFunctionBuilder(self._w3, self._abi_map)
 
-    def chain(self) -> _ChainedFunctionBuilder:
+    def chain(self) -> ChainedFunctionBuilder:
         """
         :return: Initialize the chain of encoded functions
         """
@@ -209,16 +209,16 @@ class AsyncEncoder(_BaseEncoder[AsyncWeb3[AsyncHTTPProvider]]):
         """
         :return: Initialize the chain of encoded functions
         """
-        return _AsyncChainedFunctionBuilder(self._w3, self._abi_map)
+        return AsyncChainedFunctionBuilder(self._w3, self._abi_map)
 
-    def chain(self) -> _AsyncChainedFunctionBuilder:
+    def chain(self) -> AsyncChainedFunctionBuilder:
         """
         :return: Initialize the chain of encoded functions
         """
         return self()
 
 
-TChainedFunctionBuilder = TypeVar("TChainedFunctionBuilder", "_ChainedFunctionBuilder", "_AsyncChainedFunctionBuilder")
+TChainedFunctionBuilder = TypeVar("TChainedFunctionBuilder", "ChainedFunctionBuilder", "AsyncChainedFunctionBuilder")
 
 
 class _V4ChainedCommonFunctionBuilder(ABC, Generic[TChainedFunctionBuilder]):
@@ -398,12 +398,12 @@ class _BaseV4ChainedPositionFunctionBuilder(_V4ChainedCommonFunctionBuilder[TCha
         return self
 
 
-class _V4ChainedPositionFunctionBuilder(_BaseV4ChainedPositionFunctionBuilder["_ChainedFunctionBuilder"]):
-    def __init__(self, builder: _ChainedFunctionBuilder, abi_map: ABIMap) -> None:
+class V4ChainedPositionFunctionBuilder(_BaseV4ChainedPositionFunctionBuilder["ChainedFunctionBuilder"]):
+    def __init__(self, builder: ChainedFunctionBuilder, abi_map: ABIMap) -> None:
         self.builder = builder
         super().__init__(abi_map)
 
-    def build_v4_posm_call(self, deadline: int) -> _ChainedFunctionBuilder:
+    def build_v4_posm_call(self, deadline: int) -> ChainedFunctionBuilder:
         """
         Position - Build the V4 position manager call
 
@@ -422,12 +422,12 @@ class _V4ChainedPositionFunctionBuilder(_BaseV4ChainedPositionFunctionBuilder["_
         return self.builder
 
 
-class _AsyncV4ChainedPositionFunctionBuilder(_BaseV4ChainedPositionFunctionBuilder["_AsyncChainedFunctionBuilder"]):
-    def __init__(self, builder: _AsyncChainedFunctionBuilder, abi_map: ABIMap) -> None:
+class AsyncV4ChainedPositionFunctionBuilder(_BaseV4ChainedPositionFunctionBuilder["AsyncChainedFunctionBuilder"]):
+    def __init__(self, builder: AsyncChainedFunctionBuilder, abi_map: ABIMap) -> None:
         self.builder = builder
         super().__init__(abi_map)
 
-    def build_v4_posm_call(self, deadline: int) -> _AsyncChainedFunctionBuilder:
+    def build_v4_posm_call(self, deadline: int) -> AsyncChainedFunctionBuilder:
         """
         Position - Build the V4 position manager call
 
@@ -601,12 +601,12 @@ class _BaseV4ChainedSwapFunctionBuilder(_V4ChainedCommonFunctionBuilder[TChained
         return self
 
 
-class _V4ChainedSwapFunctionBuilder(_BaseV4ChainedSwapFunctionBuilder["_ChainedFunctionBuilder"]):
-    def __init__(self, builder: _ChainedFunctionBuilder, abi_map: ABIMap) -> None:
+class V4ChainedSwapFunctionBuilder(_BaseV4ChainedSwapFunctionBuilder["ChainedFunctionBuilder"]):
+    def __init__(self, builder: ChainedFunctionBuilder, abi_map: ABIMap) -> None:
         self.builder = builder
         super().__init__(abi_map)
 
-    def build_v4_swap(self) -> _ChainedFunctionBuilder:
+    def build_v4_swap(self) -> ChainedFunctionBuilder:
         """
         Build the V4 swap call
 
@@ -617,12 +617,12 @@ class _V4ChainedSwapFunctionBuilder(_BaseV4ChainedSwapFunctionBuilder["_ChainedF
         return self.builder
 
 
-class _AsyncV4ChainedSwapFunctionBuilder(_BaseV4ChainedSwapFunctionBuilder["_AsyncChainedFunctionBuilder"]):
-    def __init__(self, builder: _AsyncChainedFunctionBuilder, abi_map: ABIMap) -> None:
+class AsyncV4ChainedSwapFunctionBuilder(_BaseV4ChainedSwapFunctionBuilder["AsyncChainedFunctionBuilder"]):
+    def __init__(self, builder: AsyncChainedFunctionBuilder, abi_map: ABIMap) -> None:
         self.builder = builder
         super().__init__(abi_map)
 
-    def build_v4_swap(self) -> _AsyncChainedFunctionBuilder:
+    def build_v4_swap(self) -> AsyncChainedFunctionBuilder:
         """
         Build the V4 swap call
 
@@ -633,7 +633,7 @@ class _AsyncV4ChainedSwapFunctionBuilder(_BaseV4ChainedSwapFunctionBuilder["_Asy
         return self.builder
 
 
-class _BasedChainedFunctionBuilder(Generic[W3]):
+class BaseChainedFunctionBuilder(Generic[W3]):
     def __init__(self, w3: W3, abi_map: ABIMap):
         self._w3 = w3
         self._router_contract = self._w3.eth.contract(abi=ur_abi)
@@ -1114,7 +1114,7 @@ class _BasedChainedFunctionBuilder(Generic[W3]):
         self._add_command(RouterFunction.V4_INITIALIZE_POOL, args)
         return self
 
-    def execute_sub_plan(self, sub_plan: _BasedChainedFunctionBuilder[W3]) -> Self:
+    def execute_sub_plan(self, sub_plan: BaseChainedFunctionBuilder[W3]) -> Self:
         """
         Encode the call to the function EXECUTE_SUB_PLAN which executes a nested plan of commands.
         The Universal Router calls itself to run the sub-plan, so its commands are executed in the same
@@ -1144,24 +1144,24 @@ class _BasedChainedFunctionBuilder(Generic[W3]):
             return Web3.to_hex(abi.selector + abi.encode(execute_args))
 
 
-class _ChainedFunctionBuilder(_BasedChainedFunctionBuilder[Web3]):
+class ChainedFunctionBuilder(BaseChainedFunctionBuilder[Web3]):
     def __init__(self, w3: Web3, abi_map: ABIMap):
         super().__init__(w3, abi_map)
 
-    def v4_swap(self) -> _V4ChainedSwapFunctionBuilder:
+    def v4_swap(self) -> V4ChainedSwapFunctionBuilder:
         """
         V4 - Start building a call to the V4 swap functions
 
         :return: The chain link corresponding to this function call.
         """
-        return _V4ChainedSwapFunctionBuilder(self, self._abi_map)
+        return V4ChainedSwapFunctionBuilder(self, self._abi_map)
 
-    def v4_posm_call(self) -> _V4ChainedPositionFunctionBuilder:
+    def v4_posm_call(self) -> V4ChainedPositionFunctionBuilder:
         """
         V4 - Start building a call to the V4 positon manager functions
         :return: The chain link corresponding to this function call.
         """
-        return _V4ChainedPositionFunctionBuilder(self, self._abi_map)
+        return V4ChainedPositionFunctionBuilder(self, self._abi_map)
 
     def build_transaction(
             self,
@@ -1253,24 +1253,24 @@ class _ChainedFunctionBuilder(_BasedChainedFunctionBuilder[Web3]):
         return tx_params
 
 
-class _AsyncChainedFunctionBuilder(_BasedChainedFunctionBuilder[AsyncWeb3[AsyncHTTPProvider]]):
+class AsyncChainedFunctionBuilder(BaseChainedFunctionBuilder[AsyncWeb3[AsyncHTTPProvider]]):
     def __init__(self, async_w3: AsyncWeb3[AsyncHTTPProvider], abi_map: ABIMap):
         super().__init__(async_w3, abi_map)
 
-    def v4_swap(self) -> _AsyncV4ChainedSwapFunctionBuilder:
+    def v4_swap(self) -> AsyncV4ChainedSwapFunctionBuilder:
         """
         V4 - Start building a call to the V4 swap functions
 
         :return: The chain link corresponding to this function call.
         """
-        return _AsyncV4ChainedSwapFunctionBuilder(self, self._abi_map)
+        return AsyncV4ChainedSwapFunctionBuilder(self, self._abi_map)
 
-    def v4_posm_call(self) -> _AsyncV4ChainedPositionFunctionBuilder:
+    def v4_posm_call(self) -> AsyncV4ChainedPositionFunctionBuilder:
         """
         V4 - Start building a call to the V4 positon manager functions
         :return: The chain link corresponding to this function call.
         """
-        return _AsyncV4ChainedPositionFunctionBuilder(self, self._abi_map)
+        return AsyncV4ChainedPositionFunctionBuilder(self, self._abi_map)
 
     async def build_transaction(
             self,

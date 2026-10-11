@@ -10,10 +10,12 @@ from web3.types import (
 
 from uniswap_universal_router_decoder import (
     FunctionRecipient,
-    PathKey,
-    PoolKey,
     RouterCodec,
     V4Constants,
+)
+from uniswap_universal_router_decoder.encoder import (
+    PathKey,
+    PoolKey,
 )
 
 
