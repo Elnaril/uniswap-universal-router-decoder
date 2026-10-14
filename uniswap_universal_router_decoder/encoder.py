@@ -1097,6 +1097,30 @@ class BaseChainedFunctionBuilder(Generic[W3]):
         self._add_command(RouterFunction.PERMIT2_TRANSFER_FROM_BATCH, args)
         return self
 
+    def v3_position_manager_permit(
+            self,
+            permit_params: dict[str, Any],
+            signed_permit: SignedMessage) -> Self:
+        """
+        V3 - Encode the call to the V3 position manager permit function, which approves a spender for a
+        specific V3 position (NFT) using a signature instead of a transaction.
+
+        :param permit_params: The 1st element returned by create_v3_position_manager_permit_signable_message()
+        :param signed_permit: The 2nd element returned by create_v3_position_manager_permit_signable_message(),
+            once signed.
+        :return: The chain link corresponding to this function call.
+        """
+        args = (
+            permit_params["spender"],
+            permit_params["tokenId"],
+            permit_params["deadline"],
+            signed_permit.v,
+            signed_permit.r.to_bytes(32, "big"),
+            signed_permit.s.to_bytes(32, "big"),
+        )
+        self._add_command(RouterFunction.V3_POSITION_MANAGER_PERMIT, args, True)
+        return self
+
     def v4_initialize_pool(self, pool_key: PoolKey, amount_0: Wei, amount_1: Wei) -> Self:
         """
         V4 - Encode the call to initialize (create) a V4 pool.

@@ -37,6 +37,7 @@ See the [release notes page](https://github.com/Elnaril/uniswap-universal-router
 - Update COMMAND_TYPE_MASK to 0x7f to match UR
 - Add support for the PAY_PORTION_FULL_PRECISION command (0x07)
 - Add support for the BALANCE_CHECK_ERC20 command (0x0e)
+- Add support for the V3_POSITION_MANAGER_PERMIT command (0x11)
 - Add support for the EXECUTE_SUB_PLAN command (0x21)
 - Make the chained function builders public and expose the `encoder` & `decoder` modules
 - Reduce CI time
@@ -101,7 +102,7 @@ The target audience is Python developers who are familiar with the Ethereum bloc
 |             |                             | 0x0e - TAKE                  |     ✅     |
 |             |                             | 0x0f - TAKE_ALL              |     ✅     |
 |             |                             | 0x10 - TAKE_PORTION          |     ✅     |
-| 0x11        | V3_POSITION_MANAGER_PERMIT  |                              |     ❌     |
+| 0x11        | V3_POSITION_MANAGER_PERMIT  |                              |     ✅     |
 | 0x12        | V3_POSITION_MANAGER_CALL    |                              |     ❌     |
 | 0x13        | V4_INITIALIZE_POOL          |                              |     ✅     |
 | 0x14        | V4_POSITION_MANAGER_CALL    |                              |     ✅     |
@@ -695,6 +696,21 @@ Example where a sub-plan transferring USDC is nested in the main plan:
 ```python
 sub_plan = codec.encode.chain().transfer(FunctionRecipient.SENDER, usdc_address, usdc_amount)
 codec.encode.chain().execute_sub_plan(sub_plan).build()
+```
+
+#### V3_POSITION_MANAGER_PERMIT
+Approves a spender for a specific V3 position (NFT) using an EIP-712 signature instead of a transaction.
+The signable message is built with `create_v3_position_manager_permit_signable_message()`, then signed.
+Example where the spender is approved for the position `token_id`:
+```python
+permit_params, signable_message = codec.create_v3_position_manager_permit_signable_message(
+    spender_address,
+    token_id,
+    nonce,  # the current nonce of the V3 position
+    deadline,
+)
+signed_message = acc.sign_message(signable_message)  # where acc is your LocalAccount
+codec.encode.chain().v3_position_manager_permit(permit_params, signed_message).build(deadline)
 ```
 
 #### PERMIT2_TRANSFER_FROM

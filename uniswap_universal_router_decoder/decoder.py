@@ -109,7 +109,10 @@ class _BaseDecoder(Generic[W3]):
             command_function = b & RouterConstant.COMMAND_TYPE_MASK.value
             try:
                 abi_mapping = self._abi_map[RouterFunction(command_function)]
-                if b == RouterFunction.V4_POSITION_MANAGER_CALL.value:
+                if b in (
+                    RouterFunction.V4_POSITION_MANAGER_CALL.value,
+                    RouterFunction.V3_POSITION_MANAGER_PERMIT.value,
+                ):
                     data = command_input[i]
                 else:
                     data = abi_mapping.selector + command_input[i]

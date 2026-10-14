@@ -36,6 +36,9 @@ from uniswap_universal_router_decoder._constants import (
     permit2_domain_data,
     permit2_types,
     ur_address,
+    v3_position_manager_address,
+    v3_position_manager_permit_domain_data,
+    v3_position_manager_permit_types,
 )
 from uniswap_universal_router_decoder.decoder import (
     AsyncDecoder,
@@ -186,6 +189,50 @@ class _BaseRouterCodec:
             message_data=permit_batch,
         )
         return permit_batch, signable_message
+
+    @staticmethod
+    def create_v3_position_manager_permit_signable_message(
+            spender: ChecksumAddress,
+            token_id: int,
+            nonce: int,
+            deadline: int,
+            chain_id: int = 1,
+            verifying_contract: ChecksumAddress = v3_position_manager_address
+    ) -> tuple[dict[str, Any], SignableMessage]:
+        """
+        Create a eth_account.messages.SignableMessage that will be sent to the UR/V3 position manager contract
+        to approve a spender for a specific V3 position (NFT) through signature validation.
+
+        See https://docs.uniswap.org/contracts/v3/reference/periphery/base/ERC721Permit
+
+        See https://eips.ethereum.org/EIPS/eip-712 for EIP712 structured data signing.
+
+        :param spender: The address allowed to spend the V3 position
+        :param token_id: The id of the V3 position (NFT)
+        :param nonce: The current nonce of the V3 position (NFT)
+        :param deadline: The deadline, as a Unix timestamp, on the permit signature
+        :param chain_id: What it says on the box. Default to 1.
+        :param verifying_contract: the V3 position manager contract address. Default to its address on Mainnet.
+        :return: A tuple: (Permit, SignableMessage).
+            The first element is the first parameter of v3_position_manager_permit().
+            The second element must be signed with eth_account.signers.local.LocalAccount.sign_message() in your code
+            and the resulting SignedMessage is the 2nd parameter of v3_position_manager_permit().
+        """
+        permit_params = {
+            "spender": spender,
+            "tokenId": token_id,
+            "nonce": nonce,
+            "deadline": deadline,
+        }
+        domain_data = dict(v3_position_manager_permit_domain_data)
+        domain_data["chainId"] = chain_id
+        domain_data["verifyingContract"] = verifying_contract
+        signable_message = encode_typed_data(
+            domain_data=domain_data,
+            message_types=v3_position_manager_permit_types,
+            message_data=permit_params,
+        )
+        return permit_params, signable_message
 
 
 class RouterCodec(_BaseRouterCodec):

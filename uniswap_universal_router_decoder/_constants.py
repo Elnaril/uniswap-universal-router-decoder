@@ -29,8 +29,25 @@ v4_position_manager_abi: Final = '[{"inputs":[{"internalType":"contract IPoolMan
 # Mainnet addresses
 permit2_address: Final = Web3.to_checksum_address("0x000000000022D473030F116dDEE9F6B43aC78BA3")
 ur_address: Final = Web3.to_checksum_address("0x23617e59A5925b2A4Bf75d73ff6711cD0b29De85")
+v3_position_manager_address: Final = Web3.to_checksum_address("0xC36442b4a4522E871399CD717aBDD847Ab11FE88")
 
 permit2_domain_data: Final = {'name': 'Permit2', 'chainId': 1, 'verifyingContract': permit2_address}
+
+v3_position_manager_permit_domain_data: Final = {
+    'name': 'Uniswap V3 Positions NFT-V1',
+    'version': '1',
+    'chainId': 1,
+    'verifyingContract': v3_position_manager_address,
+}
+
+v3_position_manager_permit_types: Final = {
+    'Permit': [
+        {'name': 'spender', 'type': 'address'},
+        {'name': 'tokenId', 'type': 'uint256'},
+        {'name': 'nonce', 'type': 'uint256'},
+        {'name': 'deadline', 'type': 'uint256'},
+    ],
+}
 
 # Shared PermitDetails types used by both _permit2_types and _permit2_batch_types
 _permit_detail_types: Final = [

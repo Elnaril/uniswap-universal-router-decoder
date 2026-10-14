@@ -185,6 +185,14 @@ class CommonABIBuilder:
         self.abi.params.append(ABIParam(arg_name, "uint128"))
         return self
 
+    def add_uint8(self, arg_name: str) -> Self:
+        self.abi.params.append(ABIParam(arg_name, "uint8"))
+        return self
+
+    def add_bytes32(self, arg_name: str) -> Self:
+        self.abi.params.append(ABIParam(arg_name, "bytes32"))
+        return self
+
     def add_address_array(self, arg_name: str) -> Self:
         self.abi.params.append(ABIParam(arg_name, "address[]"))
         return self
@@ -408,6 +416,21 @@ def build_v4_swap_exact_in_single() -> ABIFunction:
     outer_struct.add_struct(pool_key_builder.build()).add_bool("zeroForOne").add_uint128("amountIn")
     outer_struct.add_uint128("amountOutMinimum").add_uint256("minHopPriceX36").add_bytes("hookData")
     return builder.add_struct(outer_struct.build()).build()
+
+
+@ABIRegister(RouterFunction.V3_POSITION_MANAGER_PERMIT)
+def build_v3_position_manager_permit() -> ABIFunction:
+    builder = ABIFunctionBuilder("permit")
+    return (
+        builder
+        .add_address("spender")
+        .add_uint256("tokenId")
+        .add_uint256("deadline")
+        .add_uint8("v")
+        .add_bytes32("r")
+        .add_bytes32("s")
+        .build()
+    )
 
 
 @ABIRegister(RouterFunction.V4_INITIALIZE_POOL)

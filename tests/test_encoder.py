@@ -505,6 +505,62 @@ def test_chain_execute_sub_plan(codec):
     assert sub_command_options == {"revert_on_fail": True}
 
 
+def test_create_v3_position_manager_permit_signable_message(codec):
+    spender = Web3.to_checksum_address("0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD")
+    token_id = 123456
+    nonce = 0
+    deadline = 1698245843
+    permit_params, signable_message = codec.create_v3_position_manager_permit_signable_message(
+        spender,
+        token_id,
+        nonce,
+        deadline,
+    )
+    assert permit_params == {"spender": spender, "tokenId": token_id, "nonce": nonce, "deadline": deadline}
+    assert signable_message.version == b'\x01'
+    # EIP712 domain separator and Permit struct hash, matching the V3 position manager contract
+    assert signable_message.header == HexBytes("0x24ea63bbfcb16de2524c7c24322b6cbc39cb2d08881bce770af4771e6b1ad117")  # noqa: E501
+    assert signable_message.body == HexBytes("0xd4da6f2175bfc7956e9dc4fac6d48409a1244b6775ec2682c98b24c304c06721")  # noqa: E501
+
+
+def test_chain_v3_position_manager_permit(codec):
+    spender = Web3.to_checksum_address("0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD")
+    token_id = 123456
+    nonce = 0
+    deadline = 1698245843
+    permit_params, signable_message = codec.create_v3_position_manager_permit_signable_message(
+        spender,
+        token_id,
+        nonce,
+        deadline,
+    )
+
+    account: LocalAccount = Account.from_key(keccak(text="moo"))
+    signed_message: SignedMessage = account.sign_message(signable_message)
+
+    encoded_input = (
+        codec
+        .encode
+        .chain()
+        .v3_position_manager_permit(permit_params, signed_message)
+        .build(deadline)
+    )
+    fct_name, decoded_input = codec.decode.function_input(encoded_input)
+    assert fct_name.fn_name == "execute"
+    assert decoded_input["commands"] == b"\x11"
+    command_fct, command_params, command_options = decoded_input["inputs"][0]
+    assert command_fct.fn_name == "permit"
+    assert command_params == {
+        "spender": spender,
+        "tokenId": token_id,
+        "deadline": deadline,
+        "v": signed_message.v,
+        "r": signed_message.r.to_bytes(32, "big"),
+        "s": signed_message.s.to_bytes(32, "big"),
+    }
+    assert command_options == {"revert_on_fail": True}
+
+
 def test_build_transaction(codec_rpc):
     sender = "0x1AB4973a48dc892Cd9971ECE8e01DcC7688f8F23"
     balance = codec_rpc._w3.eth.get_balance("0x52d7Bb619F6E37A038e522eDF755008d9EfdD695", block_identifier=19876107)
