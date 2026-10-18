@@ -38,6 +38,7 @@ See the [release notes page](https://github.com/Elnaril/uniswap-universal-router
 - Add support for the PAY_PORTION_FULL_PRECISION command (0x07)
 - Add support for the BALANCE_CHECK_ERC20 command (0x0e)
 - Add support for the V3_POSITION_MANAGER_PERMIT command (0x11)
+- Add support for the V3_POSITION_MANAGER_CALL command (0x12)
 - Add support for the EXECUTE_SUB_PLAN command (0x21)
 - Make the chained function builders public and expose the `encoder` & `decoder` modules
 - Reduce CI time
@@ -103,7 +104,7 @@ The target audience is Python developers who are familiar with the Ethereum bloc
 |             |                             | 0x0f - TAKE_ALL              |     ✅     |
 |             |                             | 0x10 - TAKE_PORTION          |     ✅     |
 | 0x11        | V3_POSITION_MANAGER_PERMIT  |                              |     ✅     |
-| 0x12        | V3_POSITION_MANAGER_CALL    |                              |     ❌     |
+| 0x12        | V3_POSITION_MANAGER_CALL    |                              |     ✅     |
 | 0x13        | V4_INITIALIZE_POOL          |                              |     ✅     |
 | 0x14        | V4_POSITION_MANAGER_CALL    |                              |     ✅     |
 |             |                             | 0x02 - MINT_POSITION         |     ✅     |
@@ -711,6 +712,21 @@ permit_params, signable_message = codec.create_v3_position_manager_permit_signab
 )
 signed_message = acc.sign_message(signable_message)  # where acc is your LocalAccount
 codec.encode.chain().v3_position_manager_permit(permit_params, signed_message).build(deadline)
+```
+
+#### V3_POSITION_MANAGER_CALL
+Calls one of the V3 position manager functions allowed by the UR: `decreaseLiquidity`, `collect` or `burn`.
+Example where the liquidity of a V3 position is decreased:
+```python
+.v3_decrease_liquidity(token_id, liquidity, amount_0_min, amount_1_min, deadline)
+```
+Example where the tokens owed to a V3 position are collected:
+```python
+.v3_collect(token_id, recipient_address, amount_0_max, amount_1_max)
+```
+Example where an empty V3 position is burned:
+```python
+.v3_burn(token_id)
 ```
 
 #### PERMIT2_TRANSFER_FROM

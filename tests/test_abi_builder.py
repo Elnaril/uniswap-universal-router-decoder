@@ -12,6 +12,7 @@ from uniswap_universal_router_decoder._abi_builder import (
 from uniswap_universal_router_decoder._enums import (  # noqa
     MiscFunctions,
     RouterFunction,
+    V3PositionManagerActions,
     V4Actions,
 )
 
@@ -30,8 +31,14 @@ expected_v4_swap_exact_in_abi = json.loads('{"inputs": [{"name": "params", "type
 expected_v4_swap_exact_in_signature = "SWAP_EXACT_IN(ExactInputParams)"
 expected_fct_abi_33 = json.loads('{"inputs":[{"name":"commands","type":"bytes"},{"name":"inputs","type":"bytes[]"}],"name":"EXECUTE_SUB_PLAN","type":"function"}')  # noqa: E501
 expected_fct_signature_21 = "EXECUTE_SUB_PLAN(bytes,bytes[])"
-expected_fct_abi_17 = json.loads('{"inputs":[{"name":"spender","type":"address"},{"name":"tokenId","type":"uint256"},{"name":"deadline","type":"uint256"},{"name":"v","type":"uint8"},{"name":"r","type":"bytes32"},{"name":"s","type":"bytes32"}],"name":"permit","type":"function"}')  # noqa: E501
-expected_fct_signature_33 = "permit(address,uint256,uint256,uint8,bytes32,bytes32)"
+expected_fct_abi_11 = json.loads('{"inputs":[{"name":"spender","type":"address"},{"name":"tokenId","type":"uint256"},{"name":"deadline","type":"uint256"},{"name":"v","type":"uint8"},{"name":"r","type":"bytes32"},{"name":"s","type":"bytes32"}],"name":"permit","type":"function"}')  # noqa: E501
+expected_fct_signature_11 = "permit(address,uint256,uint256,uint8,bytes32,bytes32)"
+expected_v3_decrease_liquidity_abi = json.loads('{"inputs":[{"components":[{"name":"tokenId","type":"uint256"},{"name":"liquidity","type":"uint128"},{"name":"amount0Min","type":"uint256"},{"name":"amount1Min","type":"uint256"},{"name":"deadline","type":"uint256"}],"name":"params","type":"tuple"}],"name":"decreaseLiquidity","type":"function"}')  # noqa: E501
+expected_v3_decrease_liquidity_signature = "decreaseLiquidity((uint256,uint128,uint256,uint256,uint256))"
+expected_v3_collect_abi = json.loads('{"inputs":[{"components":[{"name":"tokenId","type":"uint256"},{"name":"recipient","type":"address"},{"name":"amount0Max","type":"uint128"},{"name":"amount1Max","type":"uint128"}],"name":"params","type":"tuple"}],"name":"collect","type":"function"}')  # noqa: E501
+expected_v3_collect_signature = "collect((uint256,address,uint128,uint128))"
+expected_v3_burn_abi = json.loads('{"inputs":[{"name":"tokenId","type":"uint256"}],"name":"burn","type":"function"}')  # noqa: E501
+expected_v3_burn_signature = "burn(uint256)"
 
 
 @pytest.mark.parametrize(
@@ -44,13 +51,22 @@ expected_fct_signature_33 = "permit(address,uint256,uint256,uint8,bytes32,bytes3
         (RouterFunction.V4_INITIALIZE_POOL, expected_fct_abi_19, b'\xdb\xd4\xe4\xbd', expected_fct_signature_19),
         (V4Actions.SWAP_EXACT_IN, expected_v4_swap_exact_in_abi, b'h>~1', expected_v4_swap_exact_in_signature),  # noqa E501
         (RouterFunction.EXECUTE_SUB_PLAN, expected_fct_abi_33, bytes.fromhex("ed4f9523"), expected_fct_signature_21),
-        (RouterFunction.V3_POSITION_MANAGER_PERMIT, expected_fct_abi_17, bytes.fromhex("7ac2ff7b"), expected_fct_signature_33),  # noqa: E501
+        (RouterFunction.V3_POSITION_MANAGER_PERMIT, expected_fct_abi_11, bytes.fromhex("7ac2ff7b"), expected_fct_signature_11),  # noqa: E501
+        (V3PositionManagerActions.DECREASE_LIQUIDITY, expected_v3_decrease_liquidity_abi, bytes.fromhex("0c49ccbe"), expected_v3_decrease_liquidity_signature),  # noqa: E501
+        (V3PositionManagerActions.COLLECT, expected_v3_collect_abi, bytes.fromhex("fc6f7865"), expected_v3_collect_signature),  # noqa: E501
+        (V3PositionManagerActions.BURN, expected_v3_burn_abi, bytes.fromhex("42966c68"), expected_v3_burn_signature),  # noqa: E501
     )
 )
 def test_build_abi_map(command_id, expected_fct_abi, expected_selector, expected_signature, codec):
     assert codec._abi_map[command_id].full_abi[0] == expected_fct_abi
     assert codec._abi_map[command_id].selector == expected_selector
     assert codec._abi_map[command_id].signature == expected_signature
+
+
+def test_build_v3_position_manager_call_abi(codec):
+    # V3_POSITION_MANAGER_CALL can call decreaseLiquidity, collect or burn, so its ABI holds all three
+    abi = codec._abi_map[RouterFunction.V3_POSITION_MANAGER_CALL]
+    assert [fct["name"] for fct in abi.full_abi] == ["decreaseLiquidity", "collect", "burn"]
 
 
 abi_dict_1 = \

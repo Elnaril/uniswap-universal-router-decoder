@@ -561,6 +561,59 @@ def test_chain_v3_position_manager_permit(codec):
     assert command_options == {"revert_on_fail": True}
 
 
+def test_chain_v3_decrease_liquidity(codec):
+    token_id = 123456
+    encoded_input = (
+        codec
+        .encode
+        .chain()
+        .v3_decrease_liquidity(token_id, 1000, 0, 0, 1698245843)
+        .build(1698245843)
+    )
+    fct_name, decoded_input = codec.decode.function_input(encoded_input)
+    assert fct_name.fn_name == "execute"
+    assert decoded_input["commands"] == b"\x12"
+    command_fct, command_params, command_options = decoded_input["inputs"][0]
+    assert command_fct.fn_name == "decreaseLiquidity"
+    assert command_params == {
+        "params": {"tokenId": token_id, "liquidity": 1000, "amount0Min": 0, "amount1Min": 0, "deadline": 1698245843}
+    }
+    assert command_options == {"revert_on_fail": True}
+
+
+def test_chain_v3_collect(codec):
+    token_id = 123456
+    recipient = Web3.to_checksum_address("0x17CC6042605381c158D2adab487434Bde79Aa61C")
+    encoded_input = (
+        codec
+        .encode
+        .chain()
+        .v3_collect(token_id, recipient, 2 ** 128 - 1, 2 ** 128 - 1)
+        .build(1698245843)
+    )
+    fct_name, decoded_input = codec.decode.function_input(encoded_input)
+    assert fct_name.fn_name == "execute"
+    assert decoded_input["commands"] == b"\x12"
+    command_fct, command_params, command_options = decoded_input["inputs"][0]
+    assert command_fct.fn_name == "collect"
+    assert command_params == {
+        "params": {"tokenId": token_id, "recipient": recipient, "amount0Max": 2 ** 128 - 1, "amount1Max": 2 ** 128 - 1}
+    }
+    assert command_options == {"revert_on_fail": True}
+
+
+def test_chain_v3_burn(codec):
+    token_id = 123456
+    encoded_input = codec.encode.chain().v3_burn(token_id).build(1698245843)
+    fct_name, decoded_input = codec.decode.function_input(encoded_input)
+    assert fct_name.fn_name == "execute"
+    assert decoded_input["commands"] == b"\x12"
+    command_fct, command_params, command_options = decoded_input["inputs"][0]
+    assert command_fct.fn_name == "burn"
+    assert command_params == {"tokenId": token_id}
+    assert command_options == {"revert_on_fail": True}
+
+
 def test_build_transaction(codec_rpc):
     sender = "0x1AB4973a48dc892Cd9971ECE8e01DcC7688f8F23"
     balance = codec_rpc._w3.eth.get_balance("0x52d7Bb619F6E37A038e522eDF755008d9EfdD695", block_identifier=19876107)

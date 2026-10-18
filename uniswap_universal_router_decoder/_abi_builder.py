@@ -36,6 +36,7 @@ from web3 import (
 from uniswap_universal_router_decoder._enums import (
     MiscFunctions,
     RouterFunction,
+    V3PositionManagerActions,
     V4Actions,
 )
 
@@ -147,7 +148,7 @@ def build_abi_type_list(abi_dict: ABIFunctionDict) -> list[str]:
     return _get_types_from_list(abi_dict["inputs"])
 
 
-ABIMap = dict[Union[MiscFunctions, RouterFunction, V4Actions], ABIFunction]
+ABIMap = dict[Union[MiscFunctions, RouterFunction, V3PositionManagerActions, V4Actions], ABIFunction]
 
 
 class CommonABIBuilder:
@@ -262,7 +263,7 @@ class ABIStructBuilder(CommonABIBuilder):
 class ABIRegister:
     abi_map: ABIMap = {}
 
-    def __init__(self, enum_key: Union[MiscFunctions, RouterFunction, V4Actions]) -> None:
+    def __init__(self, enum_key: Union[MiscFunctions, RouterFunction, V3PositionManagerActions, V4Actions]) -> None:
         self.enum_key = enum_key
 
     def __call__(self, func: Callable[..., Any]) -> Callable[..., Any]:
@@ -431,6 +432,42 @@ def build_v3_position_manager_permit() -> ABIFunction:
         .add_bytes32("s")
         .build()
     )
+
+
+@ABIRegister(V3PositionManagerActions.DECREASE_LIQUIDITY)
+def build_v3_decrease_liquidity() -> ABIFunction:
+    builder = ABIFunctionBuilder("decreaseLiquidity")
+    params = builder.create_struct("params")
+    params.add_uint256("tokenId").add_uint128("liquidity").add_uint256("amount0Min")
+    params.add_uint256("amount1Min").add_uint256("deadline")
+    return builder.add_struct(params.build()).build()
+
+
+@ABIRegister(V3PositionManagerActions.COLLECT)
+def build_v3_collect() -> ABIFunction:
+    builder = ABIFunctionBuilder("collect")
+    params = builder.create_struct("params")
+    params.add_uint256("tokenId").add_address("recipient").add_uint128("amount0Max").add_uint128("amount1Max")
+    return builder.add_struct(params.build()).build()
+
+
+@ABIRegister(V3PositionManagerActions.BURN)
+def build_v3_burn() -> ABIFunction:
+    builder = ABIFunctionBuilder("burn")
+    return builder.add_uint256("tokenId").build()
+
+
+@ABIRegister(RouterFunction.V3_POSITION_MANAGER_CALL)
+def build_v3_position_manager_call() -> ABIFunction:
+    # V3_POSITION_MANAGER_CALL forwards the input to the V3 position manager, so its ABI holds the 3
+    # functions the UR allows: decreaseLiquidity, collect and burn.
+    abi = ABIFunction(RouterFunction.V3_POSITION_MANAGER_CALL.name)
+    abi.full_abi = [
+        ABIRegister.abi_map[V3PositionManagerActions.DECREASE_LIQUIDITY].get_abi_as_dict(),
+        ABIRegister.abi_map[V3PositionManagerActions.COLLECT].get_abi_as_dict(),
+        ABIRegister.abi_map[V3PositionManagerActions.BURN].get_abi_as_dict(),
+    ]
+    return abi
 
 
 @ABIRegister(RouterFunction.V4_INITIALIZE_POOL)

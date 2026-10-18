@@ -112,6 +112,7 @@ class _BaseDecoder(Generic[W3]):
                 if b in (
                     RouterFunction.V4_POSITION_MANAGER_CALL.value,
                     RouterFunction.V3_POSITION_MANAGER_PERMIT.value,
+                    RouterFunction.V3_POSITION_MANAGER_CALL.value,
                 ):
                     data = command_input[i]
                 else:

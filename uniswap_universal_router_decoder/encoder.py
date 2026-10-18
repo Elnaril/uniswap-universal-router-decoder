@@ -36,7 +36,10 @@ from web3.types import (
     Wei,
 )
 
-from uniswap_universal_router_decoder._abi_builder import ABIMap
+from uniswap_universal_router_decoder._abi_builder import (
+    ABIFunction,
+    ABIMap,
+)
 from uniswap_universal_router_decoder._constants import (
     ur_abi,
     ur_address,
@@ -48,6 +51,7 @@ from uniswap_universal_router_decoder._enums import (
     RouterConstant,
     RouterFunction,
     TransactionSpeed,
+    V3PositionManagerActions,
     V4Actions,
 )
 from uniswap_universal_router_decoder.utils import (
@@ -641,8 +645,14 @@ class BaseChainedFunctionBuilder(Generic[W3]):
         self.commands: bytearray = bytearray()
         self.arguments: list[bytes] = []
 
-    def _add_command(self, command: RouterFunction, args: Sequence[Any], add_selector: bool = False) -> None:
-        abi = self._abi_map[command]
+    def _add_command(
+            self,
+            command: RouterFunction,
+            args: Sequence[Any],
+            add_selector: bool = False,
+            abi: Optional[ABIFunction] = None) -> None:
+        if abi is None:
+            abi = self._abi_map[command]
         self.commands.append(command.value)
         arguments = abi.selector + abi.encode(args) if add_selector else abi.encode(args)
         self.arguments.append(arguments)
@@ -1119,6 +1129,62 @@ class BaseChainedFunctionBuilder(Generic[W3]):
             signed_permit.s.to_bytes(32, "big"),
         )
         self._add_command(RouterFunction.V3_POSITION_MANAGER_PERMIT, args, True)
+        return self
+
+    def v3_decrease_liquidity(
+            self,
+            token_id: int,
+            liquidity: int,
+            amount_0_min: int,
+            amount_1_min: int,
+            deadline: int) -> Self:
+        """
+        V3 - Encode the call to the V3 position manager decreaseLiquidity function, which decreases the
+        liquidity of a V3 position (NFT).
+
+        :param token_id: The id of the V3 position (NFT)
+        :param liquidity: The amount of liquidity to remove
+        :param amount_0_min: The minimum amount of token0 to receive
+        :param amount_1_min: The minimum amount of token1 to receive
+        :param deadline: When this call is not valid anymore
+        :return: The chain link corresponding to this function call.
+        """
+        abi = self._abi_map[V3PositionManagerActions.DECREASE_LIQUIDITY]
+        args = ((token_id, liquidity, amount_0_min, amount_1_min, deadline),)
+        self._add_command(RouterFunction.V3_POSITION_MANAGER_CALL, args, True, abi)
+        return self
+
+    def v3_collect(
+            self,
+            token_id: int,
+            recipient: ChecksumAddress,
+            amount_0_max: int,
+            amount_1_max: int) -> Self:
+        """
+        V3 - Encode the call to the V3 position manager collect function, which collects the tokens owed
+        to a V3 position (NFT).
+
+        :param token_id: The id of the V3 position (NFT)
+        :param recipient: The address receiving the collected tokens
+        :param amount_0_max: The maximum amount of token0 to collect
+        :param amount_1_max: The maximum amount of token1 to collect
+        :return: The chain link corresponding to this function call.
+        """
+        abi = self._abi_map[V3PositionManagerActions.COLLECT]
+        args = ((token_id, recipient, amount_0_max, amount_1_max),)
+        self._add_command(RouterFunction.V3_POSITION_MANAGER_CALL, args, True, abi)
+        return self
+
+    def v3_burn(self, token_id: int) -> Self:
+        """
+        V3 - Encode the call to the V3 position manager burn function, which burns an empty V3 position (NFT).
+
+        :param token_id: The id of the V3 position (NFT)
+        :return: The chain link corresponding to this function call.
+        """
+        abi = self._abi_map[V3PositionManagerActions.BURN]
+        args = (token_id,)
+        self._add_command(RouterFunction.V3_POSITION_MANAGER_CALL, args, True, abi)
         return self
 
     def v4_initialize_pool(self, pool_key: PoolKey, amount_0: Wei, amount_1: Wei) -> Self:

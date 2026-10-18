@@ -35,6 +35,7 @@ class RouterFunction(Enum):
     BALANCE_CHECK_ERC20 = 14
     V4_SWAP = 16
     V3_POSITION_MANAGER_PERMIT = 17
+    V3_POSITION_MANAGER_CALL = 18
     V4_INITIALIZE_POOL = 19
     V4_POSITION_MANAGER_CALL = 20
     EXECUTE_SUB_PLAN = 33
@@ -94,6 +95,15 @@ class V4Actions(Enum):
     # Common
     SETTLE = 0x0b
     TAKE = 0x0e
+
+
+class V3PositionManagerActions(Enum):
+    """
+    The V3 position manager actions that the V3_POSITION_MANAGER_CALL command is allowed to call.
+    """
+    DECREASE_LIQUIDITY = auto()
+    COLLECT = auto()
+    BURN = auto()
 
 
 class V4Constants(Enum):
