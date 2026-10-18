@@ -26,11 +26,14 @@ ur_address = Web3.to_checksum_address("0x23617e59A5925b2A4Bf75d73ff6711cD0b29De8
 
 # V3 position manager (NonfungiblePositionManager)
 v3_position_manager_address = Web3.to_checksum_address("0xC36442b4a4522E871399CD717aBDD847Ab11FE88")
-v3_position_manager_abi = '[{"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"positions","outputs":[{"internalType":"uint96","name":"nonce","type":"uint96"},{"internalType":"address","name":"operator","type":"address"},{"internalType":"address","name":"token0","type":"address"},{"internalType":"address","name":"token1","type":"address"},{"internalType":"uint24","name":"fee","type":"uint24"},{"internalType":"int24","name":"tickLower","type":"int24"},{"internalType":"int24","name":"tickUpper","type":"int24"},{"internalType":"uint128","name":"liquidity","type":"uint128"},{"internalType":"uint256","name":"feeGrowthInside0LastX128","type":"uint256"},{"internalType":"uint256","name":"feeGrowthInside1LastX128","type":"uint256"},{"internalType":"uint128","name":"tokensOwed0","type":"uint128"},{"internalType":"uint128","name":"tokensOwed1","type":"uint128"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"index","type":"uint256"}],"name":"tokenByIndex","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"ownerOf","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"getApproved","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"transferFrom","outputs":[],"stateMutability":"nonpayable","type":"function"}]'  # noqa: E501
-v3_position_manager_contract = w3.eth.contract(address=v3_position_manager_address, abi=v3_position_manager_abi)
+partial_v3_position_manager_abi = '[{"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"positions","outputs":[{"internalType":"uint96","name":"nonce","type":"uint96"},{"internalType":"address","name":"operator","type":"address"},{"internalType":"address","name":"token0","type":"address"},{"internalType":"address","name":"token1","type":"address"},{"internalType":"uint24","name":"fee","type":"uint24"},{"internalType":"int24","name":"tickLower","type":"int24"},{"internalType":"int24","name":"tickUpper","type":"int24"},{"internalType":"uint128","name":"liquidity","type":"uint128"},{"internalType":"uint256","name":"feeGrowthInside0LastX128","type":"uint256"},{"internalType":"uint256","name":"feeGrowthInside1LastX128","type":"uint256"},{"internalType":"uint128","name":"tokensOwed0","type":"uint128"},{"internalType":"uint128","name":"tokensOwed1","type":"uint128"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"index","type":"uint256"}],"name":"tokenByIndex","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"ownerOf","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"getApproved","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"transferFrom","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"owner","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}]'  # noqa: E501
+v3_position_manager_contract = w3.eth.contract(address=v3_position_manager_address, abi=partial_v3_position_manager_abi)
 
-# The address that will be approved for the V3 position
-spender = Web3.to_checksum_address("0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD")
+# Minimal ERC20 abi, used to check the token balances of the position owner
+erc20_abi = '[{"inputs":[{"internalType":"address","name":"account","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}]'  # noqa: E501
+
+# The UR must be approved for the position to be able to use V3_POSITION_MANAGER_CALL
+spender = ur_address
 
 codec = RouterCodec()
 
@@ -94,15 +97,18 @@ def acquire_a_v3_position():
     total_supply = v3_position_manager_contract.functions.totalSupply().call()
     token_id = None
     owner = None
-    # scan the most recently minted positions until we find one owned by an EOA
+    # scan the most recently minted positions until we find one owned by an EOA and holding some liquidity
     for index in range(total_supply - 1, total_supply - 100, -1):
         candidate_token_id = v3_position_manager_contract.functions.tokenByIndex(index).call()
         candidate_owner = v3_position_manager_contract.functions.ownerOf(candidate_token_id).call()
-        if w3.eth.get_code(candidate_owner) == b"":
-            token_id = candidate_token_id
-            owner = candidate_owner
-            break
-    assert token_id is not None, "Could not find an EOA-owned V3 position"
+        if w3.eth.get_code(candidate_owner) != b"":
+            continue
+        if v3_position_manager_contract.functions.positions(candidate_token_id).call()[7] == 0:
+            continue
+        token_id = candidate_token_id
+        owner = candidate_owner
+        break
+    assert token_id is not None, "Could not find an EOA-owned V3 position with liquidity"
     assert owner != account.address, "The test account already owns this V3 position"
 
     # impersonate the owner to transfer the position to the test account
@@ -130,7 +136,8 @@ def acquire_a_v3_position():
 
 def v3_position_manager_permit(token_id):
     """
-    Approve a spender for a V3 position owned by the test account, using the UR V3_POSITION_MANAGER_PERMIT command.
+    Approve the Universal Router for a V3 position owned by the test account, using the UR
+    V3_POSITION_MANAGER_PERMIT command. This approval is required to use V3_POSITION_MANAGER_CALL.
     """
     nonce = v3_position_manager_contract.functions.positions(token_id).call()[0]
     deadline = codec.get_default_deadline()
@@ -196,6 +203,77 @@ def v3_position_manager_permit_reverts_on_stale_nonce(token_id):
     print(" => V3_POSITION_MANAGER_PERMIT reverts on stale nonce: OK")
 
 
+def v3_position_manager_call(token_id):
+    """
+    Use the UR V3_POSITION_MANAGER_CALL command to decrease the liquidity of the position, then collect
+    the tokens owed and burn the now empty position. The UR must be approved for the position (see
+    v3_position_manager_permit()).
+    """
+    assert v3_position_manager_contract.functions.getApproved(token_id).call() == spender
+
+    position = v3_position_manager_contract.functions.positions(token_id).call()
+    token_0 = position[2]
+    token_1 = position[3]
+    liquidity = position[7]
+    tokens_owed_0 = position[10]
+    tokens_owed_1 = position[11]
+    assert liquidity > 0
+
+    token_0_contract = w3.eth.contract(address=token_0, abi=erc20_abi)
+    token_1_contract = w3.eth.contract(address=token_1, abi=erc20_abi)
+    wallet_0_before = token_0_contract.functions.balanceOf(account.address).call()
+    wallet_1_before = token_1_contract.functions.balanceOf(account.address).call()
+
+    # 1. decrease all the liquidity: a single V3_POSITION_MANAGER_CALL command (decreaseLiquidity)
+    deadline = codec.get_default_deadline()
+    encoded_input = (
+        codec
+        .encode
+        .chain()
+        .v3_decrease_liquidity(token_id, liquidity, 0, 0, deadline)
+        .build(deadline)
+    )
+    trx_hash = send_transaction(0, encoded_input)
+    receipt = w3.eth.wait_for_transaction_receipt(trx_hash)
+    assert receipt["status"] == 1, f'receipt["status"] is actually {receipt["status"]}'
+
+    position = v3_position_manager_contract.functions.positions(token_id).call()
+    # the liquidity is gone...
+    assert position[7] == 0
+    # ... but the freed tokens are not sent out: they are recorded as tokensOwed (principal + fees)
+    assert position[10] >= tokens_owed_0
+    assert position[11] >= tokens_owed_1
+    assert position[10] > tokens_owed_0 or position[11] > tokens_owed_1
+    # the wallet did not receive anything yet
+    assert token_0_contract.functions.balanceOf(account.address).call() == wallet_0_before
+    assert token_1_contract.functions.balanceOf(account.address).call() == wallet_1_before
+    tokens_owed_0 = position[10]
+    tokens_owed_1 = position[11]
+
+    # 2. collect the tokens owed and burn the now empty position: 2 V3_POSITION_MANAGER_CALL commands
+    #    chained in a single transaction
+    positions_before = v3_position_manager_contract.functions.balanceOf(account.address).call()
+    encoded_input = (
+        codec
+        .encode
+        .chain()
+        .v3_collect(token_id, account.address, 2 ** 128 - 1, 2 ** 128 - 1)
+        .v3_burn(token_id)
+        .build(codec.get_default_deadline())
+    )
+    trx_hash = send_transaction(0, encoded_input)
+    receipt = w3.eth.wait_for_transaction_receipt(trx_hash)
+    assert receipt["status"] == 1, f'receipt["status"] is actually {receipt["status"]}'
+
+    # the wallet received exactly the tokens owed (the position is burned, so tokensOwed cannot be read anymore)
+    assert token_0_contract.functions.balanceOf(account.address).call() == wallet_0_before + tokens_owed_0
+    assert token_1_contract.functions.balanceOf(account.address).call() == wallet_1_before + tokens_owed_1
+    # the position (NFT) is burned
+    assert v3_position_manager_contract.functions.balanceOf(account.address).call() == positions_before - 1
+
+    print(" => V3_POSITION_MANAGER_CALL: OK")
+
+
 def launch_integration_tests():
     print("------------------------------------------")
     print("| Launching integration tests            |")
@@ -204,6 +282,7 @@ def launch_integration_tests():
     token_id = acquire_a_v3_position()
     v3_position_manager_permit(token_id)
     v3_position_manager_permit_reverts_on_stale_nonce(token_id)
+    v3_position_manager_call(token_id)
 
 
 def print_success_message():
