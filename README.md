@@ -715,18 +715,47 @@ codec.encode.chain().v3_position_manager_permit(permit_params, signed_message).b
 ```
 
 #### V3_POSITION_MANAGER_CALL
-Calls one of the V3 position manager functions allowed by the UR: `decreaseLiquidity`, `collect` or `burn`.
+Calls one of the 3 V3 position manager functions the UR allows: `decreaseLiquidity`, `collect` or `burn`.
+Only one function can be called per V3_POSITION_MANAGER_CALL command: the UR forwards the input as a single
+call and rejects anything else (including `multicall`). To run several of them, chain several commands in the
+same transaction (see the integration test).
+The UR must be approved for the position first (see V3_POSITION_MANAGER_PERMIT).
+
+- `decreaseLiquidity` removes liquidity from the position. The freed tokens are NOT sent out: they are recorded
+  as `tokensOwed0`/`tokensOwed1` on the position, together with ALL the fees earned since the last update
+  (fees are not prorated, even if only part of the liquidity is removed).
+- `collect` sends `min(amountMax, tokensOwed)` to the recipient. `tokensOwed` holds both the principal freed by
+  `decreaseLiquidity` and the fees, so `collect` alone harvests the fees without touching the liquidity.
+- `burn` deletes the position (NFT). It requires the position to be empty (`liquidity == 0` and
+  `tokensOwed0 == tokensOwed1 == 0`), hence the usual `decreaseLiquidity` -> `collect` -> `burn` order.
+
+Note: `increaseLiquidity` and `mint` are not reachable through the UR (only the 3 functions above are allowed),
+they must be called directly on the V3 position manager.
+
 Example where the liquidity of a V3 position is decreased:
 ```python
-.v3_decrease_liquidity(token_id, liquidity, amount_0_min, amount_1_min, deadline)
+.v3_decrease_liquidity(
+    token_id,      # the id of the V3 position (NFT)
+    liquidity,     # the amount of liquidity to remove
+    amount_0_min,  # the minimum amount of token0 the decrease must free (kept as tokensOwed0, not sent out)
+    amount_1_min,  # the minimum amount of token1 the decrease must free (kept as tokensOwed1, not sent out)
+    deadline,      # when this call is not valid anymore
+)
 ```
 Example where the tokens owed to a V3 position are collected:
 ```python
-.v3_collect(token_id, recipient_address, amount_0_max, amount_1_max)
+.v3_collect(
+    token_id,           # the id of the V3 position (NFT)
+    recipient_address,  # the address receiving the collected tokens
+    amount_0_max,       # the maximum amount of token0 to collect
+    amount_1_max,       # the maximum amount of token1 to collect
+)
 ```
 Example where an empty V3 position is burned:
 ```python
-.v3_burn(token_id)
+.v3_burn(
+    token_id,  # the id of the V3 position (NFT)
+)
 ```
 
 #### PERMIT2_TRANSFER_FROM

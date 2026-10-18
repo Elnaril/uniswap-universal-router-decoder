@@ -1141,11 +1141,15 @@ class BaseChainedFunctionBuilder(Generic[W3]):
         """
         V3 - Encode the call to the V3 position manager decreaseLiquidity function, which decreases the
         liquidity of a V3 position (NFT).
+        The freed tokens are not sent out: they are recorded as tokensOwed0/tokensOwed1 on the position,
+        together with all the fees earned since the last update (fees are not prorated, even if only part
+        of the liquidity is removed). Use v3_collect() to withdraw them.
+        The UR must be approved for the position first (see v3_position_manager_permit()).
 
         :param token_id: The id of the V3 position (NFT)
         :param liquidity: The amount of liquidity to remove
-        :param amount_0_min: The minimum amount of token0 to receive
-        :param amount_1_min: The minimum amount of token1 to receive
+        :param amount_0_min: The minimum amount of token0 the decrease must free (kept as tokensOwed0, not sent out)
+        :param amount_1_min: The minimum amount of token1 the decrease must free (kept as tokensOwed1, not sent out)
         :param deadline: When this call is not valid anymore
         :return: The chain link corresponding to this function call.
         """
@@ -1163,6 +1167,9 @@ class BaseChainedFunctionBuilder(Generic[W3]):
         """
         V3 - Encode the call to the V3 position manager collect function, which collects the tokens owed
         to a V3 position (NFT).
+        The tokens owed hold both the principal freed by v3_decrease_liquidity() and the fees, so collect
+        alone harvests the fees without touching the liquidity.
+        The UR must be approved for the position first (see v3_position_manager_permit()).
 
         :param token_id: The id of the V3 position (NFT)
         :param recipient: The address receiving the collected tokens
@@ -1178,6 +1185,9 @@ class BaseChainedFunctionBuilder(Generic[W3]):
     def v3_burn(self, token_id: int) -> Self:
         """
         V3 - Encode the call to the V3 position manager burn function, which burns an empty V3 position (NFT).
+        The position must be empty (liquidity == 0 and tokensOwed0 == tokensOwed1 == 0), hence the usual
+        v3_decrease_liquidity() -> v3_collect() -> v3_burn() order.
+        The UR must be approved for the position first (see v3_position_manager_permit()).
 
         :param token_id: The id of the V3 position (NFT)
         :return: The chain link corresponding to this function call.
