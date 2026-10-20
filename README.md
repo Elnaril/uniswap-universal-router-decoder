@@ -33,7 +33,7 @@
 ## Release Notes
 See the [release notes page](https://github.com/Elnaril/uniswap-universal-router-decoder/wiki/Release_Notes)
 
-### v3.2.0 - breaking changes
+### v4.0.0 - breaking changes
 - Update COMMAND_TYPE_MASK to 0x7f to match UR
 - Add support for the PAY_PORTION_FULL_PRECISION command (0x07)
 - Add support for the BALANCE_CHECK_ERC20 command (0x0e)
@@ -41,10 +41,11 @@ See the [release notes page](https://github.com/Elnaril/uniswap-universal-router
 - Add support for the V3_POSITION_MANAGER_CALL command (0x12)
 - Add support for the EXECUTE_SUB_PLAN command (0x21)
 - Make the chained function builders public and expose the `encoder` & `decoder` modules
-- Add `Encoder.function_input()` / `AsyncEncoder.function_input()` to encode a list of commands described as data
-- Add `decoded_input_to_dict()` and `transaction_to_dict()` to render the decoder output as JSON-friendly dicts
-- Add the `ur-decode` and `ur-encode` command line tools
 - Reduce CI time
+- Agent-friendly changes:
+  - Add `Encoder.function_input()` / `AsyncEncoder.function_input()` to encode a list of commands described as data
+  - Add `decoded_input_to_dict()` and `transaction_to_dict()` to render the decoder output as JSON-friendly dicts
+  - Add the `ur-decode` and `ur-encode` command line tools
 
 ### v3.1.0
 - Update UR address and abi to match v2.1.2
