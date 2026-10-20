@@ -41,6 +41,9 @@ See the [release notes page](https://github.com/Elnaril/uniswap-universal-router
 - Add support for the V3_POSITION_MANAGER_CALL command (0x12)
 - Add support for the EXECUTE_SUB_PLAN command (0x21)
 - Make the chained function builders public and expose the `encoder` & `decoder` modules
+- Add `Encoder.function_input()` / `AsyncEncoder.function_input()` to encode a list of commands described as data
+- Add `decoded_input_to_dict()` and `transaction_to_dict()` to render the decoder output as JSON-friendly dicts
+- Add the `ur-decode` and `ur-encode` command line tools
 - Reduce CI time
 
 ### v3.1.0
@@ -296,6 +299,48 @@ decoded_path = codec.decode.v3_path(fn_name, uniswap_v3_path)
 The result is a tuple, starting with the "in-token" and ending with the "out-token", with the pool fees between each pair.
 
 
+### How to get the decoded data as JSON-friendly dicts
+The decoder returns rich Python objects (web3 contract functions, raw bytes, ...) that are not directly serialisable.
+Two helpers render that output as plain dicts/lists/strings, ready to be printed as JSON or sent to another system:
+
+- `decoded_input_to_dict()` takes the output of `decode.function_input()`
+- `transaction_to_dict()` takes the output of `decode.transaction()`
+
+```python
+import json
+from uniswap_universal_router_decoder import RouterCodec, decoded_input_to_dict, transaction_to_dict
+
+codec = RouterCodec()
+
+# from the decoded input
+decoded_input = codec.decode.function_input(trx_input)
+print(json.dumps(decoded_input_to_dict(decoded_input), indent=2))
+
+# or from the decoded transaction
+decoded_transaction = codec.decode.transaction(trx_hash)
+print(json.dumps(transaction_to_dict(decoded_transaction), indent=2))
+```
+
+Bytes are rendered as "0x"-prefixed hex strings, and each decoded command becomes a dict with a `command` name,
+its `params`, and a `revert_on_fail` flag:
+```json
+{
+  "function": "execute",
+  "params": {
+    "commands": "0x0b00",
+    "inputs": [
+      {
+        "command": "WRAP_ETH",
+        "params": {"recipient": "0x0000000000000000000000000000000000000002", "amountMin": 4500000000000000000},
+        "revert_on_fail": true
+      }
+    ],
+    "deadline": 1678441619
+  }
+}
+```
+
+
 ### How to encode
 The Uniswap Universal Router allows the chaining of several functions in the same transaction.
 This codec supports it (at least for supported functions) and exposes public methods that can be chained.
@@ -313,6 +358,44 @@ default_expiration = RouterCodec.get_default_expiration()
 
 ```
 These 2 functions accept a custom duration in seconds as argument.
+
+
+### How to encode from a list of commands
+As an alternative to chaining the encoder methods, `encode.function_input()` builds the encoded data from a list of
+commands described as data. It is the mirror of `decode.function_input()`: where the decoder turns a function input
+into commands, this turns commands into a function input.
+
+Each command is a dict with a `command` key (a builder method name like `v3_swap_exact_in`, or the matching
+RouterFunction name like `V3_SWAP_EXACT_IN`) and a `params` dict holding its parameters.
+
+```python
+from uniswap_universal_router_decoder import RouterCodec
+
+codec = RouterCodec()
+encoded_data = codec.encode.function_input(
+    [
+        {"command": "wrap_eth", "params": {"function_recipient": "SENDER", "amount": 10 ** 18}},
+        {
+            "command": "v3_swap_exact_in",
+            "params": {
+                "function_recipient": "SENDER",
+                "amount_in": 10 ** 18,
+                "amount_out_min": 0,
+                "path": [token_in_address, 3000, token_out_address],
+            },
+        },
+    ],
+    deadline=1676825611,
+)
+
+# then in your transaction dict:
+transaction["data"] = encoded_data
+```
+
+The `deadline` argument is optional; when it is omitted, the plain `execute(bytes,bytes[])` form is used instead of
+`execute(bytes,bytes[],uint256)`.
+
+`AsyncRouterCodec` exposes the same method (`encode.function_input()`); it is synchronous, so no `await` is needed.
 
 
 ### How to encode a call to the Uniswap Universal Router function WRAP_ETH
@@ -812,6 +895,40 @@ How to use the `trx_speed` parameter:
 from uniswap_universal_router_decoder import TransactionSpeed
 
 .build_transaction(sender_address, trx_speed=TransactionSpeed.FASTER)
+```
+
+### Command line interface
+The package installs two commands that print JSON to stdout, handy for shell scripts or to let an agent drive the codec:
+
+- `ur-encode`: list/describe the encodable commands and build the calldata from them
+- `ur-decode`: decode a transaction, raw calldata, a custom error or a V3 path
+
+```bash
+# list the commands that can be built from data, and describe one of them
+ur-encode list
+ur-encode describe v3_swap_exact_in
+
+# build the calldata of one command
+ur-encode build --command wrap_eth --params '{"function_recipient": "SENDER", "amount": 1000000000000000000}'
+
+# or of several commands at once, from a JSON plan file (or '-' for stdin)
+ur-encode build --plan plan.json --deadline 1676825611
+
+# decode raw calldata
+ur-decode calldata 0x3593564c0000...
+
+# decode a transaction (needs an rpc endpoint via --rpc or the RPC_URL env var)
+ur-decode tx 0x52e63b7... --rpc https://...
+```
+
+A plan file is either a list of commands, or a dict with a `commands` list and an optional `deadline`:
+```json
+{
+  "deadline": 1676825611,
+  "commands": [
+    {"command": "wrap_eth", "params": {"function_recipient": "SENDER", "amount": 1000000000000000000}}
+  ]
+}
 ```
 
 ### Utility functions

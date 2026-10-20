@@ -9,6 +9,10 @@ from uniswap_universal_router_decoder._enums import (
     TransactionSpeed,
     V4Constants,
 )
+from uniswap_universal_router_decoder._serialization import (
+    decoded_input_to_dict,
+    transaction_to_dict,
+)
 from uniswap_universal_router_decoder.router_codec import (
     AsyncRouterCodec,
     PermitDetails,
@@ -27,4 +31,6 @@ __all__ = [
     "RouterCodec",
     "TransactionSpeed",
     "V4Constants",
+    "decoded_input_to_dict",
+    "transaction_to_dict",
 ]

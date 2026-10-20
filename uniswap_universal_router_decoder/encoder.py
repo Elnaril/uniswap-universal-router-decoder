@@ -9,10 +9,14 @@ from __future__ import annotations
 
 from abc import ABC
 from collections.abc import Sequence
+from enum import Enum
+import inspect
 from typing import (
     Any,
+    Callable,
     cast,
     Generic,
+    get_type_hints,
     Optional,
     TypedDict,
     TypeVar,
@@ -92,6 +96,96 @@ AllowanceTransferDetails = TypedDict(
         'token': ChecksumAddress,
     },
 )
+
+
+# The builder methods that function_input() can drive from declarative data.
+# Commands that require a signature (permit2_permit, permit2_permit_batch, v3_position_manager_permit),
+# a nested builder (execute_sub_plan), and the V4 swap/position-manager sub-builders are excluded.
+ENCODABLE_METHODS: tuple[str, ...] = (
+    "wrap_eth",
+    "unwrap_weth",
+    "v2_swap_exact_in",
+    "v2_swap_exact_out",
+    "v3_swap_exact_in",
+    "v3_swap_exact_out",
+    "sweep",
+    "pay_portion",
+    "pay_portion_full_precision",
+    "transfer",
+    "balance_check_erc20",
+    "permit2_transfer_from",
+    "permit2_transfer_from_batch",
+    "v3_decrease_liquidity",
+    "v3_collect",
+    "v3_burn",
+    "v4_initialize_pool",
+)
+
+
+def _get_method(command: str) -> Callable[..., Any]:
+    return getattr(BaseChainedFunctionBuilder, command)
+
+
+def _command_annotations(command: str) -> dict[str, Any]:
+    # `from __future__ import annotations` turns the annotations into strings, so get_type_hints() is
+    # needed to turn them back into real objects (enums, ...) that can be used to coerce user inputs.
+    method = _get_method(command)
+    hints = get_type_hints(method)
+    parameters = inspect.signature(method).parameters
+    return {name: hints.get(name) for name in parameters if name != "self"}
+
+
+def resolve_command(name: str) -> str:
+    """
+    Resolve a user-provided command name to an encodable builder method name.
+
+    Both the builder method name (`v3_swap_exact_in`) and the corresponding
+    RouterFunction name (`V3_SWAP_EXACT_IN`) are accepted.
+
+    :param name: the command name to resolve
+    :return: the matching builder method name
+    """
+    if name in ENCODABLE_METHODS:
+        return name
+    lowered = name.lower()
+    if lowered in ENCODABLE_METHODS:
+        return lowered
+    known = ", ".join(sorted(ENCODABLE_METHODS))
+    raise KeyError(f"Unknown command '{name}'. Known commands: {known}")
+
+
+def _coerce(annotation: Any, value: Any) -> Any:
+    if isinstance(annotation, type) and issubclass(annotation, Enum) and isinstance(value, str):
+        try:
+            return annotation[value]
+        except KeyError as exc:
+            valid = [member.name for member in annotation]
+            raise ValueError(f"Invalid value '{value}' for {annotation.__name__}. Valid values: {valid}") from exc
+    return value
+
+
+def _build_commands(
+        builder: BaseChainedFunctionBuilder[W3],
+        commands: list[dict[str, Any]],
+        # ex: [{'command': 'wrap_eth', 'params': {'function_recipient': 'SENDER', 'amount': 1000000000000000000}}]
+        deadline: Optional[int]) -> HexStr:
+    for entry in commands:
+        if "command" not in entry:
+            raise ValueError("Each command entry must contain a 'command' key")
+        method_name = resolve_command(entry["command"])
+        params: dict[str, Any] = entry.get("params") or {}
+        annotations = _command_annotations(method_name)
+        # ex: {'function_recipient': <enum 'FunctionRecipient'>,
+        # 'amount': web3.types.Wei,
+        # 'custom_recipient': typing.Optional[eth_typing.evm.ChecksumAddress]}
+        unknown = sorted(set(params) - set(annotations))
+        if unknown:
+            raise ValueError(f"Unknown parameter(s) {unknown} for command '{method_name}'")
+        coerced = {key: _coerce(annotations[key], value) for key, value in params.items()}
+        # ex: {'function_recipient': <FunctionRecipient.SENDER: 'recipient is transaction sender'>,
+        # 'amount': 1000000000000000000}
+        getattr(builder, method_name)(**coerced)
+    return builder.build(deadline=deadline)
 
 
 class _BaseEncoder(Generic[W3]):
@@ -204,6 +298,20 @@ class Encoder(_BaseEncoder[Web3]):
         """
         return self()
 
+    def function_input(self, commands: list[dict[str, Any]], deadline: Optional[int] = None) -> HexStr:
+        """
+        Build the UR function input (the calldata) of a list of commands described as data.
+
+        Mirror of Decoder.function_input(): where the decoder turns a function input into commands,
+        this turns commands back into a function input.
+
+        :param commands: a list of {"command": <name>, "params": {<param name>: <value>}} where <name> is a
+            builder method name (ex: v3_swap_exact_in) or the matching RouterFunction name (ex: V3_SWAP_EXACT_IN).
+        :param deadline: optional unix timestamp after which the transaction won't be valid anymore.
+        :return: the encoded data to add to the UR transaction dictionary parameters.
+        """
+        return _build_commands(self(), commands, deadline)
+
 
 class AsyncEncoder(_BaseEncoder[AsyncWeb3[AsyncHTTPProvider]]):
     def __init__(self, async_w3: AsyncWeb3[AsyncHTTPProvider], abi_map: ABIMap) -> None:
@@ -220,6 +328,20 @@ class AsyncEncoder(_BaseEncoder[AsyncWeb3[AsyncHTTPProvider]]):
         :return: Initialize the chain of encoded functions
         """
         return self()
+
+    def function_input(self, commands: list[dict[str, Any]], deadline: Optional[int] = None) -> HexStr:
+        """
+        Build the UR function input (the calldata) of a list of commands described as data.
+
+        Mirror of Decoder.function_input(): where the decoder turns a function input into commands,
+        this turns commands back into a function input.
+
+        :param commands: a list of {"command": <name>, "params": {<param name>: <value>}} where <name> is a
+            builder method name (ex: v3_swap_exact_in) or the matching RouterFunction name (ex: V3_SWAP_EXACT_IN).
+        :param deadline: optional unix timestamp after which the transaction won't be valid anymore.
+        :return: the encoded data to add to the UR transaction dictionary parameters.
+        """
+        return _build_commands(self(), commands, deadline)
 
 
 TChainedFunctionBuilder = TypeVar("TChainedFunctionBuilder", "ChainedFunctionBuilder", "AsyncChainedFunctionBuilder")

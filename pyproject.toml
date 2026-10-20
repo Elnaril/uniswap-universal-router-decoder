@@ -78,6 +78,11 @@ filterwarnings = [
 ]
 
 
+[project.scripts]
+ur-decode = "uniswap_universal_router_decoder.cli:decode_main"
+ur-encode = "uniswap_universal_router_decoder.cli:encode_main"
+
+
 [project.urls]
 Homepage = "https://github.com/Elnaril/uniswap-universal-router-decoder"
 Repository = "https://github.com/Elnaril/uniswap-universal-router-decoder"
