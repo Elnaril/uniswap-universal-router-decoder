@@ -46,6 +46,7 @@ See the [release notes page](https://github.com/Elnaril/uniswap-universal-router
   - Add `Encoder.function_input()` / `AsyncEncoder.function_input()` to encode a list of commands described as data
   - Add `decoded_input_to_dict()` and `transaction_to_dict()` to render the decoder output as JSON-friendly dicts
   - Add the `ur-decode` and `ur-encode` command line tools
+  - Add the read-only `ur-mcp` MCP server (optional `mcp` extra) so AI agents can drive the codec
 
 ### v3.1.0
 - Update UR address and abi to match v2.1.2
@@ -160,7 +161,7 @@ pip install .
 
 or for contributors:
 ```bash
-pip install -e . --group dev
+pip install -e '.[mcp]' --group dev
 ```
 
 ---
@@ -929,6 +930,34 @@ A plan file is either a list of commands, or a dict with a `commands` list and a
   "commands": [
     {"command": "wrap_eth", "params": {"function_recipient": "SENDER", "amount": 1000000000000000000}}
   ]
+}
+```
+
+### MCP server
+The optional `mcp` extra installs `ur-mcp`, a read-only [Model Context Protocol](https://modelcontextprotocol.io)
+server that exposes the codec to AI agents over stdio. It never signs or broadcasts a transaction.
+
+```bash
+pip install 'uniswap-universal-router-decoder[mcp]'
+```
+
+It provides six tools:
+- `list_commands` / `describe_command`: discover the encodable commands
+- `decode_transaction`: fetch and decode a transaction sent to the UR (needs an RPC endpoint)
+- `decode_calldata`, `decode_error`, `decode_v3_path`: decode data without an RPC endpoint
+
+`decode_transaction` uses the `rpc_url` tool argument, or the `RPC_URL` / `ETH_RPC_URL` environment variables, so a
+host can be pointed at any chain by configuring the server environment.
+
+To wire it into an MCP host (Zed, Claude Desktop, ...):
+```json
+{
+  "mcpServers": {
+    "uniswap-universal-router-decoder": {
+      "command": "ur-mcp",  # or absolute path to ur-mcp in your virtual env.
+      "env": {"RPC_URL": "https://..."}
+    }
+  }
 }
 ```
 
