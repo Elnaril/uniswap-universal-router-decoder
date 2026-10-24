@@ -25,6 +25,7 @@ EXPECTED_TOOLS = {
     "decode_transaction",
     "decode_v3_path",
     "describe_command",
+    "encode_v3_path",
     "list_commands",
 }
 
@@ -101,24 +102,54 @@ def test_decode_v3_path_reports_error():
     assert result["error"]["type"] == "ValueError"
 
 
+def test_encode_v3_path():
+    result = mcp_server.encode_v3_path("V3_SWAP_EXACT_IN", [TOKEN_IN, 3000, TOKEN_OUT])
+
+    expected = RouterCodec().encode.v3_path("V3_SWAP_EXACT_IN", [TOKEN_IN, 3000, TOKEN_OUT])
+    assert result == {"fn_name": "V3_SWAP_EXACT_IN", "path": "0x" + expected.hex()}
+
+
+def test_encode_v3_path_accepts_string_fees():
+    result = mcp_server.encode_v3_path("V3_SWAP_EXACT_IN", [TOKEN_IN, "3000", TOKEN_OUT])
+
+    expected = RouterCodec().encode.v3_path("V3_SWAP_EXACT_IN", [TOKEN_IN, 3000, TOKEN_OUT])
+    assert result["path"] == "0x" + expected.hex()
+
+
+def test_encode_v3_path_mirrors_decode_v3_path():
+    encoded = mcp_server.encode_v3_path("V3_SWAP_EXACT_OUT", [TOKEN_IN, 3000, TOKEN_OUT])
+
+    assert mcp_server.decode_v3_path("V3_SWAP_EXACT_OUT", encoded["path"]) == {
+        "fn_name": "V3_SWAP_EXACT_OUT",
+        "path": [TOKEN_IN, 3000, TOKEN_OUT],
+    }
+
+
+def test_encode_v3_path_reports_error():
+    result = mcp_server.encode_v3_path("V3_SWAP_EXACT_IN", [TOKEN_IN])
+
+    assert result["error"]["type"] == "ValueError"
+
+
 def test_list_commands():
     result = mcp_server.list_commands()
 
-    assert result["count"] == len(result["commands"]) > 0
-    assert "v3_swap_exact_in" in result["commands"]
+    assert result["format"]["function"]["default"] == "execute"
+    assert {spec["command"] for spec in result["commands"]} >= {"V3_SWAP_EXACT_IN", "WRAP_ETH"}
 
 
 def test_describe_command():
-    result = mcp_server.describe_command("wrap_eth")
+    result = mcp_server.describe_command("WRAP_ETH")
 
-    assert result["command"] == "wrap_eth"
-    assert {param["name"] for param in result["params"]} == {"function_recipient", "amount", "custom_recipient"}
+    assert result["command"] == "WRAP_ETH"
+    assert {param["name"] for param in result["params"]} == {"recipient", "amountMin"}
 
 
 def test_describe_command_unknown():
     result = mcp_server.describe_command("nope")
 
-    assert result["error"]["type"] == "KeyError"
+    assert result["error"]["type"] == "ValueError"
+    assert "Unknown command 'nope'" in result["error"]["message"]
 
 
 def test_decode_transaction_with_rpc_url(monkeypatch):
@@ -169,8 +200,13 @@ def test_registered_tools_with_mcp_sdk():
 
     assert {tool.name for tool in tools} == EXPECTED_TOOLS
 
-    result = asyncio.run(server.call_tool("describe_command", {"command": "wrap_eth"}))
-    assert "wrap_eth" in result.content[0].text
+    result = asyncio.run(server.call_tool("describe_command", {"command": "WRAP_ETH"}))
+    assert "WRAP_ETH" in result.content[0].text
+
+    result = asyncio.run(
+        server.call_tool("encode_v3_path", {"fn_name": "V3_SWAP_EXACT_IN", "path": [TOKEN_IN, 3000, TOKEN_OUT]})
+    )
+    assert "0x" in result.content[0].text
 
 
 def test_package_version_fallback(monkeypatch):

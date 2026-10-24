@@ -119,3 +119,43 @@ class MiscFunctions(Enum):
 
     STRICT_V4_SWAP_EXACT_IN = auto()
     STRICT_V4_SWAP_EXACT_OUT = auto()
+
+
+# Facts about the Universal Router commands, shared by the encoder, the decoder and the command descriptions.
+
+# The commands that carry a function selector in front of their encoded arguments.
+SELECTOR_COMMANDS: frozenset[RouterFunction] = frozenset((
+    RouterFunction.V3_POSITION_MANAGER_PERMIT,
+    RouterFunction.V3_POSITION_MANAGER_CALL,
+    RouterFunction.V4_POSITION_MANAGER_CALL,
+))
+
+# The commands whose failure the UR can tolerate, ie the only ones that honour the NO_REVERT flag. For every other
+# command the UR ignores the flag: the command either succeeds or reverts the whole transaction.
+# See UniversalRouter.successRequired() and Dispatcher.dispatch() in the UR 2.1.2 contract.
+NO_REVERT_COMMANDS: frozenset[RouterFunction] = frozenset((
+    RouterFunction.PERMIT2_PERMIT_BATCH,
+    RouterFunction.PERMIT2_PERMIT,
+    RouterFunction.BALANCE_CHECK_ERC20,
+    RouterFunction.V3_POSITION_MANAGER_PERMIT,
+    RouterFunction.V3_POSITION_MANAGER_CALL,
+    RouterFunction.V4_INITIALIZE_POOL,
+    RouterFunction.V4_POSITION_MANAGER_CALL,
+    RouterFunction.EXECUTE_SUB_PLAN,
+))
+
+# The commands whose decoded form holds decoded structures (V4 actions, nested commands) instead of ABI values, so
+# they cannot be rebuilt from it.
+STRUCTURED_COMMANDS: frozenset[RouterFunction] = frozenset((
+    RouterFunction.V4_SWAP,
+    RouterFunction.V4_POSITION_MANAGER_CALL,
+    RouterFunction.EXECUTE_SUB_PLAN,
+))
+
+# V3_POSITION_MANAGER_CALL forwards its input to one of three position manager functions: the command is the same
+# but the ABI (and therefore the encoded arguments) differ. The decoder names those after the function they call.
+V3_POSITION_MANAGER_ACTIONS: dict[str, V3PositionManagerActions] = {
+    "decreaseLiquidity": V3PositionManagerActions.DECREASE_LIQUIDITY,
+    "collect": V3PositionManagerActions.COLLECT,
+    "burn": V3PositionManagerActions.BURN,
+}

@@ -173,6 +173,8 @@ expected_v3_path_2 = Web3.to_bytes(hexstr=HexStr("0xABe580E7ee158dA464b51ee1a83A
         ("V3_SWAP_EXACT_IN", path_seq_1, expected_v3_path_1, None),
         ("V2_SWAP_EXACT_OUT", path_seq_1, expected_v3_path_1, ValueError),
         ("V3_SWAP_EXACT_IN", path_seq_1[:2], expected_v3_path_1, ValueError),
+        ("V3_SWAP_EXACT_IN", path_seq_2[:4], expected_v3_path_1, ValueError),  # a path must end with a token
+        ("V3_SWAP_EXACT_IN", (path_seq_1[0], "3000", path_seq_1[2]), expected_v3_path_1, None),  # fees as strings
         ("V3_SWAP_EXACT_OUT", path_seq_2, expected_v3_path_2, None),
     )
 )
@@ -320,17 +322,14 @@ def test_chain_permit2_permit_batch(codec):
 @pytest.mark.parametrize(
     "router_function, revert_on_fail, expected_command",
     (
-        # Todo: use functions that actually support the NO_REVERT_FLAG, like SUDOSWAP or another NFT function
+        # commands that honour the NO_REVERT flag: both values are meaningful
+        (RouterFunction.V3_POSITION_MANAGER_CALL, True, 0x12),
+        (RouterFunction.V3_POSITION_MANAGER_CALL, False, 0x92),
+        (RouterFunction.BALANCE_CHECK_ERC20, True, 0x0e),
+        (RouterFunction.BALANCE_CHECK_ERC20, False, 0x8e),
+        # commands that ignore it: the flag is always cleared
         (RouterFunction.V3_SWAP_EXACT_IN, True, 0x00),
-        (RouterFunction.V3_SWAP_EXACT_IN, False, 0x80),
-        (RouterFunction.V2_SWAP_EXACT_IN, True, 0x08),
-        (RouterFunction.V2_SWAP_EXACT_IN, False, 0x88),
-        (RouterFunction.PERMIT2_PERMIT, True, 0x0a),
-        (RouterFunction.PERMIT2_PERMIT, False, 0x8a),
-        (RouterFunction.PERMIT2_PERMIT_BATCH, True, 0x03),
-        (RouterFunction.PERMIT2_PERMIT_BATCH, False, 0x83),
         (RouterFunction.WRAP_ETH, True, 0x0b),
-        (RouterFunction.WRAP_ETH, False, 0x8b),
     )
 )
 def test_get_command(router_function, revert_on_fail, expected_command, codec):

@@ -3,68 +3,106 @@ import pytest
 from uniswap_universal_router_decoder import (
     AsyncRouterCodec,
     decoded_input_to_dict,
+    RouterCodec,
 )
 from uniswap_universal_router_decoder._command_spec import (
     describe_command,
     encode_commands,
     list_command_specs,
 )
-from uniswap_universal_router_decoder.encoder import resolve_command
 
 
 TOKEN_IN = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
 TOKEN_OUT = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+SENDER = "0x0000000000000000000000000000000000000001"
 
 
-def _swap_commands():
-    return [
-        {
-            "command": "v3_swap_exact_in",
-            "params": {
-                "function_recipient": "SENDER",
-                "amount_in": 1000,
-                "amount_out_min": 0,
-                "path": [TOKEN_IN, 3000, TOKEN_OUT],
-            },
+def _swap_plan():
+    # The decoded form of a V3_SWAP_EXACT_IN call, as returned by decoded_input_to_dict().
+    path = RouterCodec().encode.v3_path("V3_SWAP_EXACT_IN", [TOKEN_IN, 3000, TOKEN_OUT])
+    return {
+        "function": "execute",
+        "params": {
+            "inputs": [
+                {
+                    "command": "V3_SWAP_EXACT_IN",
+                    "params": {
+                        "recipient": SENDER,
+                        "amountIn": 1000,
+                        "amountOutMin": 0,
+                        "path": "0x" + path.hex(),
+                        "payerIsSender": True,
+                        "minHopPriceX36": [],
+                    },
+                },
+            ],
+            "deadline": 1234,
         },
+    }
+
+
+def test_list_command_specs_describes_the_format():
+    result = list_command_specs()
+
+    assert result["format"]["function"]["default"] == "execute"
+    assert result["format"]["params"]["inputs"]["required"] is True
+    assert result["format"]["params"]["deadline"]["required"] is False
+
+
+def test_list_command_specs_lists_every_command():
+    specs = list_command_specs()["commands"]
+    names = {spec["command"] for spec in specs}
+
+    assert {"WRAP_ETH", "V3_SWAP_EXACT_IN", "decreaseLiquidity", "collect", "burn", "permit"} <= names
+    # V3_POSITION_MANAGER_CALL is described through the three position manager functions it can call
+    assert "V3_POSITION_MANAGER_CALL" not in names
+    # the commands the decoder expands into structures are listed too, flagged as not rebuildable
+    assert {spec["command"] for spec in specs if not spec["rebuildable"]} == {
+        "V4_SWAP", "modifyLiquidities", "EXECUTE_SUB_PLAN",
+    }
+
+
+def test_describe_command_reports_the_abi_params():
+    spec = describe_command("PAY_PORTION")
+    params = {param["name"]: param for param in spec["params"]}
+
+    assert spec["command"] == "PAY_PORTION"
+    assert spec["rebuildable"] is True
+    assert set(params) == {"token", "recipient", "bips"}
+    assert params["bips"]["type"] == "uint256"
+    assert "basis points" in params["bips"]["description"]
+
+
+def test_describe_command_reports_the_struct_components():
+    spec = describe_command("V4_INITIALIZE_POOL")
+    params = {param["name"]: param for param in spec["params"]}
+
+    assert params["PoolKey"]["type"] == "tuple"
+    assert [component["name"] for component in params["PoolKey"]["components"]] == [
+        "currency0", "currency1", "fee", "tickSpacing", "hooks",
     ]
 
 
-def test_list_command_specs_contains_expected_commands():
-    names = {spec["command"] for spec in list_command_specs()}
-    assert {"v3_swap_exact_in", "wrap_eth", "v3_decrease_liquidity", "v3_collect", "v3_burn"} <= names
+def test_describe_command_flags_the_commands_that_support_revert_on_fail():
+    assert "revert_on_fail" in describe_command("BALANCE_CHECK_ERC20")
+    assert "revert_on_fail" not in describe_command("WRAP_ETH")
 
 
-def test_describe_command_reports_required_and_optional_params():
-    spec = describe_command("pay_portion")
-    params = {param["name"]: param for param in spec["params"]}
+def test_describe_command_reports_the_not_rebuildable_commands():
+    spec = describe_command("V4_SWAP")
 
-    assert set(params) == {"function_recipient", "token_address", "bips", "custom_recipient"}
-    assert params["bips"]["required"] is True
-    assert params["custom_recipient"]["required"] is False
-    assert params["custom_recipient"]["default"] is None
+    assert spec["rebuildable"] is False
+    assert "reason" in spec
+    assert "params" not in spec
 
 
-def test_describe_command_reports_defaults():
-    spec = describe_command("v3_swap_exact_in")
-    params = {param["name"]: param for param in spec["params"]}
-
-    assert params["payer_is_sender"]["default"] is True
-    assert params["min_hop_price_x36"]["default"] == []
+def test_describe_command_rejects_unknown():
+    with pytest.raises(ValueError, match="Unknown command"):
+        describe_command("NOT_A_COMMAND")
 
 
-def test_resolve_command_accepts_router_function_name():
-    assert resolve_command("V3_SWAP_EXACT_IN") == "v3_swap_exact_in"
-    assert resolve_command("v3_swap_exact_in") == "v3_swap_exact_in"
-
-
-def test_resolve_command_rejects_unknown():
-    with pytest.raises(KeyError):
-        resolve_command("NOT_A_COMMAND")
-
-
-def test_encoder_function_input_coerces_recipient_and_builds(codec):
-    calldata = codec.encode.function_input(_swap_commands(), deadline=1234)
+def test_encoder_function_input_builds_from_a_decoded_call(codec):
+    calldata = codec.encode.function_input(_swap_plan())
 
     assert calldata.startswith("0x")
     structured = decoded_input_to_dict(codec.decode.function_input(calldata))
@@ -75,25 +113,15 @@ def test_encoder_function_input_coerces_recipient_and_builds(codec):
 def test_async_encoder_function_input():
     async_codec = AsyncRouterCodec()
 
-    assert async_codec.encode.function_input(_swap_commands(), deadline=1234).startswith("0x")
+    assert async_codec.encode.function_input(_swap_plan()).startswith("0x")
 
 
 def test_encode_commands_delegates_to_encoder_function_input(codec):
-    commands = _swap_commands()
+    plan = _swap_plan()
 
-    assert encode_commands(codec, commands, deadline=1234) == codec.encode.function_input(commands, 1234)
-
-
-def test_encoder_function_input_rejects_unknown_parameter(codec):
-    with pytest.raises(ValueError, match="Unknown parameter"):
-        codec.encode.function_input([{"command": "wrap_eth", "params": {"nope": 1}}])
+    assert encode_commands(codec, plan) == codec.encode.function_input(plan)
 
 
-def test_encoder_function_input_rejects_bad_enum_value(codec):
-    with pytest.raises(ValueError, match="Invalid value"):
-        codec.encode.function_input([{"command": "wrap_eth", "params": {"function_recipient": "NOPE", "amount": 1}}])
-
-
-def test_encoder_function_input_requires_command_key(codec):
-    with pytest.raises(ValueError, match="command"):
-        codec.encode.function_input([{"params": {}}])
+def test_encoder_function_input_rejects_an_unknown_command(codec):
+    with pytest.raises(ValueError, match="Unknown command 'nope'"):
+        codec.encode.function_input({"params": {"inputs": [{"command": "nope", "params": {}}]}})

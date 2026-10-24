@@ -49,6 +49,7 @@ from uniswap_universal_router_decoder._constants import (
 from uniswap_universal_router_decoder._enums import (
     RouterConstant,
     RouterFunction,
+    SELECTOR_COMMANDS,
     V4Actions,
 )
 
@@ -108,19 +109,17 @@ class _BaseDecoder(Generic[W3]):
             # iterating over bytes produces integers
             command_function = b & RouterConstant.COMMAND_TYPE_MASK.value
             try:
-                abi_mapping = self._abi_map[RouterFunction(command_function)]
-                if b in (
-                    RouterFunction.V4_POSITION_MANAGER_CALL.value,
-                    RouterFunction.V3_POSITION_MANAGER_PERMIT.value,
-                    RouterFunction.V3_POSITION_MANAGER_CALL.value,
-                ):
+                router_function = RouterFunction(command_function)
+                abi_mapping = self._abi_map[router_function]
+                if router_function in SELECTOR_COMMANDS:
+                    # the selector is already part of the command input for those commands, don't prepend it
                     data = command_input[i]
                 else:
                     data = abi_mapping.selector + command_input[i]
                 sub_contract = self._w3.eth.contract(abi=abi_mapping.full_abi)
                 revert_on_fail = not bool(b & RouterConstant.FLAG_ALLOW_REVERT.value)
                 decoded_fct_name, decoded_fct_params = sub_contract.decode_function_input(data)
-                if b == RouterFunction.V4_SWAP.value:
+                if router_function == RouterFunction.V4_SWAP:
                     decoded_command_input.append(
                         (
                             decoded_fct_name,
@@ -134,7 +133,7 @@ class _BaseDecoder(Generic[W3]):
                             {"revert_on_fail": revert_on_fail},
                         )
                     )
-                elif b == RouterFunction.V4_POSITION_MANAGER_CALL.value:
+                elif router_function == RouterFunction.V4_POSITION_MANAGER_CALL:
                     decoded_command_input.append(
                         (
                             decoded_fct_name,
@@ -145,7 +144,7 @@ class _BaseDecoder(Generic[W3]):
                             {"revert_on_fail": revert_on_fail},
                         )
                     )
-                elif command_function == RouterFunction.EXECUTE_SUB_PLAN.value:
+                elif router_function == RouterFunction.EXECUTE_SUB_PLAN:
                     decoded_command_input.append(
                         (
                             decoded_fct_name,

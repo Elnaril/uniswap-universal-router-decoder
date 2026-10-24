@@ -40,13 +40,17 @@ See the [release notes page](https://github.com/Elnaril/uniswap-universal-router
 - Add support for the V3_POSITION_MANAGER_PERMIT command (0x11)
 - Add support for the V3_POSITION_MANAGER_CALL command (0x12)
 - Add support for the EXECUTE_SUB_PLAN command (0x21)
+- Add `revert_on_fail` to the encoder methods for the commands whose failure the UR can tolerate
 - Make the chained function builders public and expose the `encoder` & `decoder` modules
 - Reduce CI time
 - Agent-friendly changes:
-  - Add `Encoder.function_input()` / `AsyncEncoder.function_input()` to encode a list of commands described as data
+  - Add `Encoder.function_input()` / `AsyncEncoder.function_input()` to rebuild the calldata from a decoded call
   - Add `decoded_input_to_dict()` and `transaction_to_dict()` to render the decoder output as JSON-friendly dicts
-  - Add the `ur-decode` and `ur-encode` command line tools
-  - Add the read-only `ur-mcp` MCP server (optional `mcp` extra) so AI agents can drive the codec
+  - Add the `ur-decode` and `ur-encode` command line tools, including `ur-encode v3-path` and its `encode_v3_path` MCP
+    counterpart
+  - Add the `ur-mcp` MCP server (optional `mcp` extra) so AI agents can drive the codec
+  - The command descriptions (`ur-encode list` / `describe` and the `list_commands` / `describe_command` MCP tools) now
+    describe the decoded call format and its ABI parameters, instead of the encoder methods
 
 ### v3.1.0
 - Update UR address and abi to match v2.1.2
@@ -71,12 +75,20 @@ See the [release notes page](https://github.com/Elnaril/uniswap-universal-router
 
 ## Overview and Points of Attention
 
-The object of this library is to decode & encode transactions sent to the Uniswap Universal Router (UR) 
-on Ethereum Mainnet, though it would work on any compatible chain where the UR is deployed. See Version Mapping below.  
-It is based on, and is intended to be used with [web3.py](https://github.com/ethereum/web3.py)  
-The target audience is Python developers who are familiar with the Ethereum blockchain concepts and web3.py, and how DEXes work. 
+The object of this library is to decode & encode transactions sent to the Uniswap Universal Router (UR)
+on Ethereum Mainnet, though it would work on any compatible chain where the UR is deployed. See Version Mapping below.
+This Python SDK is based on, and intended to be used with [web3.py](https://github.com/ethereum/web3.py)
 
-⚠ Before using this library, ensure you are familiar with general blockchain concepts and [web3.py](https://github.com/ethereum/web3.py) in particular.
+The target audience is Python developers who are familiar with the Ethereum blockchain concepts and web3.py, and how DEXes work.
+The same codec is also available without Python, through the `ur-decode` / `ur-encode` command line tools and the optional
+`ur-mcp` MCP server (see "Command line interface" and "MCP server" below): both print JSON, so shell scripts and AI
+agents can drive it too.
+
+⚠ Before using this library, ensure you are familiar with general blockchain concepts. The Python API also expects
+[web3.py](https://github.com/ethereum/web3.py) knowledge in particular.
+
+⚠ Not all UR functions supported by this SDK are available through the CLI or MCP tools: 
+run `ur-encode list` and look for the "rebuildable" flag.
 
 ### List of supported Uniswap Universal Router Functions
 
@@ -126,6 +138,9 @@ The target audience is Python developers who are familiar with the Ethereum bloc
 | 0x21        | EXECUTE_SUB_PLAN            |                              |     ✅     |
 | 0x22 - 0x3f | placeholders                |                              |    N/A    |
 | 0x40        | ACROSS_V4_DEPOSIT_V3        |                              |     ❌     |
+
+All the ✅ commands can be decoded and encoded. `V4_SWAP`, `V4_POSITION_MANAGER_CALL` and `EXECUTE_SUB_PLAN` can also
+be decoded, but they cannot be rebuilt from a decoded call (see "How to rebuild the calldata from a decoded call").
 
 
 ### Version Mapping
@@ -287,18 +302,24 @@ trx_hash = "0x52e63b7 ... 11b979dd9"
 decoded_transaction = await codec.decode.transaction(trx_hash)
 ```
 
-### How to decode a Uniswap V3 swap path
-The `RouterCodec` class exposes also the method `decode.v3_path()` which can be used to decode a given Uniswap V3 path.
+### How to encode/decode a Uniswap V3 swap path
+`RouterCodec` exposes two mirror methods: `encode.v3_path()` builds a Uniswap V3 path from the ordered tokens and the
+pool fees between them, and `decode.v3_path()` reads one back.
 
 ```python
 from uniswap_universal_router_decoder import RouterCodec
 
-uniswap_v3_path = b"\xc0*\xaa9\xb2#\xfe\x8d\n\x0e ... \xd7\x89"  # bytes or str hex
-fn_name = "V3_SWAP_EXACT_IN"  # Or V3_SWAP_EXACT_OUT
 codec = RouterCodec()
+fn_name = "V3_SWAP_EXACT_IN"  # Or V3_SWAP_EXACT_OUT
+
+encoded_path = codec.encode.v3_path(fn_name, [token_in_address, 3000, token_out_address])  # bytes
+
+uniswap_v3_path = b"\xc0*\xaa9\xb2#\xfe\x8d\n\x0e ... \xd7\x89"  # bytes or str hex
 decoded_path = codec.decode.v3_path(fn_name, uniswap_v3_path)
 ```
-The result is a tuple, starting with the "in-token" and ending with the "out-token", with the pool fees between each pair.
+`decode.v3_path()` returns a tuple, starting with the "in-token" and ending with the "out-token", with the pool fees
+between each pair. Both methods use that same order: `V3_SWAP_EXACT_OUT` reverses the path when encoding, and the
+decoder reverses it back.
 
 
 ### How to get the decoded data as JSON-friendly dicts
@@ -361,41 +382,47 @@ default_expiration = RouterCodec.get_default_expiration()
 ```
 These 2 functions accept a custom duration in seconds as argument.
 
+`revert_on_fail` can be passed to the methods whose command the UR can tolerate failing: `permit2_permit()`,
+`permit2_permit_batch()`, `balance_check_erc20()`, `v3_position_manager_permit()`, `v3_decrease_liquidity()`,
+`v3_collect()`, `v3_burn()`, `v4_initialize_pool()`, `build_v4_posm_call()` and `execute_sub_plan()`. It defaults to
+`True`; set it to `False` to let the transaction continue if that command fails. The other methods don't accept it,
+because the UR ignores that flag for their command.
 
-### How to encode from a list of commands
-As an alternative to chaining the encoder methods, `encode.function_input()` builds the encoded data from a list of
-commands described as data. It is the mirror of `decode.function_input()`: where the decoder turns a function input
-into commands, this turns commands into a function input.
 
-Each command is a dict with a `command` key (a builder method name like `v3_swap_exact_in`, or the matching
-RouterFunction name like `V3_SWAP_EXACT_IN`) and a `params` dict holding its parameters.
+### How to rebuild the calldata from a decoded call
+As an alternative to chaining the encoder methods, `encode.function_input()` builds the calldata from the decoded form
+of an `execute` call. It is the mirror of `decode.function_input()`: where the decoder turns a function input into
+commands, this turns the decoded commands back into a function input, so a route can be decoded, edited, and re-encoded.
 
+The expected shape is the one produced by `decoded_input_to_dict()` (and by the `ur-decode` CLI and the MCP server):
+its `params.inputs` hold the commands, using the names and parameters the decoder reports (the Universal Router ABI
+names).
 ```python
-from uniswap_universal_router_decoder import RouterCodec
+from uniswap_universal_router_decoder import RouterCodec, decoded_input_to_dict
 
 codec = RouterCodec()
-encoded_data = codec.encode.function_input(
-    [
-        {"command": "wrap_eth", "params": {"function_recipient": "SENDER", "amount": 10 ** 18}},
-        {
-            "command": "v3_swap_exact_in",
-            "params": {
-                "function_recipient": "SENDER",
-                "amount_in": 10 ** 18,
-                "amount_out_min": 0,
-                "path": [token_in_address, 3000, token_out_address],
-            },
-        },
-    ],
-    deadline=1676825611,
-)
+plan = decoded_input_to_dict(codec.decode.function_input(trx_input))
+
+# tweak the decoded route, then rebuild the calldata from it
+plan["params"]["inputs"][0]["params"]["amountMin"] = 2 * 10 ** 18
+encoded_data = codec.encode.function_input(plan)
 
 # then in your transaction dict:
 transaction["data"] = encoded_data
 ```
 
-The `deadline` argument is optional; when it is omitted, the plain `execute(bytes,bytes[])` form is used instead of
-`execute(bytes,bytes[],uint256)`.
+The `function` key is optional and defaults to `execute`, and the `commands` bytes are ignored: the command list is
+rebuilt from the `inputs` entries. The `deadline` key is optional too; when it is absent, the plain
+`execute(bytes,bytes[])` form is used instead of `execute(bytes,bytes[],uint256)`.
+
+Commands the decoder expands into structures (`V4_SWAP`, `V4_POSITION_MANAGER_CALL`, `EXECUTE_SUB_PLAN`) cannot be
+rebuilt this way and raise a `ValueError`.
+
+`revert_on_fail` is honoured only for the commands whose failure the UR can tolerate (`PERMIT2_PERMIT`,
+`PERMIT2_PERMIT_BATCH`, `BALANCE_CHECK_ERC20`, `V3_POSITION_MANAGER_PERMIT`, `V3_POSITION_MANAGER_CALL`,
+`V4_INITIALIZE_POOL`, `V4_POSITION_MANAGER_CALL`, `EXECUTE_SUB_PLAN`). For every other command the UR ignores the
+flag, so it is always cleared. The same applies to the encoder methods: those commands take a `revert_on_fail`
+argument (default `True`), the others do not.
 
 `AsyncRouterCodec` exposes the same method (`encode.function_input()`); it is synchronous, so no `await` is needed.
 
@@ -902,19 +929,25 @@ from uniswap_universal_router_decoder import TransactionSpeed
 ### Command line interface
 The package installs two commands that print JSON to stdout, handy for shell scripts or to let an agent drive the codec:
 
-- `ur-encode`: list/describe the encodable commands and build the calldata from them
+- `ur-encode`: describe the decoded call format and the commands, rebuild calldata from a decoded call, or encode a V3 path
 - `ur-decode`: decode a transaction, raw calldata, a custom error or a V3 path
 
 ```bash
-# list the commands that can be built from data, and describe one of them
+# describe the decoded call format and the commands, then describe one of them
 ur-encode list
-ur-encode describe v3_swap_exact_in
+ur-encode describe V3_SWAP_EXACT_IN
 
-# build the calldata of one command
-ur-encode build --command wrap_eth --params '{"function_recipient": "SENDER", "amount": 1000000000000000000}'
+# rebuild the calldata of one command, from its name and parameters as decoded (see ur-decode)
+ur-encode build --command WRAP_ETH --params '{"recipient": "0x0000000000000000000000000000000000000001", "amountMin": 1000000000000000000}'
 
-# or of several commands at once, from a JSON plan file (or '-' for stdin)
-ur-encode build --plan plan.json --deadline 1676825611
+# or of several commands at once, from a decoded call in a JSON file (or '-' for stdin)
+ur-encode build --plan decoded_call.json --deadline 1676825611
+
+# encode a V3 path: the tokens to swap through, with the pool fees between them
+ur-encode v3-path V3_SWAP_EXACT_IN 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2 3000 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
+
+# the same path given as a JSON list
+ur-encode v3-path V3_SWAP_EXACT_OUT '[0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2, 3000, 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48]'
 
 # decode raw calldata
 ur-decode calldata 0x3593564c0000...
@@ -923,28 +956,32 @@ ur-decode calldata 0x3593564c0000...
 ur-decode tx 0x52e63b7... --rpc https://...
 ```
 
-A plan file is either a list of commands, or a dict with a `commands` list and an optional `deadline`:
+A plan file holds a decoded `execute` call, exactly as `ur-decode calldata` prints it:
 ```json
 {
-  "deadline": 1676825611,
-  "commands": [
-    {"command": "wrap_eth", "params": {"function_recipient": "SENDER", "amount": 1000000000000000000}}
-  ]
+  "function": "execute",
+  "params": {
+    "inputs": [
+      {"command": "WRAP_ETH", "params": {"recipient": "0x0000000000000000000000000000000000000001", "amountMin": 1000000000000000000}}
+    ],
+    "deadline": 1676825611
+  }
 }
 ```
 
 ### MCP server
-The optional `mcp` extra installs `ur-mcp`, a read-only [Model Context Protocol](https://modelcontextprotocol.io)
-server that exposes the codec to AI agents over stdio. It never signs or broadcasts a transaction.
+The optional `mcp` extra installs `ur-mcp`, a side-effect free [Model Context
+Protocol](https://modelcontextprotocol.io) server that exposes the codec to AI agents over stdio. Its tools only
+inspect or derive Universal Router data: they never sign or broadcast a transaction.
 
 ```bash
 pip install 'uniswap-universal-router-decoder[mcp]'
 ```
 
-It provides six tools:
-- `list_commands` / `describe_command`: discover the encodable commands
+It provides seven tools:
+- `list_commands` / `describe_command`: discover the decoded call format and the commands
 - `decode_transaction`: fetch and decode a transaction sent to the UR (needs an RPC endpoint)
-- `decode_calldata`, `decode_error`, `decode_v3_path`: decode data without an RPC endpoint
+- `decode_calldata`, `decode_error`, `decode_v3_path`, `encode_v3_path`: decode/encode data without an RPC endpoint
 
 `decode_transaction` uses the `rpc_url` tool argument, or the `RPC_URL` / `ETH_RPC_URL` environment variables, so a
 host can be pointed at any chain by configuring the server environment.

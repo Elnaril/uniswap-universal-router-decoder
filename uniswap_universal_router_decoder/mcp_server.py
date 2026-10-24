@@ -1,9 +1,10 @@
 """
 MCP (Model Context Protocol) server exposing the codec to AI agents.
 
-The server is read-only: it only inspects Universal Router data, it never signs or
-broadcasts a transaction. It is a thin wrapper around the codec and the JSON
-renderings already used by the command line tools, so both surfaces stay in sync.
+The server has no on-chain side effect: its tools only inspect or derive Universal
+Router data, they never sign or broadcast a transaction. It is a thin wrapper around
+the codec and the JSON renderings already used by the command line tools, so both
+surfaces stay in sync.
 
 It targets `mcp` >= 2 (where `FastMCP` was renamed to `MCPServer`) and is exposed
 through the optional `mcp` extra::
@@ -25,6 +26,7 @@ from typing import (
     Any,
     Optional,
     TYPE_CHECKING,
+    Union,
 )
 
 from web3.types import HexStr
@@ -53,11 +55,11 @@ _MISSING_SDK_MESSAGE = (
 )
 
 _INSTRUCTIONS = (
-    "Read-only tools to inspect Uniswap Universal Router transactions and to discover the commands the "
-    "encoder can build. These tools never sign or send a transaction.\n"
-    "Use list_commands / describe_command to discover the encodable commands, decode_transaction (needs an "
-    "RPC endpoint) or decode_calldata to see what a route does, and decode_error / decode_v3_path for the "
-    "lower level pieces."
+    "Tools to inspect, derive and discover Uniswap Universal Router data. These tools never sign or send a "
+    "transaction.\n"
+    "Use list_commands / describe_command to discover the decoded call format and the commands, decode_transaction "
+    "(needs an RPC endpoint) or decode_calldata to see what a route does, and decode_error / decode_v3_path / "
+    "encode_v3_path for the lower level pieces."
 )
 
 
@@ -143,26 +145,44 @@ def decode_v3_path(fn_name: str, path: str) -> dict[str, Any]:
     return {"fn_name": fn_name, "path": to_json_primitives(decoded)}
 
 
+def encode_v3_path(fn_name: str, path: list[Union[int, str]]) -> dict[str, Any]:
+    """
+    Encode a V3 swap path from its ordered tokens and the pool fees between them.
+
+    The mirror of decode_v3_path(): where the decoder turns a packed path into tokens and fees, this turns tokens
+    and fees into the packed path to use as the "path" parameter of a V3 swap command.
+
+    :param fn_name: "V3_SWAP_EXACT_IN" or "V3_SWAP_EXACT_OUT" (which reverses the path)
+    :param path: the tokens with the pool fee between each pair, ex: ["0x...", 3000, "0x...", 500, "0x..."]
+    :return: {"fn_name": ..., "path": <the "0x"-prefixed packed path>} or an "error"
+    """
+    try:
+        encoded = RouterCodec().encode.v3_path(fn_name, path)
+    except Exception as exc:
+        return _error(exc)
+    return {"fn_name": fn_name, "path": "0x" + encoded.hex()}
+
+
 def list_commands() -> dict[str, Any]:
     """
-    List the Universal Router commands the encoder can build from data.
+    Describe the decoded call format and every Universal Router command.
 
-    :return: {"count": <int>, "commands": [<command name>, ...]}
+    :return: {"format": <the envelope>, "commands": [<command description>, ...]}
     """
-    specs = list_command_specs()
-    return {"count": len(specs), "commands": [spec["command"] for spec in specs]}
+    return list_command_specs()
 
 
 def describe_command(command: str) -> dict[str, Any]:
     """
-    Describe one encodable command: its parameters, types and defaults.
+    Describe one Universal Router command: its parameters, their types and, where the type is not enough, their
+    meaning.
 
-    :param command: the command name (builder method name or RouterFunction name)
+    :param command: the command name, as it appears in a decoded call (ex: V3_SWAP_EXACT_IN, decreaseLiquidity)
     :return: {"command": ..., "params": [...]} or an "error"
     """
     try:
         return _describe_command(command)
-    except KeyError as exc:
+    except ValueError as exc:
         return _error(exc)
 
 
@@ -171,6 +191,7 @@ _TOOL_FUNCTIONS = (
     decode_calldata,
     decode_error,
     decode_v3_path,
+    encode_v3_path,
     list_commands,
     describe_command,
 )

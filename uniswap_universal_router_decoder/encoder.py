@@ -9,14 +9,10 @@ from __future__ import annotations
 
 from abc import ABC
 from collections.abc import Sequence
-from enum import Enum
-import inspect
 from typing import (
     Any,
-    Callable,
     cast,
     Generic,
-    get_type_hints,
     Optional,
     TypedDict,
     TypeVar,
@@ -43,6 +39,8 @@ from web3.types import (
 from uniswap_universal_router_decoder._abi_builder import (
     ABIFunction,
     ABIMap,
+    ABIParam,
+    ABIStruct,
 )
 from uniswap_universal_router_decoder._constants import (
     ur_abi,
@@ -52,9 +50,13 @@ from uniswap_universal_router_decoder._constants import (
 from uniswap_universal_router_decoder._enums import (
     FunctionRecipient,
     MiscFunctions,
+    NO_REVERT_COMMANDS,
     RouterConstant,
     RouterFunction,
+    SELECTOR_COMMANDS,
+    STRUCTURED_COMMANDS,
     TransactionSpeed,
+    V3_POSITION_MANAGER_ACTIONS,
     V3PositionManagerActions,
     V4Actions,
 )
@@ -98,94 +100,71 @@ AllowanceTransferDetails = TypedDict(
 )
 
 
-# The builder methods that function_input() can drive from declarative data.
-# Commands that require a signature (permit2_permit, permit2_permit_batch, v3_position_manager_permit),
-# a nested builder (execute_sub_plan), and the V4 swap/position-manager sub-builders are excluded.
-ENCODABLE_METHODS: tuple[str, ...] = (
-    "wrap_eth",
-    "unwrap_weth",
-    "v2_swap_exact_in",
-    "v2_swap_exact_out",
-    "v3_swap_exact_in",
-    "v3_swap_exact_out",
-    "sweep",
-    "pay_portion",
-    "pay_portion_full_precision",
-    "transfer",
-    "balance_check_erc20",
-    "permit2_transfer_from",
-    "permit2_transfer_from_batch",
-    "v3_decrease_liquidity",
-    "v3_collect",
-    "v3_burn",
-    "v4_initialize_pool",
-)
+_EXECUTE_FUNCTION = "execute"
+
+# The decoder names a command after the contract function it calls, which is not always the RouterFunction
+# name: the V3 position manager functions decode under their own name, and the V3 position manager permit
+# decodes as "permit". Every other command decodes under the name used here.
+_DECODED_COMMAND_ALIASES: dict[str, RouterFunction] = {
+    "decreaseLiquidity": RouterFunction.V3_POSITION_MANAGER_CALL,
+    "collect": RouterFunction.V3_POSITION_MANAGER_CALL,
+    "burn": RouterFunction.V3_POSITION_MANAGER_CALL,
+    "permit": RouterFunction.V3_POSITION_MANAGER_PERMIT,
+    "modifyLiquidities": RouterFunction.V4_POSITION_MANAGER_CALL,
+}
 
 
-def _get_method(command: str) -> Callable[..., Any]:
-    return getattr(BaseChainedFunctionBuilder, command)
+def _struct_args(struct: ABIStruct, values: dict[str, Any]) -> tuple[Any, ...]:
+    return tuple(_abi_value(param, values[param.name]) for param in struct.params)
 
 
-def _command_annotations(command: str) -> dict[str, Any]:
-    # `from __future__ import annotations` turns the annotations into strings, so get_type_hints() is
-    # needed to turn them back into real objects (enums, ...) that can be used to coerce user inputs.
-    method = _get_method(command)
-    hints = get_type_hints(method)
-    parameters = inspect.signature(method).parameters
-    return {name: hints.get(name) for name in parameters if name != "self"}
-
-
-def resolve_command(name: str) -> str:
-    """
-    Resolve a user-provided command name to an encodable builder method name.
-
-    Both the builder method name (`v3_swap_exact_in`) and the corresponding
-    RouterFunction name (`V3_SWAP_EXACT_IN`) are accepted.
-
-    :param name: the command name to resolve
-    :return: the matching builder method name
-    """
-    if name in ENCODABLE_METHODS:
-        return name
-    lowered = name.lower()
-    if lowered in ENCODABLE_METHODS:
-        return lowered
-    known = ", ".join(sorted(ENCODABLE_METHODS))
-    raise KeyError(f"Unknown command '{name}'. Known commands: {known}")
-
-
-def _coerce(annotation: Any, value: Any) -> Any:
-    if isinstance(annotation, type) and issubclass(annotation, Enum) and isinstance(value, str):
-        try:
-            return annotation[value]
-        except KeyError as exc:
-            valid = [member.name for member in annotation]
-            raise ValueError(f"Invalid value '{value}' for {annotation.__name__}. Valid values: {valid}") from exc
+def _abi_value(abi_param: Union[ABIParam, ABIStruct], value: Any) -> Any:
+    # The decoded output is JSON-friendly, with bytes as "0x" strings and structs as dicts, whereas the ABI
+    # encoder expects bytes and positional tuples.
+    if isinstance(abi_param, ABIStruct):
+        if abi_param.type == "tuple[]":
+            return [_struct_args(abi_param, item) for item in cast(list[dict[str, Any]], value)]
+        return _struct_args(abi_param, cast(dict[str, Any], value))
+    if abi_param.type.startswith("bytes") and isinstance(value, str):
+        return Web3.to_bytes(hexstr=HexStr(value))
     return value
 
 
-def _build_commands(
-        builder: BaseChainedFunctionBuilder[W3],
-        commands: list[dict[str, Any]],
-        # ex: [{'command': 'wrap_eth', 'params': {'function_recipient': 'SENDER', 'amount': 1000000000000000000}}]
-        deadline: Optional[int]) -> HexStr:
-    for entry in commands:
-        if "command" not in entry:
-            raise ValueError("Each command entry must contain a 'command' key")
-        method_name = resolve_command(entry["command"])
-        params: dict[str, Any] = entry.get("params") or {}
-        annotations = _command_annotations(method_name)
-        # ex: {'function_recipient': <enum 'FunctionRecipient'>,
-        # 'amount': web3.types.Wei,
-        # 'custom_recipient': typing.Optional[eth_typing.evm.ChecksumAddress]}
-        unknown = sorted(set(params) - set(annotations))
-        if unknown:
-            raise ValueError(f"Unknown parameter(s) {unknown} for command '{method_name}'")
-        coerced = {key: _coerce(annotations[key], value) for key, value in params.items()}
-        # ex: {'function_recipient': <FunctionRecipient.SENDER: 'recipient is transaction sender'>,
-        # 'amount': 1000000000000000000}
-        getattr(builder, method_name)(**coerced)
-    return builder.build(deadline=deadline)
+def _decoded_command(name: str) -> RouterFunction:
+    command = _DECODED_COMMAND_ALIASES.get(name)
+    if command is not None:
+        return command
+    try:
+        return RouterFunction[name]
+    except KeyError as exc:
+        raise ValueError(f"Unknown command '{name}'") from exc
+
+
+def _add_decoded_command(builder: BaseChainedFunctionBuilder[Any], entry: dict[str, Any]) -> None:
+    name = cast(str, entry["command"])
+    command = _decoded_command(name)
+    if command in STRUCTURED_COMMANDS:
+        raise ValueError(
+            f"'{name}' cannot be rebuilt from its decoded form: its arguments are decoded structures, "
+            f"not ABI values."
+        )
+    action = V3_POSITION_MANAGER_ACTIONS.get(name)
+    abi_map = builder._abi_map  # pyright:ignore[reportPrivateUsage]
+    abi = abi_map[action] if action is not None else abi_map[command]
+    decoded_params = cast(dict[str, Any], entry["params"])
+    args = tuple(_abi_value(abi_param, decoded_params[abi_param.name]) for abi_param in abi.params)
+    revert_on_fail = bool(entry.get("revert_on_fail", True))
+    builder._add_command(command, args, abi, revert_on_fail)  # pyright:ignore[reportPrivateUsage]
+
+
+def _build_commands(builder: BaseChainedFunctionBuilder[Any], plan: dict[str, Any]) -> HexStr:
+    function = plan.get("function", _EXECUTE_FUNCTION)
+    if function != _EXECUTE_FUNCTION:
+        raise ValueError(f"Only the '{_EXECUTE_FUNCTION}' call can be rebuilt from data, got '{function}'")
+    params = cast(dict[str, Any], plan["params"])
+    for entry in cast(list[dict[str, Any]], params["inputs"]):
+        _add_decoded_command(builder, entry)
+    return builder.build(cast(Optional[int], params.get("deadline")))
 
 
 class _BaseEncoder(Generic[W3]):
@@ -195,15 +174,20 @@ class _BaseEncoder(Generic[W3]):
         self._abi_map = abi_map
 
     @staticmethod
-    def v3_path(v3_fn_name: str, path_seq: Sequence[Union[int, ChecksumAddress]]) -> bytes:
+    def v3_path(v3_fn_name: str, path_seq: Sequence[Union[int, str, ChecksumAddress]]) -> bytes:
         """
         Encode a V3 path
+
         :param v3_fn_name: 'V3_SWAP_EXACT_IN' or 'V3_SWAP_EXACT_OUT'
-        :param path_seq: a sequence of token addresses with the pool fee in between, ex: [tk_in_addr, fee, tk_out_addr]
+        :param path_seq: a sequence of token addresses with the pool fee in between, ex: [tk_in_addr, fee, tk_out_addr].
+            The pool fees may be given as ints or as numeric strings.
         :return: the encoded V3 path
         """
-        if len(path_seq) < 3:
-            raise ValueError("Invalid list to encode a V3 path. Must have at least 3 parameters")
+        if len(path_seq) < 3 or len(path_seq) % 2 == 0:
+            raise ValueError(
+                "Invalid V3 path: it must alternate tokens and pool fees, starting and ending with a token, "
+                "ex: [token_in, fee, token_out]"
+            )
         path_list = list(path_seq)
         if v3_fn_name == "V3_SWAP_EXACT_OUT":
             path_list.reverse()
@@ -214,7 +198,7 @@ class _BaseEncoder(Generic[W3]):
             if i % 2 == 0:
                 _item = Web3.to_checksum_address(cast(ChecksumAddress, item))[2:]
             else:
-                _item = f"{item:06X}"
+                _item = f"{int(item):06X}"
             path += _item
         return Web3.to_bytes(hexstr=HexStr(path))
 
@@ -298,19 +282,28 @@ class Encoder(_BaseEncoder[Web3]):
         """
         return self()
 
-    def function_input(self, commands: list[dict[str, Any]], deadline: Optional[int] = None) -> HexStr:
+    def function_input(self, plan: dict[str, Any]) -> HexStr:
         """
-        Build the UR function input (the calldata) of a list of commands described as data.
+        Build the UR function input (the calldata) of an "execute" call described as data.
 
-        Mirror of Decoder.function_input(): where the decoder turns a function input into commands,
-        this turns commands back into a function input.
+        Mirror of Decoder.function_input(): where the decoder turns a function input into commands, this
+        turns the decoded commands back into a function input. The expected shape is the one returned by
+        decoded_input_to_dict() (the ur-decode CLI, the MCP server), for example::
 
-        :param commands: a list of {"command": <name>, "params": {<param name>: <value>}} where <name> is a
-            builder method name (ex: v3_swap_exact_in) or the matching RouterFunction name (ex: V3_SWAP_EXACT_IN).
-        :param deadline: optional unix timestamp after which the transaction won't be valid anymore.
+            {"function": "execute",
+             "params": {"inputs": [{"command": "WRAP_ETH",
+                                   "params": {"recipient": "0x0000000000000000000000000000000000000002",
+                                              "amountMin": 1000000000000000000}}],
+                        "deadline": 1778414122}}
+
+        Commands whose decoded form cannot be encoded (structured arguments, or a cleared revert-on-fail
+        flag) raise a ValueError.
+
+        :param plan: the decoded call to rebuild. "function" is optional and defaults to "execute"; the
+            "commands" bytes are ignored, the command list is rebuilt from the "inputs" entries.
         :return: the encoded data to add to the UR transaction dictionary parameters.
         """
-        return _build_commands(self(), commands, deadline)
+        return _build_commands(self(), plan)
 
 
 class AsyncEncoder(_BaseEncoder[AsyncWeb3[AsyncHTTPProvider]]):
@@ -329,19 +322,16 @@ class AsyncEncoder(_BaseEncoder[AsyncWeb3[AsyncHTTPProvider]]):
         """
         return self()
 
-    def function_input(self, commands: list[dict[str, Any]], deadline: Optional[int] = None) -> HexStr:
+    def function_input(self, plan: dict[str, Any]) -> HexStr:
         """
-        Build the UR function input (the calldata) of a list of commands described as data.
+        Build the UR function input (the calldata) of an "execute" call described as data.
 
-        Mirror of Decoder.function_input(): where the decoder turns a function input into commands,
-        this turns commands back into a function input.
+        See Encoder.function_input() for the expected shape and the details.
 
-        :param commands: a list of {"command": <name>, "params": {<param name>: <value>}} where <name> is a
-            builder method name (ex: v3_swap_exact_in) or the matching RouterFunction name (ex: V3_SWAP_EXACT_IN).
-        :param deadline: optional unix timestamp after which the transaction won't be valid anymore.
+        :param plan: the decoded call to rebuild, as returned by decoded_input_to_dict().
         :return: the encoded data to add to the UR transaction dictionary parameters.
         """
-        return _build_commands(self(), commands, deadline)
+        return _build_commands(self(), plan)
 
 
 TChainedFunctionBuilder = TypeVar("TChainedFunctionBuilder", "ChainedFunctionBuilder", "AsyncChainedFunctionBuilder")
@@ -529,11 +519,12 @@ class V4ChainedPositionFunctionBuilder(_BaseV4ChainedPositionFunctionBuilder["Ch
         self.builder = builder
         super().__init__(abi_map)
 
-    def build_v4_posm_call(self, deadline: int) -> ChainedFunctionBuilder:
+    def build_v4_posm_call(self, deadline: int, revert_on_fail: bool = True) -> ChainedFunctionBuilder:
         """
         Position - Build the V4 position manager call
 
         :param deadline: When this call is not valid anymore
+        :param revert_on_fail: False to let the transaction continue if this command fails.
         :return: The chain link corresponding to this function call.
         """
         action_values = (bytes(self.actions), self.arguments)
@@ -543,7 +534,7 @@ class V4ChainedPositionFunctionBuilder(_BaseV4ChainedPositionFunctionBuilder["Ch
         self.builder._add_command(  # pyright:ignore[reportPrivateUsage]
             RouterFunction.V4_POSITION_MANAGER_CALL,
             args,
-            True
+            revert_on_fail=revert_on_fail,
         )
         return self.builder
 
@@ -553,11 +544,12 @@ class AsyncV4ChainedPositionFunctionBuilder(_BaseV4ChainedPositionFunctionBuilde
         self.builder = builder
         super().__init__(abi_map)
 
-    def build_v4_posm_call(self, deadline: int) -> AsyncChainedFunctionBuilder:
+    def build_v4_posm_call(self, deadline: int, revert_on_fail: bool = True) -> AsyncChainedFunctionBuilder:
         """
         Position - Build the V4 position manager call
 
         :param deadline: When this call is not valid anymore
+        :param revert_on_fail: False to let the transaction continue if this command fails.
         :return: The chain link corresponding to this function call.
         """
         action_values = (bytes(self.actions), self.arguments)
@@ -567,7 +559,7 @@ class AsyncV4ChainedPositionFunctionBuilder(_BaseV4ChainedPositionFunctionBuilde
         self.builder._add_command(  # pyright:ignore[reportPrivateUsage]
             RouterFunction.V4_POSITION_MANAGER_CALL,
             args,
-            True
+            revert_on_fail=revert_on_fail,
         )
         return self.builder
 
@@ -771,13 +763,16 @@ class BaseChainedFunctionBuilder(Generic[W3]):
             self,
             command: RouterFunction,
             args: Sequence[Any],
-            add_selector: bool = False,
-            abi: Optional[ABIFunction] = None) -> None:
+            abi: Optional[ABIFunction] = None,
+            revert_on_fail: bool = True) -> None:
         if abi is None:
             abi = self._abi_map[command]
-        self.commands.append(command.value)
-        arguments = abi.selector + abi.encode(args) if add_selector else abi.encode(args)
-        self.arguments.append(arguments)
+        if command not in NO_REVERT_COMMANDS:
+            # the UR ignores the flag for this command, so it is always cleared to keep the calldata canonical
+            revert_on_fail = True
+        self.commands.append(self._get_command(command, revert_on_fail))
+        encoded_args = abi.encode(args)
+        self.arguments.append(abi.selector + encoded_args if command in SELECTOR_COMMANDS else encoded_args)
 
     @staticmethod
     def _get_recipient(
@@ -1027,13 +1022,15 @@ class BaseChainedFunctionBuilder(Generic[W3]):
     def permit2_permit(
             self,
             permit_single: dict[str, Any],
-            signed_permit_single: SignedMessage) -> Self:
+            signed_permit_single: SignedMessage,
+            revert_on_fail: bool = True) -> Self:
         """
         Encode the call to the function PERMIT2_PERMIT, which gives token allowances to the Permit2 contract.
         In addition, the Permit2 must be approved using the token contracts as usual.
 
         :param permit_single: The 1st element returned by create_permit2_signable_message()
         :param signed_permit_single: The 2nd element returned by create_permit2_signable_message(), once signed.
+        :param revert_on_fail: False to let the transaction continue if this command fails.
 
         :return: The chain link corresponding to this function call.
         """
@@ -1043,13 +1040,14 @@ class BaseChainedFunctionBuilder(Generic[W3]):
             permit_single["sigDeadline"],
         )
         args = (struct, signed_permit_single.signature)
-        self._add_command(RouterFunction.PERMIT2_PERMIT, args)
+        self._add_command(RouterFunction.PERMIT2_PERMIT, args, revert_on_fail=revert_on_fail)
         return self
 
     def permit2_permit_batch(
             self,
             permit_batch: dict[str, Any],
-            signed_permit_batch: SignedMessage) -> Self:
+            signed_permit_batch: SignedMessage,
+            revert_on_fail: bool = True) -> Self:
         """
         Encode the call to the function PERMIT2_PERMIT_BATCH, which gives token allowances to the Permit2 contract
         for multiple tokens in a single transaction.
@@ -1057,6 +1055,7 @@ class BaseChainedFunctionBuilder(Generic[W3]):
 
         :param permit_batch: The 1st element returned by create_permit2_batch_signable_message()
         :param signed_permit_batch: The 2nd element returned by create_permit2_batch_signable_message(), once signed.
+        :param revert_on_fail: False to let the transaction continue if this command fails.
 
         :return: The chain link corresponding to this function call.
         """
@@ -1067,7 +1066,7 @@ class BaseChainedFunctionBuilder(Generic[W3]):
             permit_batch["sigDeadline"],
         )
         args = (struct, signed_permit_batch.signature)
-        self._add_command(RouterFunction.PERMIT2_PERMIT_BATCH, args)
+        self._add_command(RouterFunction.PERMIT2_PERMIT_BATCH, args, revert_on_fail=revert_on_fail)
         return self
 
     def sweep(
@@ -1169,7 +1168,8 @@ class BaseChainedFunctionBuilder(Generic[W3]):
             self,
             owner: ChecksumAddress,
             token_address: ChecksumAddress,
-            min_balance: Wei) -> Self:
+            min_balance: Wei,
+            revert_on_fail: bool = True) -> Self:
         """
         Encode the call to the function BALANCE_CHECK_ERC20 which checks that the balance of an ERC20 token
         owned by a given address is at least a minimum amount, and reverts otherwise.
@@ -1177,11 +1177,12 @@ class BaseChainedFunctionBuilder(Generic[W3]):
         :param owner: The address whose token balance is checked.
         :param token_address: The address of the ERC20 token to check.
         :param min_balance: The minimum balance (in Wei) the owner must hold.
+        :param revert_on_fail: False to let the transaction continue if this command fails.
 
         :return: The chain link corresponding to this function call.
         """
         args = (owner, token_address, min_balance)
-        self._add_command(RouterFunction.BALANCE_CHECK_ERC20, args)
+        self._add_command(RouterFunction.BALANCE_CHECK_ERC20, args, revert_on_fail=revert_on_fail)
         return self
 
     def permit2_transfer_from(
@@ -1232,7 +1233,8 @@ class BaseChainedFunctionBuilder(Generic[W3]):
     def v3_position_manager_permit(
             self,
             permit_params: dict[str, Any],
-            signed_permit: SignedMessage) -> Self:
+            signed_permit: SignedMessage,
+            revert_on_fail: bool = True) -> Self:
         """
         V3 - Encode the call to the V3 position manager permit function, which approves a spender for a
         specific V3 position (NFT) using a signature instead of a transaction.
@@ -1240,6 +1242,7 @@ class BaseChainedFunctionBuilder(Generic[W3]):
         :param permit_params: The 1st element returned by create_v3_position_manager_permit_signable_message()
         :param signed_permit: The 2nd element returned by create_v3_position_manager_permit_signable_message(),
             once signed.
+        :param revert_on_fail: False to let the transaction continue if this command fails.
         :return: The chain link corresponding to this function call.
         """
         args = (
@@ -1250,7 +1253,7 @@ class BaseChainedFunctionBuilder(Generic[W3]):
             signed_permit.r.to_bytes(32, "big"),
             signed_permit.s.to_bytes(32, "big"),
         )
-        self._add_command(RouterFunction.V3_POSITION_MANAGER_PERMIT, args, True)
+        self._add_command(RouterFunction.V3_POSITION_MANAGER_PERMIT, args, revert_on_fail=revert_on_fail)
         return self
 
     def v3_decrease_liquidity(
@@ -1259,7 +1262,8 @@ class BaseChainedFunctionBuilder(Generic[W3]):
             liquidity: int,
             amount_0_min: int,
             amount_1_min: int,
-            deadline: int) -> Self:
+            deadline: int,
+            revert_on_fail: bool = True) -> Self:
         """
         V3 - Encode the call to the V3 position manager decreaseLiquidity function, which decreases the
         liquidity of a V3 position (NFT).
@@ -1273,11 +1277,12 @@ class BaseChainedFunctionBuilder(Generic[W3]):
         :param amount_0_min: The minimum amount of token0 the decrease must free (kept as tokensOwed0, not sent out)
         :param amount_1_min: The minimum amount of token1 the decrease must free (kept as tokensOwed1, not sent out)
         :param deadline: When this call is not valid anymore
+        :param revert_on_fail: False to let the transaction continue if this command fails.
         :return: The chain link corresponding to this function call.
         """
         abi = self._abi_map[V3PositionManagerActions.DECREASE_LIQUIDITY]
         args = ((token_id, liquidity, amount_0_min, amount_1_min, deadline),)
-        self._add_command(RouterFunction.V3_POSITION_MANAGER_CALL, args, True, abi)
+        self._add_command(RouterFunction.V3_POSITION_MANAGER_CALL, args, abi, revert_on_fail)
         return self
 
     def v3_collect(
@@ -1285,7 +1290,8 @@ class BaseChainedFunctionBuilder(Generic[W3]):
             token_id: int,
             recipient: ChecksumAddress,
             amount_0_max: int,
-            amount_1_max: int) -> Self:
+            amount_1_max: int,
+            revert_on_fail: bool = True) -> Self:
         """
         V3 - Encode the call to the V3 position manager collect function, which collects the tokens owed
         to a V3 position (NFT).
@@ -1297,14 +1303,15 @@ class BaseChainedFunctionBuilder(Generic[W3]):
         :param recipient: The address receiving the collected tokens
         :param amount_0_max: The maximum amount of token0 to collect
         :param amount_1_max: The maximum amount of token1 to collect
+        :param revert_on_fail: False to let the transaction continue if this command fails.
         :return: The chain link corresponding to this function call.
         """
         abi = self._abi_map[V3PositionManagerActions.COLLECT]
         args = ((token_id, recipient, amount_0_max, amount_1_max),)
-        self._add_command(RouterFunction.V3_POSITION_MANAGER_CALL, args, True, abi)
+        self._add_command(RouterFunction.V3_POSITION_MANAGER_CALL, args, abi, revert_on_fail)
         return self
 
-    def v3_burn(self, token_id: int) -> Self:
+    def v3_burn(self, token_id: int, revert_on_fail: bool = True) -> Self:
         """
         V3 - Encode the call to the V3 position manager burn function, which burns an empty V3 position (NFT).
         The position must be empty (liquidity == 0 and tokensOwed0 == tokensOwed1 == 0), hence the usual
@@ -1312,14 +1319,20 @@ class BaseChainedFunctionBuilder(Generic[W3]):
         The UR must be approved for the position first (see v3_position_manager_permit()).
 
         :param token_id: The id of the V3 position (NFT)
+        :param revert_on_fail: False to let the transaction continue if this command fails.
         :return: The chain link corresponding to this function call.
         """
         abi = self._abi_map[V3PositionManagerActions.BURN]
         args = (token_id,)
-        self._add_command(RouterFunction.V3_POSITION_MANAGER_CALL, args, True, abi)
+        self._add_command(RouterFunction.V3_POSITION_MANAGER_CALL, args, abi, revert_on_fail)
         return self
 
-    def v4_initialize_pool(self, pool_key: PoolKey, amount_0: Wei, amount_1: Wei) -> Self:
+    def v4_initialize_pool(
+            self,
+            pool_key: PoolKey,
+            amount_0: Wei,
+            amount_1: Wei,
+            revert_on_fail: bool = True) -> Self:
         """
         V4 - Encode the call to initialize (create) a V4 pool.
         The amounts are used to compute the initial sqrtPriceX96. They are NOT sent.
@@ -1333,20 +1346,24 @@ class BaseChainedFunctionBuilder(Generic[W3]):
         """
         sqrt_price_x96 = compute_sqrt_price_x96(amount_0, amount_1)
         args = (tuple(pool_key.values()), sqrt_price_x96)
-        self._add_command(RouterFunction.V4_INITIALIZE_POOL, args)
+        self._add_command(RouterFunction.V4_INITIALIZE_POOL, args, revert_on_fail=revert_on_fail)
         return self
 
-    def execute_sub_plan(self, sub_plan: BaseChainedFunctionBuilder[W3]) -> Self:
+    def execute_sub_plan(
+            self,
+            sub_plan: BaseChainedFunctionBuilder[W3],
+            revert_on_fail: bool = True) -> Self:
         """
         Encode the call to the function EXECUTE_SUB_PLAN which executes a nested plan of commands.
         The Universal Router calls itself to run the sub-plan, so its commands are executed in the same
         transaction and share the same context (recipients, balances, ...).
 
         :param sub_plan: A chain builder (built with encode.chain()) holding the commands to run as a sub-plan.
+        :param revert_on_fail: False to let the transaction continue if this command fails.
         :return: The chain link corresponding to this function call.
         """
         args = (bytes(sub_plan.commands), sub_plan.arguments)
-        self._add_command(RouterFunction.EXECUTE_SUB_PLAN, args)
+        self._add_command(RouterFunction.EXECUTE_SUB_PLAN, args, revert_on_fail=revert_on_fail)
         return self
 
     def build(self, deadline: Optional[int] = None) -> HexStr:
