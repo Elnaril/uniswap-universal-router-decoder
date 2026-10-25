@@ -39,7 +39,8 @@ jobs:
     - name: Check the release metadata is consistent
       run: |
         python -m pip install --upgrade pip pytest
-        python -m pytest tests/test_version_consistency.py
+        # --noconftest: tests/conftest.py imports web3/aiohttp, which this job does not install
+        python -m pytest --noconftest tests/test_version_consistency.py
     - name: Read the packaged version
       id: version
       run: |
