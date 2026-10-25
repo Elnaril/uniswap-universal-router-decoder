@@ -1,0 +1,123 @@
+# Publish the release to PyPI, then to the MCP Registry.
+#
+# Both steps authenticate with short-lived OIDC tokens (no long-lived secrets).
+#
+# The MCP Registry job only runs for final releases: pre-releases (ex: 4.0.0a3) go to PyPI only, so that random
+# agents can never pull an alpha from the registry.
+#
+# One-time prerequisite, on PyPI (project -> Publishing -> Add a new trusted publisher -> GitHub):
+#   Owner: Elnaril | Repository: uniswap-universal-router-decoder
+#   Workflow name: publish.yml | Environment: pypi
+# The environment name must match the one declared on the `pypi` job below (or be left blank on PyPI).
+name: Publish
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pypi:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+    permissions:
+      contents: read
+      id-token: write  # required by Trusted Publishing
+    outputs:
+      is_prerelease: ${{ steps.version.outputs.is_prerelease }}
+    steps:
+    - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6
+    - name: Set up Python
+      uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
+      with:
+        python-version: "3.12"
+    - name: Check the release metadata is consistent
+      run: |
+        python -m pip install --upgrade pip pytest
+        python -m pytest tests/test_version_consistency.py
+    - name: Read the packaged version
+      id: version
+      run: |
+        python - >> "$GITHUB_OUTPUT" <<'PY'
+        import json
+        import pathlib
+        from packaging.version import Version
+
+        version = Version(json.loads(pathlib.Path("server.json").read_text())["version"])
+        print(f"is_prerelease={'true' if version.is_prerelease else 'false'}")
+        PY
+    - name: Check the tag matches the packaged version
+      if: github.event_name == 'release'
+      env:
+        TAG: ${{ github.event.release.tag_name }}
+      run: |
+        python - <<'PY'
+        import json
+        import os
+        import pathlib
+        import sys
+        from packaging.version import Version
+
+        tag = Version(os.environ["TAG"].lstrip("vV"))
+        declared = Version(json.loads(pathlib.Path("server.json").read_text())["version"])
+        if tag != declared:
+            sys.exit(f"tag {os.environ['TAG']!r} does not match the packaged version {declared}")
+        print(f"tag {os.environ['TAG']} matches the packaged version {declared}")
+        PY
+    - name: Build
+      run: |
+        python -m pip install --upgrade build
+        python -m build
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086  # release/v1
+
+  mcp-registry:
+    name: Publish to the MCP Registry
+    needs: pypi
+    # Final releases only; stays skipped for pre-releases such as 4.0.0a3.
+    if: needs.pypi.outputs.is_prerelease == 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write  # required by `mcp-publisher login github-oidc`
+    env:
+      MCP_PUBLISHER_VERSION: v1.8.1
+    steps:
+    - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6
+    - name: Install cosign
+      uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6  # v4.1.2
+    - name: Download and verify mcp-publisher
+      run: |
+        set -euo pipefail
+        os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+        arch="$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')"
+        archive="mcp-publisher_${os}_${arch}.tar.gz"
+        base_url="https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}"
+        curl --fail --location --silent --show-error --output "$archive" "$base_url/$archive"
+        curl --fail --location --silent --show-error --output "$archive.sigstore.json" "$base_url/$archive.sigstore.json"
+        cosign verify-blob \
+          --bundle "$archive.sigstore.json" \
+          --certificate-identity "https://github.com/modelcontextprotocol/registry/.github/workflows/release.yml@refs/tags/${MCP_PUBLISHER_VERSION}" \
+          --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+          "$archive"
+        tar xzf "$archive" mcp-publisher
+        rm -f "$archive" "$archive.sigstore.json"
+    - name: Authenticate to the MCP Registry (OIDC)
+      run: ./mcp-publisher login github-oidc
+    # The registry verifies ownership by reading the freshly published PyPI release, which can lag a little.
+    - name: Publish to the MCP Registry
+      run: |
+        for attempt in 1 2 3 4 5; do
+          if ./mcp-publisher publish; then
+            exit 0
+          fi
+          echo "::warning::publish attempt ${attempt} failed; retrying after a short wait"
+          sleep 20
+        done
+        echo "::error::publishing to the MCP Registry failed after 5 attempts"
+        exit 1
