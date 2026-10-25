@@ -12,9 +12,18 @@ import re
 from typing import Any
 
 from packaging.version import Version
+import pytest
 
 
 _ROOT = Path(__file__).resolve().parent.parent
+
+# server.json is MCP Registry metadata that is not shipped in the distribution, so the guard can only run from the
+# repository checkout (ex: a downstream packager running the test suite from the unpacked sdist).
+if not (_ROOT / "server.json").exists():
+    pytest.skip(
+        "server.json is absent (sdist install); the version guard only runs from the repository",
+        allow_module_level=True,
+    )
 
 
 def _pyproject_version() -> str:
