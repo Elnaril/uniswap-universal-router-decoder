@@ -43,6 +43,8 @@ See the [release notes page](https://github.com/Elnaril/uniswap-universal-router
 - Add support for the V3_POSITION_MANAGER_CALL command (0x12)
 - Add support for the EXECUTE_SUB_PLAN command (0x21)
 - Add `revert_on_fail` to the encoder methods for the commands whose failure the UR can tolerate
+- Capture the bytes some callers append after the UR arguments as `trailing_data`, and re-append them when rebuilding
+  the calldata, so a decoded call can be rebuilt byte-for-byte
 - Make the chained function builders public and expose the `encoder` & `decoder` modules
 - Reduce CI time
 - Add a `publish.yml` GitHub Actions workflow that automatically publishes the package to PyPI and the MCP Registry with OIDC
@@ -287,10 +289,14 @@ Example of decoded input returned by `decode.function_input()`:
                 },
             )
         ],
-        'deadline': 1678441619  # The deadline after which the transaction is no longer valid
+        'deadline': 1678441619,  # The deadline after which the transaction is no longer valid
+        'trailing_data': b'unix\x00\x00\x00\x00\x00\x0c'  # optional tag some callers append; the UR ignores it
     }
 )
 ```
+`decode.function_input()` reports the bytes some callers append after the UR arguments as `trailing_data` (see the
+example above). Pass `find_trailing_data=False` to ignore them.
+
 > **Tip**: You can format the decoded input like above with this [Gedit plugin](https://github.com/Elnaril/gedit-plugin-collection?tab=readme-ov-file#prettifier) ;) 
 
 ### How to decode a Uniswap Universal Router transaction
@@ -422,6 +428,10 @@ transaction["data"] = encoded_data
 The `function` key is optional and defaults to `execute`, and the `commands` bytes are ignored: the command list is
 rebuilt from the `inputs` entries. The `deadline` key is optional too; when it is absent, the plain
 `execute(bytes,bytes[])` form is used instead of `execute(bytes,bytes[],uint256)`.
+
+Some callers append a tag after the ABI-encoded arguments, which the UR ignores. The decoder reports it as
+`params.trailing_data`, and `encode.function_input()` re-appends it, so a decoded call can be rebuilt byte-for-byte.
+The chained builders take the same value as an optional `trailing_data` argument of `build()`, after `deadline`.
 
 Commands the decoder expands into structures (`V4_SWAP`, `V4_POSITION_MANAGER_CALL`, `EXECUTE_SUB_PLAN`) cannot be
 rebuilt this way and raise a `ValueError`.

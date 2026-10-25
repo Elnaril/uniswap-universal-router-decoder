@@ -6,6 +6,7 @@ from typing import (
 
 import pytest
 from web3 import Web3
+from web3.types import HexStr
 
 from uniswap_universal_router_decoder import (
     AsyncRouterCodec,
@@ -129,6 +130,39 @@ def test_function_input_ignores_the_commands_bytes(codec):
     plan["params"]["commands"] = "0x"
 
     assert codec.encode.function_input(plan) == expected
+
+
+def test_function_input_appends_the_trailing_data(codec):
+    calldata = codec.encode.chain().wrap_eth(FunctionRecipient.ROUTER, 10).build(deadline=1234)
+    tagged = HexStr(calldata + "756e697800000000000c")
+    plan = decoded_input_to_dict(codec.decode.function_input(tagged))
+
+    assert plan["params"]["trailing_data"] == "0x756e697800000000000c"
+    assert codec.encode.function_input(plan) == tagged
+
+
+def test_function_input_omits_the_trailing_data_when_there_is_none(codec):
+    calldata = codec.encode.chain().wrap_eth(FunctionRecipient.ROUTER, 10).build(deadline=1234)
+    plan = decoded_input_to_dict(codec.decode.function_input(calldata))
+
+    assert "trailing_data" not in plan["params"]
+
+
+def test_function_input_accepts_the_trailing_data_as_bytes(codec):
+    calldata = codec.encode.chain().wrap_eth(FunctionRecipient.ROUTER, 10).build(deadline=1234)
+    trailing = bytes.fromhex("756e697800000000000c")
+    plan = decoded_input_to_dict(codec.decode.function_input(calldata))
+    plan["params"]["trailing_data"] = trailing
+
+    assert codec.encode.function_input(plan) == HexStr(calldata + trailing.hex())
+
+
+def test_function_input_can_ignore_the_trailing_data(codec):
+    calldata = codec.encode.chain().wrap_eth(FunctionRecipient.ROUTER, 10).build(deadline=1234)
+    tagged = HexStr(calldata + "756e697800000000000c")
+    plan = decoded_input_to_dict(codec.decode.function_input(tagged, find_trailing_data=False))
+
+    assert "trailing_data" not in plan["params"]
 
 
 def test_function_input_rejects_a_non_execute_call(codec):

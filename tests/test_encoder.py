@@ -12,6 +12,7 @@ from web3.types import (
 )
 
 from uniswap_universal_router_decoder import (
+    decoded_input_to_dict,
     FunctionRecipient,
     PermitDetails,
     TransactionSpeed,
@@ -413,6 +414,15 @@ def test_pay_portion_argument_validity(function_recipient, token_address, bips, 
             codec.encode.chain().pay_portion(function_recipient, token_address, bips, custom_recipient).build(1698245843)  # noqa
     else:
         _ = codec.encode.chain().pay_portion(function_recipient, token_address, bips, custom_recipient).build(1698245843)  # noqa
+
+
+def test_build_appends_the_trailing_data(codec):
+    trailing = bytes.fromhex("756e697800000000000c")
+    calldata = codec.encode.chain().wrap_eth(FunctionRecipient.ROUTER, 10).build(deadline=1234, trailing_data=trailing)
+
+    assert calldata.endswith(trailing.hex())
+    plan = decoded_input_to_dict(codec.decode.function_input(calldata))
+    assert plan["params"]["trailing_data"] == "0x" + trailing.hex()
 
 
 def test_transfer(codec):

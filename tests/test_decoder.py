@@ -28,6 +28,7 @@ def test_decode_transaction(trx_hash, use_w3, expected_decoded_input, w3, rpc_ur
 
     decoded_trx = codec_w3.decode.transaction(trx_hash)
     assert decoded_trx["hash"] == Web3.to_bytes(hexstr=trx_hash)
+    print("ZZZZZZZZZZZ", decoded_trx["decoded_input"])
     assert str(decoded_trx["decoded_input"]) == expected_decoded_input
 
     decoded_input = codec_w3.decode.function_input(decoded_trx["input"])

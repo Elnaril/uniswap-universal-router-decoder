@@ -57,6 +57,14 @@ _FORMAT: dict[str, Any] = {
                 "unix timestamp; omit it to build execute(bytes,bytes[]) instead of execute(bytes,bytes[],uint256)"
             ),
         },
+        "trailing_data": {
+            "type": "string",
+            "required": False,
+            "description": (
+                "the bytes some callers append after the ABI-encoded arguments, which the UR ignores; carried "
+                "through so a decoded call can be rebuilt byte-for-byte"
+            ),
+        },
     },
 }
 

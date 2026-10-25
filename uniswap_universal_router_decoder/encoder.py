@@ -119,6 +119,12 @@ def _struct_args(struct: ABIStruct, values: dict[str, Any]) -> tuple[Any, ...]:
     return tuple(_abi_value(param, values[param.name]) for param in struct.params)
 
 
+def _to_bytes(value: Any) -> bytes:
+    if isinstance(value, (bytes, bytearray)):
+        return bytes(value)
+    return Web3.to_bytes(hexstr=HexStr(str(value)))
+
+
 def _abi_value(abi_param: Union[ABIParam, ABIStruct], value: Any) -> Any:
     # The decoded output is JSON-friendly, with bytes as "0x" strings and structs as dicts, whereas the ABI
     # encoder expects bytes and positional tuples.
@@ -170,7 +176,10 @@ def _build_commands(builder: BaseChainedFunctionBuilder[Any], plan: dict[str, An
     for entry in cast(list[dict[str, Any]], params["inputs"]):
         _add_decoded_command(builder, entry)
     try:
-        return builder.build(cast(Optional[int], params.get("deadline")))
+        return builder.build(
+            cast(Optional[int], params.get("deadline")),
+            params.get("trailing_data"),
+        )
     except EncodingError as exc:
         raise ValueError(f"cannot encode the deadline: {exc}") from exc
 
@@ -1374,21 +1383,26 @@ class BaseChainedFunctionBuilder(Generic[W3]):
         self._add_command(RouterFunction.EXECUTE_SUB_PLAN, args, revert_on_fail=revert_on_fail)
         return self
 
-    def build(self, deadline: Optional[int] = None) -> HexStr:
+    def build(self, deadline: Optional[int] = None, trailing_data: Optional[Union[bytes, HexStr]] = None) -> HexStr:
         """
         Build the encoded input for all the chained commands, ready to be sent to the UR
 
         :param deadline: The optional unix timestamp after which the transaction won't be valid anymore.
+        :param trailing_data: optional bytes appended after the encoded arguments; some callers add a tag there,
+            which the UR ignores. Use it to reproduce such a calldata byte-for-byte.
         :return: The encoded data to add to the UR transaction dictionary parameters.
         """
         if deadline:
             execute_with_deadline_args = (bytes(self.commands), self.arguments, deadline)
             abi = self._abi_map[MiscFunctions.EXECUTE_WITH_DEADLINE]
-            return Web3.to_hex(abi.selector + abi.encode(execute_with_deadline_args))
+            calldata = Web3.to_hex(abi.selector + abi.encode(execute_with_deadline_args))
         else:
             execute_args = (bytes(self.commands), self.arguments)
             abi = self._abi_map[MiscFunctions.EXECUTE]
-            return Web3.to_hex(abi.selector + abi.encode(execute_args))
+            calldata = Web3.to_hex(abi.selector + abi.encode(execute_args))
+        if trailing_data:
+            calldata = HexStr(calldata + _to_bytes(trailing_data).hex())
+        return calldata
 
 
 class ChainedFunctionBuilder(BaseChainedFunctionBuilder[Web3]):

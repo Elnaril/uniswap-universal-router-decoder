@@ -10,11 +10,15 @@ from itertools import chain
 import json
 from typing import (
     Any,
+    cast,
     Generic,
     Union,
 )
 
-from eth_abi import decode
+from eth_abi import (
+    decode,
+    encode,
+)
 from eth_abi.exceptions import DecodingError
 from web3 import (
     AsyncHTTPProvider,
@@ -171,17 +175,35 @@ class _BaseDecoder(Generic[W3]):
                 decoded_command_input.append(command_input[i].hex())
         return decoded_command_input
 
-    def function_input(self, input_data: Union[HexStr, HexBytes]) -> DecodedInput:
+    def function_input(self, input_data: Union[HexStr, HexBytes], find_trailing_data: bool = True) -> DecodedInput:
         """
         Decode the data sent to an UR function
 
         :param input_data: the transaction 'input' data
+        :param find_trailing_data: True to report the bytes some callers append after the arguments as
+            'trailing_data'; False to ignore them.
         :return: The decoded data if the function has been implemented.
         """
         fct_name, decoded_input = self._router_contract.decode_function_input(input_data)
         # returns (execute as basecontractfunction, {commands as bytes, inputs as seq of bytes, deadline as int})
+        trailing_data = self._trailing_data(fct_name, decoded_input, input_data) if find_trailing_data else b""
         decoded_input["inputs"] = self._decode_commands(decoded_input["commands"], decoded_input["inputs"])
+        if trailing_data:
+            decoded_input["trailing_data"] = trailing_data
         return fct_name, decoded_input
+
+    @staticmethod
+    def _trailing_data(
+            fct_name: BaseContractFunction,
+            decoded_input: dict[str, Any],
+            input_data: Union[HexStr, HexBytes]) -> bytes:
+        # Some callers append a tag after the ABI-encoded arguments, which the UR ignores. Capture it so the decoded
+        # call holds everything that was sent, and can be rebuilt byte-for-byte.
+        raw_input = Web3.to_bytes(hexstr=input_data) if isinstance(input_data, str) else bytes(input_data)
+        abi = cast(ABIFunctionDict, fct_name.abi)
+        abi_types = build_abi_type_list(abi)
+        abi_values = [decoded_input[arg["name"]] for arg in abi["inputs"]]
+        return raw_input[4 + len(encode(abi_types, abi_values)):]
 
     @staticmethod
     def v3_path(v3_fn_name: str, path: Union[bytes, str]) -> tuple[Union[int, ChecksumAddress], ...]:

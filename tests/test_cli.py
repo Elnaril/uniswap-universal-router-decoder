@@ -139,6 +139,22 @@ def test_encode_build_from_plan_stdin(monkeypatch, capsys):
     assert result["deadline"] == 1234
 
 
+def test_encode_build_round_trips_the_trailing_data(tmp_path, capsys):
+    calldata = RouterCodec().encode().wrap_eth(FunctionRecipient.SENDER, 10 ** 18).build(deadline=1234)
+    tagged = calldata + "756e697800000000000c"
+
+    assert decode_main(["calldata", tagged]) == 0
+    plan = json.loads(capsys.readouterr().out)
+    assert plan["params"]["trailing_data"] == "0x756e697800000000000c"
+
+    plan_file = tmp_path / "plan.json"
+    plan_file.write_text(json.dumps(plan))
+    assert encode_main(["build", "--plan", str(plan_file)]) == 0
+    rebuilt = json.loads(capsys.readouterr().out)
+
+    assert rebuilt["calldata"] == tagged
+
+
 def test_encode_v3_path_from_arguments(capsys):
     assert encode_main(["v3-path", "V3_SWAP_EXACT_IN", TOKEN_IN, "3000", TOKEN_OUT]) == 0
     result = json.loads(capsys.readouterr().out)
