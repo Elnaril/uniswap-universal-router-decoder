@@ -202,6 +202,16 @@ def test_encode_build_unknown_command(capsys):
     assert "Unknown command 'NOPE'" in capsys.readouterr().err
 
 
+def test_encode_build_rejects_a_parameter_of_the_wrong_type(capsys):
+    params = json.dumps({"recipient": SENDER, "amountMin": "100000000000000000"})
+
+    with pytest.raises(SystemExit) as excinfo:
+        encode_main(["build", "--command", "WRAP_ETH", "--params", params])
+
+    assert excinfo.value.code == 2
+    assert "cannot encode the parameters of 'WRAP_ETH'" in capsys.readouterr().err
+
+
 def test_decode_calldata(capsys):
     calldata = (
         RouterCodec()

@@ -151,6 +151,29 @@ def test_function_input_rejects_structured_commands(codec, command):
         codec.encode.function_input(plan)
 
 
+def test_function_input_rejects_a_parameter_of_the_wrong_type(codec):
+    plan = {
+        "params": {
+            "inputs": [{"command": "WRAP_ETH", "params": {"recipient": CUSTOM_RECIPIENT, "amountMin": "10"}}],
+        },
+    }
+
+    with pytest.raises(ValueError, match="cannot encode the parameters of 'WRAP_ETH'"):
+        codec.encode.function_input(plan)
+
+
+def test_function_input_rejects_a_deadline_of_the_wrong_type(codec):
+    plan = {
+        "params": {
+            "inputs": [{"command": "WRAP_ETH", "params": {"recipient": CUSTOM_RECIPIENT, "amountMin": 10}}],
+            "deadline": "1234",
+        },
+    }
+
+    with pytest.raises(ValueError, match="cannot encode the deadline"):
+        codec.encode.function_input(plan)
+
+
 def test_revert_on_fail_sets_the_no_revert_flag(codec):
     calldata = codec.encode.chain().v3_burn(123, revert_on_fail=False).build(deadline=1234)
     plan = decoded_input_to_dict(codec.decode.function_input(calldata))

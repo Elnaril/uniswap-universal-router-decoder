@@ -19,6 +19,7 @@ from typing import (
     Union,
 )
 
+from eth_abi.exceptions import EncodingError
 from eth_account.account import SignedMessage
 from eth_utils import keccak
 from typing_extensions import Self
@@ -154,7 +155,11 @@ def _add_decoded_command(builder: BaseChainedFunctionBuilder[Any], entry: dict[s
     decoded_params = cast(dict[str, Any], entry["params"])
     args = tuple(_abi_value(abi_param, decoded_params[abi_param.name]) for abi_param in abi.params)
     revert_on_fail = bool(entry.get("revert_on_fail", True))
-    builder._add_command(command, args, abi, revert_on_fail)  # pyright:ignore[reportPrivateUsage]
+    try:
+        builder._add_command(command, args, abi, revert_on_fail)  # pyright:ignore[reportPrivateUsage]
+    except EncodingError as exc:
+        # eth_abi raises its own exception type, which the callers of function_input() do not expect
+        raise ValueError(f"cannot encode the parameters of '{name}': {exc}") from exc
 
 
 def _build_commands(builder: BaseChainedFunctionBuilder[Any], plan: dict[str, Any]) -> HexStr:
@@ -164,7 +169,10 @@ def _build_commands(builder: BaseChainedFunctionBuilder[Any], plan: dict[str, An
     params = cast(dict[str, Any], plan["params"])
     for entry in cast(list[dict[str, Any]], params["inputs"]):
         _add_decoded_command(builder, entry)
-    return builder.build(cast(Optional[int], params.get("deadline")))
+    try:
+        return builder.build(cast(Optional[int], params.get("deadline")))
+    except EncodingError as exc:
+        raise ValueError(f"cannot encode the deadline: {exc}") from exc
 
 
 class _BaseEncoder(Generic[W3]):
@@ -296,8 +304,8 @@ class Encoder(_BaseEncoder[Web3]):
                                               "amountMin": 1000000000000000000}}],
                         "deadline": 1778414122}}
 
-        Commands whose decoded form cannot be encoded (structured arguments, or a cleared revert-on-fail
-        flag) raise a ValueError.
+        Commands whose decoded form cannot be encoded (structured arguments, or a parameter whose type does
+        not match the command) raise a ValueError.
 
         :param plan: the decoded call to rebuild. "function" is optional and defaults to "execute"; the
             "commands" bytes are ignored, the command list is rebuilt from the "inputs" entries.
