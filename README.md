@@ -45,6 +45,8 @@ See the [release notes page](https://github.com/Elnaril/uniswap-universal-router
 - Add `revert_on_fail` to the encoder methods for the commands whose failure the UR can tolerate
 - Make the chained function builders public and expose the `encoder` & `decoder` modules
 - Reduce CI time
+- Add a `publish.yml` GitHub Actions workflow that automatically publishes the package to PyPI and the MCP Registry with OIDC
+  Trusted Publishing
 - Agent-friendly changes:
   - Add `Encoder.function_input()` / `AsyncEncoder.function_input()` to rebuild the calldata from a decoded call
   - Add `decoded_input_to_dict()` and `transaction_to_dict()` to render the decoder output as JSON-friendly dicts
