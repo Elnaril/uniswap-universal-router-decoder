@@ -1,5 +1,7 @@
 # Uniswap Universal Router Decoder & Encoder
 
+<!-- mcp-name: io.github.Elnaril/uniswap-universal-router-decoder -->
+
 > Many thanks to **everyone** who has ☕️ [offered some **coffees**!](https://github.com/Elnaril/uniswap-universal-router-decoder/discussions/11) ☕️
 > or ⭐ [**starred** this project!](https://github.com/Elnaril/uniswap-universal-router-decoder/stargazers) ⭐  
 > It is **greatly** appreciated! :)
@@ -51,6 +53,10 @@ See the [release notes page](https://github.com/Elnaril/uniswap-universal-router
   - Add the `ur-mcp` MCP server (optional `mcp` extra) so AI agents can drive the codec
   - The command descriptions (`ur-encode list` / `describe` and the `list_commands` / `describe_command` MCP tools) now
     describe the decoded call format and its ABI parameters, instead of the encoder methods
+  - Add the MCP Registry metadata (`server.json`) to make the `ur-mcp` server discoverable
+  - Add `AGENTS.md` and `llms.txt` for AI agents, plus a `mcp` PyPI keyword
+  - Add `tests/test_version_consistency.py` to keep the packaging version, `server.json` and the README `mcp-name:`
+    marker in sync
 
 ### v3.1.0
 - Update UR address and abi to match v2.1.2

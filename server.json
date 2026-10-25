@@ -1,0 +1,42 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.Elnaril/uniswap-universal-router-decoder",
+  "title": "Uniswap Universal Router Decoder",
+  "description": "Decode and encode Uniswap Universal Router calldata (V2, V3, V4). Read-only: never signs or sends.",
+  "repository": {
+    "url": "https://github.com/Elnaril/uniswap-universal-router-decoder",
+    "source": "github"
+  },
+  "version": "4.0.0a3",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "uniswap-universal-router-decoder",
+      "version": "4.0.0a3",
+      "runtimeHint": "uvx",
+      "transport": {
+        "type": "stdio"
+      },
+      "runtimeArguments": [
+        {
+          "type": "named",
+          "name": "--from",
+          "value": "uniswap-universal-router-decoder[mcp]"
+        },
+        {
+          "type": "positional",
+          "valueHint": "command",
+          "value": "ur-mcp"
+        }
+      ],
+      "environmentVariables": [
+        {
+          "description": "Ethereum RPC endpoint. Optional: only decode_transaction needs it.",
+          "isRequired": false,
+          "format": "string",
+          "name": "RPC_URL"
+        }
+      ]
+    }
+  ]
+}

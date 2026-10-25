@@ -1,0 +1,41 @@
+# Uniswap Universal Router Decoder & Encoder
+
+> Python SDK — with a command line interface and an MCP server — to decode and encode transactions sent to the
+> Uniswap Universal Router, supporting Uniswap V2, V3 and V4. It is read-only: it never signs or broadcasts a
+> transaction.
+
+Built on [web3.py](https://github.com/ethereum/web3.py). Targets Ethereum Mainnet by default and works on any chain
+where the Universal Router is deployed.
+
+## Install
+
+```bash
+pip install uniswap-universal-router-decoder          # Python API
+pip install 'uniswap-universal-router-decoder[mcp]'   # + the ur-mcp MCP server
+```
+
+## Public surfaces
+
+- **Python API** — `RouterCodec` / `AsyncRouterCodec`; public `encoder` and `decoder` modules.
+- **CLI** — `ur-decode` / `ur-encode`, which print JSON to stdout.
+- **MCP server** — `ur-mcp`, a side-effect-free Model Context Protocol server over stdio, exposing 7 tools:
+  `list_commands`, `describe_command`, `decode_transaction`, `decode_calldata`, `decode_error`, `decode_v3_path`,
+  `encode_v3_path`. Only `decode_transaction` needs an RPC endpoint (`rpc_url` argument or `RPC_URL` / `ETH_RPC_URL`).
+
+## Key links
+
+- [README](https://github.com/Elnaril/uniswap-universal-router-decoder/blob/master/README.md): full usage, supported
+  functions, CLI and MCP reference.
+- [AGENTS.md](https://github.com/Elnaril/uniswap-universal-router-decoder/blob/master/AGENTS.md): repository guidance
+  for coding agents.
+- [CONTRIBUTING.md](https://github.com/Elnaril/uniswap-universal-router-decoder/blob/master/CONTRIBUTING.md)
+- [Release notes (wiki)](https://github.com/Elnaril/uniswap-universal-router-decoder/wiki/Release_Notes)
+- [PyPI](https://pypi.org/project/uniswap-universal-router-decoder/)
+
+## Notes
+
+- The MCP server is registered with the MCP Registry as
+  `io.github.Elnaril/uniswap-universal-router-decoder`.
+- Not every Universal Router function is rebuildable through the CLI / MCP tools: the three structured commands
+  (`V4_SWAP`, `V4_POSITION_MANAGER_CALL`, `EXECUTE_SUB_PLAN`) are decode-only.
+- The decoder's JSON output (`decoded_input_to_dict()`) is also the input format of `Encoder.function_input()`.

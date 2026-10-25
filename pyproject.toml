@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "uniswap-universal-router-decoder"
-version = "4.0.0-alpha.2"
+version = "4.0.0-alpha.3"
 authors = [
   { name="Elnaril", email="elnaril_dev@caramail.com" },
 ]
@@ -30,7 +30,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 license = "MIT"
-keywords = ["blockchain", "ethereum", "unichain", "uniswap", "uniswap V4", "exchange", "dex", "universal router", "swap", "decoder", "encoder", "codec", "wrapper", "SDK", "asyncio"]
+keywords = ["blockchain", "ethereum", "unichain", "uniswap", "uniswap V4", "exchange", "dex", "universal router", "swap", "decoder", "encoder", "codec", "wrapper", "SDK", "asyncio", "mcp"]
 
 dependencies = [
     "typing_extensions",
@@ -48,6 +48,7 @@ dev = [
     "coverage",
     "flake8",
     "isort",
+    "packaging",
     "pytest",
     "pytest-asyncio",
     "pytest-mock",
