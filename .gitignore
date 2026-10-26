@@ -5,11 +5,15 @@ __pycache__/
 
 build/
 dist/
-virtualenv/
 uniswap_universal_router_decoder.egg-info/
 
 analysis/
 notes/
+
+# Local environment
+.env
+venv
+virtualenv/
 
 .coverage
 .mypy_cache
