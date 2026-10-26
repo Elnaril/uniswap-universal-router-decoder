@@ -8,6 +8,10 @@ For every transaction sent to the Universal Router it then:
 * decodes the call and counts how many times each command is used;
 * re-encodes the call (except the structured commands) and compares the result to the original calldata.
 
+A transaction the codec cannot decode or rebuild is only reported as a failure if it succeeded on-chain: a
+transaction that reverted may carry calldata the codec is not expected to handle, so it is counted in 'faulty_trx'
+instead of the failure lists.
+
 Usage:
     python scripts/ur_command_usage.py <block_start> <block_end> [--commands 0 2 16]
 
@@ -212,32 +216,36 @@ def _iter_command_values(commands: bytes, inputs: Sequence[Any]) -> Iterator[int
             yield from _iter_command_values(bytes(sub_commands), sub_inputs)
 
 
-def _check_reencoding(
-        tx_hash: str,
-        original_input: bytes,
-        decoded: Any,
-        codec: AsyncRouterCodec,
-        stats: _Stats) -> None:
-    try:
-        rebuilt = codec.encode.function_input(decoded_input_to_dict(decoded))
-    except Exception:
-        stats.encoding_failures.append(tx_hash)
-        return
-    if rebuilt.lower() != Web3.to_hex(original_input).lower():
-        stats.encoding_failures.append(tx_hash)
-
-
-async def _handle_decode_failure(tx_hash: str, pool: _ProviderPool, stats: _Stats) -> None:
+async def _flag_failure(tx_hash: str, pool: _ProviderPool, stats: _Stats, failures: list[str]) -> None:
+    # A transaction the codec could not process is only a real failure of the codec if it succeeded on-chain:
+    # a transaction that reverted may carry calldata the codec is not expected to handle.
     try:
         async with pool.acquire() as provider:
             receipt = await provider.get_receipt(tx_hash)
     except Exception as exc:
         print(f"warning: could not fetch the receipt of {tx_hash}: {exc}", flush=True)
+        failures.append(tx_hash)
         return
     if receipt.get("status") == 1:
-        stats.decoding_failures.append(tx_hash)
+        failures.append(tx_hash)
     else:
         stats.command_stats["faulty_trx"] += 1
+
+
+async def _check_reencoding(
+        tx_hash: str,
+        original_input: bytes,
+        decoded: Any,
+        pool: _ProviderPool,
+        codec: AsyncRouterCodec,
+        stats: _Stats) -> None:
+    try:
+        rebuilt = codec.encode.function_input(decoded_input_to_dict(decoded))
+        differs = rebuilt.lower() != Web3.to_hex(original_input).lower()
+    except Exception:
+        differs = True
+    if differs:
+        await _flag_failure(tx_hash, pool, stats, stats.encoding_failures)
 
 
 async def _process_tx(tx: TxData, pool: _ProviderPool, codec: AsyncRouterCodec, stats: _Stats) -> None:
@@ -245,7 +253,7 @@ async def _process_tx(tx: TxData, pool: _ProviderPool, codec: AsyncRouterCodec, 
     try:
         decoded = codec.decode.function_input(tx["input"])
     except Exception:
-        await _handle_decode_failure(tx_hash, pool, stats)
+        await _flag_failure(tx_hash, pool, stats, stats.decoding_failures)
         return
 
     _, decoded_input = decoded
@@ -259,7 +267,7 @@ async def _process_tx(tx: TxData, pool: _ProviderPool, codec: AsyncRouterCodec, 
     if set(command_values) & STRUCTURED_COMMAND_VALUES:
         # the structured commands decode to structures, not ABI values, so they cannot be rebuilt
         return
-    _check_reencoding(tx_hash, tx["input"], decoded, codec, stats)
+    await _check_reencoding(tx_hash, tx["input"], decoded, pool, codec, stats)
 
 
 async def _process_block(block: BlockData, pool: _ProviderPool, codec: AsyncRouterCodec, stats: _Stats) -> None:
