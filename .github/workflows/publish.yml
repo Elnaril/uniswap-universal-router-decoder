@@ -2,7 +2,7 @@
 #
 # Both steps authenticate with short-lived OIDC tokens (no long-lived secrets).
 #
-# The MCP Registry job only runs for final releases: pre-releases (ex: 4.0.0a3) go to PyPI only, so that random
+# The MCP Registry job only runs for final releases: pre-releases go to PyPI only, so that random
 # agents can never pull an alpha from the registry.
 #
 # One-time prerequisite, on PyPI (project -> Publishing -> Add a new trusted publisher -> GitHub):
@@ -80,7 +80,7 @@ jobs:
   mcp-registry:
     name: Publish to the MCP Registry
     needs: pypi
-    # Final releases only; stays skipped for pre-releases such as 4.0.0a3.
+    # Final releases only; stays skipped for pre-releases.
     if: needs.pypi.outputs.is_prerelease == 'false'
     runs-on: ubuntu-latest
     permissions:

@@ -73,7 +73,7 @@ coverage run -m pytest tests && coverage report -m && coverage json   # coverage
 - **Inert config.** The `[tool.pytest]` section in `pyproject.toml` is inert (pytest reads `[tool.pytest.ini_options]`),
   and there is no `pytest.ini`. Do not assume those options apply.
 - **Version lives in more than one file.** `pyproject.toml`'s `[project] version` is the source of truth, but
-  `server.json` must repeat it in the *normalized* PEP 440 form (ex: `4.0.0a3`, not `4.0.0-alpha.3`).
+  `server.json` must repeat it in the *normalized* PEP 440 form (ex: `1.2.3b1`, not `1.2.3-beta.1`).
   `tests/test_version_consistency.py` fails the build if they drift, and also checks the README `mcp-name:` marker
   against `server.json`'s `name`.
 
