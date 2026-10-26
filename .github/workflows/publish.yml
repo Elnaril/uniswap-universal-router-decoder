@@ -87,7 +87,7 @@ jobs:
       contents: read
       id-token: write  # required by `mcp-publisher login github-oidc`
     env:
-      MCP_PUBLISHER_VERSION: v1.8.1
+      MCP_PUBLISHER_VERSION: v1.8.5
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
     - name: Install cosign
