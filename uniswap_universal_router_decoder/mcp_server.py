@@ -223,6 +223,18 @@ _TOOL_FUNCTIONS = (
     describe_command,
 )
 
+# The human-readable name each tool is displayed under in a host UI, keyed by function name.
+_TOOL_TITLES: dict[str, str] = {
+    "decode_transaction": "Decode transaction",
+    "decode_calldata": "Decode calldata",
+    "encode_calldata": "Build calldata",
+    "decode_error": "Decode error",
+    "decode_v3_path": "Decode V3 path",
+    "encode_v3_path": "Encode V3 path",
+    "list_commands": "List commands",
+    "describe_command": "Describe command",
+}
+
 
 def _mcp_server_class() -> type[MCPServer[Any]]:
     try:
@@ -249,7 +261,7 @@ def build_server() -> MCPServer[Any]:
     for tool_function in _TOOL_FUNCTIONS:
         # every tool is read-only; only decode_transaction reaches an external entity (an RPC endpoint)
         annotations = ToolAnnotations(read_only_hint=True, open_world_hint=tool_function is decode_transaction)
-        server.add_tool(tool_function, annotations=annotations)
+        server.add_tool(tool_function, title=_TOOL_TITLES[tool_function.__name__], annotations=annotations)
     return server
 
 

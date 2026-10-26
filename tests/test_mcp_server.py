@@ -226,6 +226,10 @@ def test_decode_transaction_reports_rpc_error(monkeypatch):
     assert result["error"] == {"type": "RuntimeError", "message": "rpc down"}
 
 
+def test_every_tool_has_a_title():
+    assert {tool_function.__name__ for tool_function in mcp_server._TOOL_FUNCTIONS} == set(mcp_server._TOOL_TITLES)
+
+
 def test_registered_tools_with_mcp_sdk():
     pytest.importorskip("mcp.server.mcpserver")
 
@@ -241,6 +245,10 @@ def test_registered_tools_with_mcp_sdk():
     assert annotations["decode_transaction"].open_world_hint is True
     assert annotations["decode_calldata"] is not None
     assert annotations["decode_calldata"].open_world_hint is False
+
+    # every tool carries a human-readable title for the host UI
+    assert all(tool.title for tool in tools)
+    assert {tool.name: tool.title for tool in tools}["encode_calldata"] == "Build calldata"
 
     result = asyncio.run(server.call_tool("describe_command", {"command": "WRAP_ETH"}))
     assert "WRAP_ETH" in result.content[0].text
