@@ -56,6 +56,7 @@ See the [release notes page](https://github.com/Elnaril/uniswap-universal-router
     counterpart
   - Add the `ur-mcp` MCP server (optional `mcp` extra) so AI agents can drive the codec, including `encode_calldata`
     to rebuild the calldata from a decoded call
+  - Annotate the MCP tools as read-only so a host can auto-approve them
   - The command descriptions (`ur-encode list` / `describe` and the `list_commands` / `describe_command` MCP tools) now
     describe the decoded call format and its ABI parameters, instead of the encoder methods
   - Add the MCP Registry metadata (`server.json`) to make the `ur-mcp` server discoverable
@@ -1005,6 +1006,9 @@ It provides eight tools:
 
 `encode_calldata` is the mirror of `decode_calldata`: it rebuilds the calldata from a decoded call, so an agent can
 decode a route, edit it and re-encode it (the MCP counterpart of `ur-encode build`).
+
+The tools are annotated as read-only (`readOnlyHint`), and only `decode_transaction` as open-world (`openWorldHint`),
+so a host can auto-approve them instead of prompting on every call.
 
 `decode_transaction` uses the `rpc_url` tool argument, or the `RPC_URL` / `ETH_RPC_URL` environment variables, so a
 host can be pointed at any chain by configuring the server environment.

@@ -234,6 +234,14 @@ def test_registered_tools_with_mcp_sdk():
 
     assert {tool.name for tool in tools} == EXPECTED_TOOLS
 
+    # every tool is read-only; only decode_transaction reaches an external entity
+    annotations = {tool.name: tool.annotations for tool in tools}
+    assert all(annotation is not None and annotation.read_only_hint is True for annotation in annotations.values())
+    assert annotations["decode_transaction"] is not None
+    assert annotations["decode_transaction"].open_world_hint is True
+    assert annotations["decode_calldata"] is not None
+    assert annotations["decode_calldata"].open_world_hint is False
+
     result = asyncio.run(server.call_tool("describe_command", {"command": "WRAP_ETH"}))
     assert "WRAP_ETH" in result.content[0].text
 

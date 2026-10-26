@@ -239,13 +239,17 @@ def build_server() -> MCPServer[Any]:
     :return: a configured `mcp.server.mcpserver.MCPServer` instance
     """
     server_class = _mcp_server_class()
+    from mcp.types import ToolAnnotations
+
     server = server_class(
         name=_PACKAGE_NAME,
         instructions=_INSTRUCTIONS,
         version=_package_version(),
     )
     for tool_function in _TOOL_FUNCTIONS:
-        server.add_tool(tool_function)
+        # every tool is read-only; only decode_transaction reaches an external entity (an RPC endpoint)
+        annotations = ToolAnnotations(read_only_hint=True, open_world_hint=tool_function is decode_transaction)
+        server.add_tool(tool_function, annotations=annotations)
     return server
 
 

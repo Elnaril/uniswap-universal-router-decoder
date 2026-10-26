@@ -41,3 +41,5 @@ pip install 'uniswap-universal-router-decoder[mcp]'   # + the ur-mcp MCP server
   (`V4_SWAP`, `V4_POSITION_MANAGER_CALL`, `EXECUTE_SUB_PLAN`) are decode-only.
 - The decoder's JSON output (`decoded_input_to_dict()`) is also the input format of `Encoder.function_input()`, the
   `ur-encode build` CLI command and the `encode_calldata` MCP tool.
+- The MCP tools are annotated as read-only (`readOnlyHint`), and only `decode_transaction` as open-world
+  (`openWorldHint`).
