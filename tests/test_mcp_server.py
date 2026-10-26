@@ -25,6 +25,7 @@ EXPECTED_TOOLS = {
     "decode_transaction",
     "decode_v3_path",
     "describe_command",
+    "encode_calldata",
     "encode_v3_path",
     "list_commands",
 }
@@ -71,6 +72,39 @@ def test_decode_calldata_reports_error():
 
     assert set(result) == {"error"}
     assert result["error"]["message"]
+
+
+def test_encode_calldata():
+    plan = mcp_server.decode_calldata(_calldata())
+
+    result = mcp_server.encode_calldata(plan)
+
+    assert result["calldata"] == _calldata()
+    assert result["deadline"] == 1234
+    assert result["commands"] == ["V3_SWAP_EXACT_IN"]
+
+
+def test_encode_calldata_mirrors_decode_calldata():
+    plan = mcp_server.decode_calldata(_calldata())
+
+    rebuilt = mcp_server.encode_calldata(plan)
+
+    assert mcp_server.decode_calldata(rebuilt["calldata"]) == plan
+
+
+def test_encode_calldata_reports_error():
+    # V4_SWAP is a structured command: its decoded form cannot be rebuilt
+    plan = {"function": "execute", "params": {"inputs": [{"command": "V4_SWAP", "params": {}}]}}
+
+    result = mcp_server.encode_calldata(plan)
+
+    assert result["error"]["type"] == "ValueError"
+
+
+def test_encode_calldata_reports_malformed_plan():
+    result = mcp_server.encode_calldata({"function": "execute", "params": {"inputs": ["not-a-command"]}})
+
+    assert set(result) == {"error"}
 
 
 def test_decode_error():
@@ -206,6 +240,9 @@ def test_registered_tools_with_mcp_sdk():
     result = asyncio.run(
         server.call_tool("encode_v3_path", {"fn_name": "V3_SWAP_EXACT_IN", "path": [TOKEN_IN, 3000, TOKEN_OUT]})
     )
+    assert "0x" in result.content[0].text
+
+    result = asyncio.run(server.call_tool("encode_calldata", {"plan": mcp_server.decode_calldata(_calldata())}))
     assert "0x" in result.content[0].text
 
 

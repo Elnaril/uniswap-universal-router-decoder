@@ -32,7 +32,10 @@ from typing import (
 from web3.types import HexStr
 
 from uniswap_universal_router_decoder._command_spec import describe_command as _describe_command
-from uniswap_universal_router_decoder._command_spec import list_command_specs
+from uniswap_universal_router_decoder._command_spec import (
+    encode_commands,
+    list_command_specs,
+)
 from uniswap_universal_router_decoder._serialization import (
     decoded_input_to_dict,
     to_json_primitives,
@@ -58,8 +61,8 @@ _INSTRUCTIONS = (
     "Tools to inspect, derive and discover Uniswap Universal Router data. These tools never sign or send a "
     "transaction.\n"
     "Use list_commands / describe_command to discover the decoded call format and the commands, decode_transaction "
-    "(needs an RPC endpoint) or decode_calldata to see what a route does, and decode_error / decode_v3_path / "
-    "encode_v3_path for the lower level pieces."
+    "(needs an RPC endpoint) or decode_calldata to see what a route does, encode_calldata to rebuild the calldata "
+    "from a decoded call, and decode_error / decode_v3_path / encode_v3_path for the lower level pieces."
 )
 
 
@@ -114,6 +117,29 @@ def decode_calldata(calldata: str) -> dict[str, Any]:
     except Exception as exc:
         return _error(exc)
     return decoded_input_to_dict(decoded)
+
+
+def encode_calldata(plan: dict[str, Any]) -> dict[str, Any]:
+    """
+    Build the Universal Router calldata of an "execute" call from its decoded form.
+
+    The mirror of decode_calldata(): where the decoder turns calldata into commands, this turns the decoded
+    commands back into calldata, so a route can be decoded, edited and rebuilt. The expected shape is the one
+    returned by decode_calldata() / decode_transaction() (see list_commands for the format). A command whose
+    decoded form cannot be encoded (the structured commands, or a parameter whose type does not match the command)
+    returns an "error".
+
+    :param plan: the decoded call to rebuild, as returned by decode_calldata() / decode_transaction()
+    :return: {"calldata": ..., "deadline": ..., "commands": [...]} or an "error"
+    """
+    try:
+        calldata = encode_commands(RouterCodec(), plan)
+        params = plan["params"]
+        commands = [entry["command"] for entry in params["inputs"]]
+        deadline = params.get("deadline")
+    except Exception as exc:
+        return _error(exc)
+    return {"calldata": calldata, "deadline": deadline, "commands": commands}
 
 
 def decode_error(error_data: str) -> dict[str, Any]:
@@ -189,6 +215,7 @@ def describe_command(command: str) -> dict[str, Any]:
 _TOOL_FUNCTIONS = (
     decode_transaction,
     decode_calldata,
+    encode_calldata,
     decode_error,
     decode_v3_path,
     encode_v3_path,

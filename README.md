@@ -54,7 +54,8 @@ See the [release notes page](https://github.com/Elnaril/uniswap-universal-router
   - Add `decoded_input_to_dict()` and `transaction_to_dict()` to render the decoder output as JSON-friendly dicts
   - Add the `ur-decode` and `ur-encode` command line tools, including `ur-encode v3-path` and its `encode_v3_path` MCP
     counterpart
-  - Add the `ur-mcp` MCP server (optional `mcp` extra) so AI agents can drive the codec
+  - Add the `ur-mcp` MCP server (optional `mcp` extra) so AI agents can drive the codec, including `encode_calldata`
+    to rebuild the calldata from a decoded call
   - The command descriptions (`ur-encode list` / `describe` and the `list_commands` / `describe_command` MCP tools) now
     describe the decoded call format and its ABI parameters, instead of the encoder methods
   - Add the MCP Registry metadata (`server.json`) to make the `ur-mcp` server discoverable
@@ -996,10 +997,14 @@ inspect or derive Universal Router data: they never sign or broadcast a transact
 pip install 'uniswap-universal-router-decoder[mcp]'
 ```
 
-It provides seven tools:
+It provides eight tools:
 - `list_commands` / `describe_command`: discover the decoded call format and the commands
 - `decode_transaction`: fetch and decode a transaction sent to the UR (needs an RPC endpoint)
-- `decode_calldata`, `decode_error`, `decode_v3_path`, `encode_v3_path`: decode/encode data without an RPC endpoint
+- `decode_calldata`, `encode_calldata`, `decode_error`, `decode_v3_path`, `encode_v3_path`: decode/encode data
+  without an RPC endpoint
+
+`encode_calldata` is the mirror of `decode_calldata`: it rebuilds the calldata from a decoded call, so an agent can
+decode a route, edit it and re-encode it (the MCP counterpart of `ur-encode build`).
 
 `decode_transaction` uses the `rpc_url` tool argument, or the `RPC_URL` / `ETH_RPC_URL` environment variables, so a
 host can be pointed at any chain by configuring the server environment.
