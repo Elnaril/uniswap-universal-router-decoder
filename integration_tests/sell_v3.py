@@ -113,7 +113,7 @@ def buy_usdc():
     assert receipt["status"] == 1, f'receipt["status"] is actually {receipt["status"]}'  # trx success
 
     usdc_balance = usdc_contract.functions.balanceOf(account.address).call()
-    assert usdc_balance == 2327246115, f"actual usdc_balance is {usdc_balance}"  # Expected USDC balance after buying with 1 ETH
+    assert usdc_balance == 2327246115, f"actual usdc_balance is {usdc_balance}"
 
     print(" => BUY USDC: OK")
 
@@ -174,10 +174,10 @@ def sell_usdc_part_1():
     assert receipt["status"] == 1, f'receipt["status"] is actually {receipt["status"]}'  # trx success
 
     usdc_balance = usdc_contract.functions.balanceOf(account.address).call()
-    assert usdc_balance == 1827246115, f"actual usdc_balance is {usdc_balance}"  # Expected USDC balance after selling 500 USDC
+    assert usdc_balance == 1827246115, f"actual usdc_balance is {usdc_balance}"
 
     weth_balance = weth_contract.functions.balanceOf(account.address).call()
-    assert weth_balance == 214635504516595816, f"actual weth_balance is {weth_balance}"  # Expected WETH balance after first swap
+    assert weth_balance == 214635504516595816, f"actual weth_balance is {weth_balance}"
 
     print(" => SELL USDC for WETH PART 1: OK")
 
@@ -218,10 +218,10 @@ def sell_usdc_part_2():
     assert receipt["status"] == 1, f'receipt["status"] is actually {receipt["status"]}'  # trx success
 
     usdc_balance = usdc_contract.functions.balanceOf(account.address).call()
-    assert usdc_balance == 1327246115, f"actual usdc_balance is {usdc_balance}"  # Expected USDC balance after selling another 500 USDC
+    assert usdc_balance == 1327246115, f"actual usdc_balance is {usdc_balance}"
 
     weth_balance = weth_contract.functions.balanceOf(account.address).call()
-    assert weth_balance == 429268771945658428, f"actual weth_balance is {weth_balance}"  # Expected WETH balance after second swap
+    assert weth_balance == 429268771945658428, f"actual weth_balance is {weth_balance}"
 
     amount, expiration, nonce = codec.fetch_permit2_allowance(account.address, usdc_address)
     assert amount == 2**160 - 1, "Wrong Permit2 allowance amount"  # infinite allowance
