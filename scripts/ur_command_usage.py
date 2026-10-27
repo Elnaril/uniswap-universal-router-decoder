@@ -31,8 +31,11 @@ import sys
 from typing import (
     Any,
     AsyncIterator,
+    Awaitable,
+    Callable,
     Optional,
     Sequence,
+    TypeVar,
     Union,
 )
 
@@ -68,6 +71,11 @@ UR_ADDRESS = Web3.to_checksum_address("0x23617e59A5925b2A4Bf75d73ff6711cD0b29De8
 # The number of requests each provider is allowed to make per interval.
 RATE_LIMIT_MAX_COUNT = 8
 RATE_LIMIT_INTERVAL = 1.0
+
+# How many times an RPC fetch (a block or a receipt) is retried before it is given up on.
+MAX_FETCH_ATTEMPTS = 5
+# How long to wait between two fetch attempts.
+FETCH_RETRY_DELAY = 1.0
 
 # How often the progress and the failure lists are printed.
 REPORT_BLOCK_STEP = 100
@@ -139,6 +147,8 @@ class _Stats:
         self.command_stats["trailing_data_trx"] = 0
         self.decoding_failures: list[str] = []
         self.encoding_failures: list[str] = []
+        self.failed_blocks: list[int] = []
+        self.failed_receipts: list[str] = []
         self.requested_trx: list[dict[int, list[str]]] = (
             [{command: [] for command in self.requested_commands}] if self.requested_commands else []
         )
@@ -181,6 +191,8 @@ class _Stats:
         print("-" * 70, flush=True)
         print(f"decoding_failures: {self.decoding_failures}", flush=True)
         print(f"encoding_failures: {self.encoding_failures}", flush=True)
+        print(f"failed_blocks    : {self.failed_blocks}", flush=True)
+        print(f"failed_receipts  : {self.failed_receipts}", flush=True)
         print(f"requested_trx    : {self.requested_trx}", flush=True)
 
     async def block_done(self) -> None:
@@ -220,11 +232,13 @@ async def _flag_failure(tx_hash: str, pool: _ProviderPool, stats: _Stats, failur
     # A transaction the codec could not process is only a real failure of the codec if it succeeded on-chain:
     # a transaction that reverted may carry calldata the codec is not expected to handle.
     try:
-        async with pool.acquire() as provider:
-            receipt = await provider.get_receipt(tx_hash)
+        receipt = await _fetch_receipt(pool, tx_hash)
     except Exception as exc:
-        print(f"warning: could not fetch the receipt of {tx_hash}: {exc}", flush=True)
-        failures.append(tx_hash)
+        print(
+            f"warning: could not fetch the receipt of {tx_hash} after {MAX_FETCH_ATTEMPTS} attempts: {exc}",
+            flush=True,
+        )
+        stats.failed_receipts.append(tx_hash)
         return
     if receipt.get("status") == 1:
         failures.append(tx_hash)
@@ -278,6 +292,44 @@ async def _process_block(block: BlockData, pool: _ProviderPool, codec: AsyncRout
         await _process_tx(tx, pool, codec, stats)
 
 
+_T = TypeVar("_T")
+
+
+async def _retry_fetch(
+        pool: _ProviderPool,
+        fetch: Callable[[_Provider], Awaitable[_T]],
+        description: str) -> _T:
+    """
+    Run the given fetch callable against a provider borrowed from the pool, retrying transient RPC
+    failures up to MAX_FETCH_ATTEMPTS times.
+
+    :raises: the last exception if every attempt failed.
+    """
+    last_exc: Exception = RuntimeError(f"could not fetch {description}")
+    for attempt in range(1, MAX_FETCH_ATTEMPTS + 1):
+        try:
+            async with pool.acquire() as provider:
+                return await fetch(provider)
+        except Exception as exc:
+            last_exc = exc
+            if attempt < MAX_FETCH_ATTEMPTS:
+                print(
+                    f"warning: could not fetch {description} "
+                    f"(attempt {attempt}/{MAX_FETCH_ATTEMPTS}): {exc}; retrying",
+                    flush=True,
+                )
+                await asyncio.sleep(FETCH_RETRY_DELAY)
+    raise last_exc
+
+
+async def _fetch_block(pool: _ProviderPool, block_number: int) -> Optional[BlockData]:
+    return await _retry_fetch(pool, lambda provider: provider.get_block(block_number), f"block {block_number}")
+
+
+async def _fetch_receipt(pool: _ProviderPool, tx_hash: str) -> TxReceipt:
+    return await _retry_fetch(pool, lambda provider: provider.get_receipt(tx_hash), f"the receipt of {tx_hash}")
+
+
 async def _worker(
         pool: _ProviderPool,
         codec: AsyncRouterCodec,
@@ -289,10 +341,13 @@ async def _worker(
         except asyncio.QueueEmpty:
             return
         try:
-            async with pool.acquire() as provider:
-                block = await provider.get_block(block_number)
+            block = await _fetch_block(pool, block_number)
         except Exception as exc:
-            print(f"warning: could not fetch block {block_number}: {exc}", flush=True)
+            print(
+                f"warning: could not fetch block {block_number} after {MAX_FETCH_ATTEMPTS} attempts: {exc}",
+                flush=True,
+            )
+            stats.failed_blocks.append(block_number)
             await stats.block_done()
             continue
         if block is not None:
