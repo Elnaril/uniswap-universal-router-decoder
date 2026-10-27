@@ -87,23 +87,23 @@ run `ur-encode list` and look for the "rebuildable" flag.
 
 | Command Id  | Universal Router Function   | Underlying Action - Function | Supported |
 |-------------|-----------------------------|------------------------------|:---------:|
-| 0x00        | V3_SWAP_EXACT_IN            |                              |     ✅     |
-| 0x01        | V3_SWAP_EXACT_OUT           |                              |     ✅     |
-| 0x02        | PERMIT2_TRANSFER_FROM       |                              |     ✅     |
-| 0x03        | PERMIT2_PERMIT_BATCH        |                              |     ✅     |
-| 0x04        | SWEEP                       |                              |     ✅     |
-| 0x05        | TRANSFER                    |                              |     ✅     |
-| 0x06        | PAY_PORTION                 |                              |     ✅     |
-| 0x07        | PAY_PORTION_FULL_PRECISION  |                              |     ✅     |
-| 0x08        | V2_SWAP_EXACT_IN            |                              |     ✅     |
-| 0x09        | V2_SWAP_EXACT_OUT           |                              |     ✅     |
-| 0x0a        | PERMIT2_PERMIT              |                              |     ✅     |
-| 0x0b        | WRAP_ETH                    |                              |     ✅     |
-| 0x0c        | UNWRAP_WETH                 |                              |     ✅     |
-| 0x0d        | PERMIT2_TRANSFER_FROM_BATCH |                              |     ✅     |
-| 0x0e        | BALANCE_CHECK_ERC20         |                              |     ✅     |
-| 0x0f        | placeholder                 |                              |    N/A    |
-| 0x10        | V4_SWAP                     |                              |     ✅     |
+| 0x00 / 0    | V3_SWAP_EXACT_IN            |                              |     ✅     |
+| 0x01 / 1    | V3_SWAP_EXACT_OUT           |                              |     ✅     |
+| 0x02 / 2    | PERMIT2_TRANSFER_FROM       |                              |     ✅     |
+| 0x03 / 3    | PERMIT2_PERMIT_BATCH        |                              |     ✅     |
+| 0x04 / 4    | SWEEP                       |                              |     ✅     |
+| 0x05 / 5    | TRANSFER                    |                              |     ✅     |
+| 0x06 / 6    | PAY_PORTION                 |                              |     ✅     |
+| 0x07 / 7    | PAY_PORTION_FULL_PRECISION  |                              |     ✅     |
+| 0x08 / 8    | V2_SWAP_EXACT_IN            |                              |     ✅     |
+| 0x09 / 9    | V2_SWAP_EXACT_OUT           |                              |     ✅     |
+| 0x0a / 10   | PERMIT2_PERMIT              |                              |     ✅     |
+| 0x0b / 11   | WRAP_ETH                    |                              |     ✅     |
+| 0x0c / 12   | UNWRAP_WETH                 |                              |     ✅     |
+| 0x0d / 13   | PERMIT2_TRANSFER_FROM_BATCH |                              |     ✅     |
+| 0x0e / 14   | BALANCE_CHECK_ERC20         |                              |     ✅     |
+| 0x0f / 15   | placeholder                 |                              |    N/A    |
+| 0x10 / 16   | V4_SWAP                     |                              |     ✅     |
 |             |                             | 0x06 - SWAP_EXACT_IN_SINGLE  |     ✅     |
 |             |                             | 0x07 - SWAP_EXACT_IN         |     ✅     |
 |             |                             | 0x08 - SWAP_EXACT_OUT_SINGLE |     ✅     |
@@ -113,10 +113,10 @@ run `ur-encode list` and look for the "rebuildable" flag.
 |             |                             | 0x0e - TAKE                  |     ✅     |
 |             |                             | 0x0f - TAKE_ALL              |     ✅     |
 |             |                             | 0x10 - TAKE_PORTION          |     ✅     |
-| 0x11        | V3_POSITION_MANAGER_PERMIT  |                              |     ✅     |
-| 0x12        | V3_POSITION_MANAGER_CALL    |                              |     ✅     |
-| 0x13        | V4_INITIALIZE_POOL          |                              |     ✅     |
-| 0x14        | V4_POSITION_MANAGER_CALL    |                              |     ✅     |
+| 0x11 / 17   | V3_POSITION_MANAGER_PERMIT  |                              |     ✅     |
+| 0x12 / 18   | V3_POSITION_MANAGER_CALL    |                              |     ✅     |
+| 0x13 / 19   | V4_INITIALIZE_POOL          |                              |     ✅     |
+| 0x14 / 20   | V4_POSITION_MANAGER_CALL    |                              |     ✅     |
 |             |                             | 0x02 - MINT_POSITION         |     ✅     |
 |             |                             | 0x0b - SETTLE                |     ✅     |
 |             |                             | 0x0d - SETTLE_PAIR           |     ✅     |
@@ -128,9 +128,9 @@ run `ur-encode list` and look for the "rebuildable" flag.
 |             |                             | 0x15 - WRAP                  |     ✅     |
 |             |                             | 0x16 - UNWRAP                |     ✅     |
 | 0x15 - 0x20 | placeholders                |                              |    N/A    |
-| 0x21        | EXECUTE_SUB_PLAN            |                              |     ✅     |
+| 0x21 / 33   | EXECUTE_SUB_PLAN            |                              |     ✅     |
 | 0x22 - 0x3f | placeholders                |                              |    N/A    |
-| 0x40        | ACROSS_V4_DEPOSIT_V3        |                              |     ❌     |
+| 0x40 / 64   | ACROSS_V4_DEPOSIT_V3        |                              |     ❌     |
 
 All the ✅ commands can be decoded and encoded. `V4_SWAP`, `V4_POSITION_MANAGER_CALL` and `EXECUTE_SUB_PLAN` can also
 be decoded, but they cannot be rebuilt from a decoded call (see "How to rebuild the calldata from a decoded call").
