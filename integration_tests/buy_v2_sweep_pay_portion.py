@@ -17,7 +17,7 @@ from uniswap_universal_router_decoder import (
 web3_provider = os.environ['WEB3_HTTP_PROVIDER_URL_ETHEREUM_MAINNET']
 w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:8545"))
 chain_id = 1
-block_number = 25092859
+block_number = 26284671
 init_amount = 10000 * 10**18
 gas_limit = 800_000
 
@@ -33,7 +33,7 @@ weth_address = Web3.to_checksum_address("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756
 uni_address = Web3.to_checksum_address("0x1f9840a85d5af5bf1d1762f925bdaddc4201f984")
 uni_contract = w3.eth.contract(address=uni_address, abi=erc20_abi)
 
-ur_address = Web3.to_checksum_address("0x4C82D1fBFe28C977cBB58D8C7FF8FCF9F70a2cCA")
+ur_address = Web3.to_checksum_address("0x23617e59A5925b2A4Bf75d73ff6711cD0b29De85")
 
 codec = RouterCodec()
 
@@ -96,7 +96,7 @@ def buy_uni_with_fees():
     # Buying for 1 eth of uni from v2 and send 1% of out_amount to account_2
     v2_path = [weth_address, uni_address]
     v2_in_amount = 1 * 10**18  # 1 eth
-    v2_out_amount = 625 * 10**18
+    v2_out_amount = 320 * 10**18
     fees = 100  # 1%
     encoded_input = (
         codec

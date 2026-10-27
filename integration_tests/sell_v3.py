@@ -18,7 +18,7 @@ from uniswap_universal_router_decoder import (
 web3_provider = os.environ['WEB3_HTTP_PROVIDER_URL_ETHEREUM_MAINNET']
 w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:8545"))
 chain_id = 1  # Ethereum mainnet
-initial_block_number = 25092859
+initial_block_number = 26284671
 gas_limit = 800_000
 
 account: LocalAccount = Account.from_key("0xf7e96bcf6b5223c240ec308d8374ff01a753b00743b3a0127791f37f00c56514")
@@ -35,7 +35,7 @@ usdc_address = Web3.to_checksum_address("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606e
 usdc_contract = w3.eth.contract(address=usdc_address, abi=erc20_abi)
 
 # Universal Router address (Ethereum mainnet, latest)
-ur_address = Web3.to_checksum_address("0x4C82D1fBFe28C977cBB58D8C7FF8FCF9F70a2cCA")
+ur_address = Web3.to_checksum_address("0x23617e59A5925b2A4Bf75d73ff6711cD0b29De85")
 permit2_address = Web3.to_checksum_address("0x000000000022D473030F116dDEE9F6B43aC78BA3")
 
 codec = RouterCodec()
@@ -113,7 +113,7 @@ def buy_usdc():
     assert receipt["status"] == 1, f'receipt["status"] is actually {receipt["status"]}'  # trx success
 
     usdc_balance = usdc_contract.functions.balanceOf(account.address).call()
-    assert usdc_balance == 2256263298  # Expected USDC balance after buying with 1 ETH at block 23491937
+    assert usdc_balance == 2327246115, f"actual usdc_balance is {usdc_balance}"  # Expected USDC balance after buying with 1 ETH
 
     print(" => BUY USDC: OK")
 
@@ -174,10 +174,10 @@ def sell_usdc_part_1():
     assert receipt["status"] == 1, f'receipt["status"] is actually {receipt["status"]}'  # trx success
 
     usdc_balance = usdc_contract.functions.balanceOf(account.address).call()
-    assert usdc_balance == 1756263298  # Expected USDC balance after selling 500 USDC
+    assert usdc_balance == 1827246115, f"actual usdc_balance is {usdc_balance}"  # Expected USDC balance after selling 500 USDC
 
     weth_balance = weth_contract.functions.balanceOf(account.address).call()
-    assert weth_balance == 221385649920515118  # Expected WETH balance after first swap
+    assert weth_balance == 214635504516595816, f"actual weth_balance is {weth_balance}"  # Expected WETH balance after first swap
 
     print(" => SELL USDC for WETH PART 1: OK")
 
@@ -218,10 +218,10 @@ def sell_usdc_part_2():
     assert receipt["status"] == 1, f'receipt["status"] is actually {receipt["status"]}'  # trx success
 
     usdc_balance = usdc_contract.functions.balanceOf(account.address).call()
-    assert usdc_balance == 1256263298  # Expected USDC balance after selling another 500 USDC
+    assert usdc_balance == 1327246115, f"actual usdc_balance is {usdc_balance}"  # Expected USDC balance after selling another 500 USDC
 
     weth_balance = weth_contract.functions.balanceOf(account.address).call()
-    assert weth_balance == 442770242673489248  # Expected WETH balance after second swap
+    assert weth_balance == 429268771945658428, f"actual weth_balance is {weth_balance}"  # Expected WETH balance after second swap
 
     amount, expiration, nonce = codec.fetch_permit2_allowance(account.address, usdc_address)
     assert amount == 2**160 - 1, "Wrong Permit2 allowance amount"  # infinite allowance

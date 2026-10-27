@@ -23,7 +23,7 @@ account: LocalAccount = Account.from_key("0xf7e96bcf6b5223c240ec308d8374ff01a753
 assert account.address == "0x1e46c294f20bC7C27D93a9b5f45039751D8BCc3e"
 
 chain_id = 1
-initial_block_number = 25092859
+initial_block_number = 26284671
 initial_eth_amount = 10000 * 10**18
 
 recipients = tuple(
@@ -40,7 +40,7 @@ weth_contract = w3.eth.contract(address=weth_address, abi=weth_abi)
 usdc_address = Web3.to_checksum_address("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48")
 usdc_contract = w3.eth.contract(address=usdc_address, abi=erc20_abi)
 
-ur_address = Web3.to_checksum_address("0x4C82D1fBFe28C977cBB58D8C7FF8FCF9F70a2cCA")
+ur_address = Web3.to_checksum_address("0x23617e59A5925b2A4Bf75d73ff6711cD0b29De85")
 
 codec = RouterCodec()
 
