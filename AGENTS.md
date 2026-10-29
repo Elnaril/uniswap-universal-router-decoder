@@ -24,8 +24,10 @@ The CLI and MCP tools are **read-only**: they inspect or derive UR data and neve
   the encoder, decoder, CLI and MCP server.
 - `tests/` — offline unit tests. `tests/conftest.py` holds the fixtures.
 - `integration_tests/` — live-RPC tests.
+- `scripts/` — dev tools (ex: `ur_command_usage.py`, which samples UR command usage over a block range).
 - `coverage.json` — a tracked, generated artifact (regenerate it before committing).
 - `server.json` — metadata for the MCP Registry; **not** a runtime file.
+- `llms.txt` — a short, agent-oriented summary of the project.
 
 ## Dev setup
 
@@ -43,6 +45,7 @@ flake8 tests
 flake8 integration_tests
 isort --check --diff uniswap_universal_router_decoder
 isort --check --diff tests
+isort --check --diff integration_tests
 coverage run -m pytest tests && coverage report -m && coverage json   # coverage must stay at 100%
 ```
 
@@ -70,8 +73,6 @@ coverage run -m pytest tests && coverage report -m && coverage json   # coverage
 - **RPC tests.** `tests/conftest.py` hardcodes the endpoint (`rpc_endpoint_address`). For offline runs, deselect the
   RPC-dependent `test_decode_transaction` cases **by node id** — a `-k` filter is a substring match and also drops
   unrelated `test_decode_transaction_*` tests.
-- **Inert config.** The `[tool.pytest]` section in `pyproject.toml` is inert (pytest reads `[tool.pytest.ini_options]`),
-  and there is no `pytest.ini`. Do not assume those options apply.
 - **Version lives in more than one file.** `pyproject.toml`'s `[project] version` is the source of truth, but
   `server.json` must repeat it in the *normalized* PEP 440 form (ex: `1.2.3b1`, not `1.2.3-beta.1`).
   `tests/test_version_consistency.py` fails the build if they drift, and also checks the README `mcp-name:` marker
@@ -84,5 +85,6 @@ ur-encode list                          # describe the decoded call format and t
 ur-encode describe V3_SWAP_EXACT_IN     # describe one command's parameters
 ur-decode calldata 0x3593564c...        # decode raw calldata
 ur-decode tx 0x... --rpc https://...    # decode a transaction (needs an RPC endpoint)
+ur-decode tx 0x...                      # decode a transaction (uses $RPC_URL)
 ur-mcp                                  # MCP server over stdio (needs the [mcp] extra)
 ```
