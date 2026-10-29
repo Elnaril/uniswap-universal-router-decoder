@@ -17,7 +17,8 @@ pip install 'uniswap-universal-router-decoder[mcp]'   # + the ur-mcp MCP server
 ## Public surfaces
 
 - **Python API** — `RouterCodec` / `AsyncRouterCodec`; public `encoder` and `decoder` modules.
-- **CLI** — `ur-decode` / `ur-encode`, which print JSON to stdout.
+- **CLI** — `ur-decode` (`tx`, `calldata`, `error`, `v3-path`) and `ur-encode` (`list`, `describe`, `build`, `v3-path`),
+  which print JSON to stdout. `ur-decode tx` needs an RPC endpoint (`--rpc`, defaulting to `$RPC_URL`).
 - **MCP server** — `ur-mcp`, a side-effect-free Model Context Protocol server over stdio, exposing 8 tools:
   `list_commands`, `describe_command`, `decode_transaction`, `decode_calldata`, `encode_calldata`, `decode_error`,
   `decode_v3_path`, `encode_v3_path`. Only `decode_transaction` needs an RPC endpoint (`rpc_url` argument or
@@ -38,7 +39,8 @@ pip install 'uniswap-universal-router-decoder[mcp]'   # + the ur-mcp MCP server
 - The MCP server is registered with the MCP Registry as
   `io.github.Elnaril/uniswap-universal-router-decoder`.
 - Not every Universal Router function is rebuildable through the CLI / MCP tools: the three structured commands
-  (`V4_SWAP`, `V4_POSITION_MANAGER_CALL`, `EXECUTE_SUB_PLAN`) are decode-only.
+  (`V4_SWAP`, `V4_POSITION_MANAGER_CALL`, `EXECUTE_SUB_PLAN`) are decode-only. `ur-encode list` / `list_commands`
+  report the rebuildable flag for each command.
 - The decoder's JSON output (`decoded_input_to_dict()`) is also the input format of `Encoder.function_input()`, the
   `ur-encode build` CLI command and the `encode_calldata` MCP tool.
 - The MCP tools are annotated as read-only (`readOnlyHint`), and only `decode_transaction` as open-world
