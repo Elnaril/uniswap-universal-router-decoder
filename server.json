@@ -7,12 +7,12 @@
     "url": "https://github.com/Elnaril/uniswap-universal-router-decoder",
     "source": "github"
   },
-  "version": "4.0.0b1",
+  "version": "4.0.0",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "uniswap-universal-router-decoder",
-      "version": "4.0.0b1",
+      "version": "4.0.0",
       "runtimeHint": "uvx",
       "transport": {
         "type": "stdio"
