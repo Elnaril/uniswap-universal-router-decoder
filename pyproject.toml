@@ -77,7 +77,7 @@ executionEnvironments = [
     { root = "integration_tests" , extraPaths = ["."], reportMissingTypeArgument = false, reportUnknownParameterType = false, reportUnknownVariableType = false, reportUnknownMemberType = false, reportUnknownArgumentType = false, reportArgumentType = false, reportMissingParameterType = false, reportPrivateUsage = false, reportAttributeAccessIssue = "hint" },
 ]
 
-[tool.pytest]
+[tool.pytest.ini_options]
 asyncio_mode = "auto"
 filterwarnings = [
     'ignore:websockets.legacy is deprecated:DeprecationWarning',
