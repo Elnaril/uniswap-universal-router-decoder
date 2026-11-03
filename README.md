@@ -22,6 +22,7 @@
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/Elnaril/uniswap-universal-router-decoder)](https://github.com/Elnaril/uniswap-universal-router-decoder/releases)
 [![PyPi Repository](https://img.shields.io/badge/repository-pipy.org-blue)](https://pypi.org/project/uniswap-universal-router-decoder/)
 [![GitHub](https://img.shields.io/github/license/Elnaril/uniswap-universal-router-decoder)](https://github.com/Elnaril/uniswap-universal-router-decoder/blob/master/LICENSE)
+[![Uniswap Universal Router Decoder MCP on mcprush](https://mcprush.com/badge/uniswap-universal-router-decoder-mcp/score.svg)](https://mcprush.com/to/uniswap-universal-router-decoder-mcp?ref=badge)
 
 #### Code Quality
 [![CodeQL](https://github.com/elnaril/uniswap-universal-router-decoder/workflows/CodeQL/badge.svg)](https://github.com/Elnaril/uniswap-universal-router-decoder/actions/workflows/github-code-scanning/codeql)
